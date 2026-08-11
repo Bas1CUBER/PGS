@@ -259,6 +259,14 @@ $pageStyles = 'html, body {
       color: white !important;
       border-color: linear-gradient(90deg, #1e88e5 0%, #0d5bd1 50%, #0b4aa2 100%);
     }
+    .notice-card:hover h5,
+    .notice-card:hover p,
+    .notice-card:hover a,
+    .notice-card:hover small,
+    .notice-card:hover .text-muted,
+    .notice-card:hover .card-title {
+      color: #fff !important;
+    }
 
     .notice-card img {
       max-width: 100%;

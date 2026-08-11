@@ -107,6 +107,21 @@ h1, h5 { margin-bottom: 1rem; }
   color: white !important;
   border-color: #0b4aa2;
 }
+/* Keep every text element inside a notice card readable when hovered */
+.notice-card:hover h5,
+.notice-card:hover p,
+.notice-card:hover a,
+.notice-card:hover small,
+.notice-card:hover .text-muted,
+.notice-card:hover .notice-title,
+.notice-card:hover .notice-text,
+.notice-card:hover .card-title {
+  color: #fff !important;
+}
+.notice-card:hover a {
+  text-decoration: underline;
+  color: #fff !important;
+}
 .notice-card img { max-width: 100%; border-radius: 8px; margin-bottom: 10px; }
 .notice-card .card-body { display: flex; flex-direction: column; justify-content: space-between; }
 .notice-card h5 { font-weight: 700; color: #2c3e50; }
@@ -162,6 +177,112 @@ h1, h5 { margin-bottom: 1rem; }
 
 /* ── Page-specific overrides (kept minimal) ───── */
 .text-green { background-color: #196a6b; color: white; }
+
+/* ── Accessible interactive states ────────────
+   Ensure hovered/focused text stays readable and visible. */
+:focus-visible {
+  outline: 2px solid #0b4aa2;
+  outline-offset: 2px;
+}
+
+/* Generic link hovers stay readable (they only darken/underline) */
+a:hover {
+  color: #083a7f;
+}
+
+/* Buttons: keep text readable when hovered/focused/active */
+.btn:hover,
+.btn:focus-visible,
+.btn:active {
+  color: inherit;
+}
+.btn-primary:hover,
+.btn-primary:focus-visible,
+.btn-primary:active {
+  color: #fff;
+}
+.btn-secondary:hover,
+.btn-secondary:focus-visible,
+.btn-secondary:active {
+  color: #4a5568;
+}
+.btn-success:hover,
+.btn-success:focus-visible,
+.btn-success:active {
+  color: #fff;
+}
+.btn-danger:hover,
+.btn-danger:focus-visible,
+.btn-danger:active {
+  color: #fff;
+}
+.btn-warning:hover,
+.btn-warning:focus-visible,
+.btn-warning:active {
+  color: #111827;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus-visible,
+.btn-outline-primary:active {
+  color: #fff;
+}
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus-visible,
+.btn-outline-secondary:active {
+  color: #2c3e50;
+}
+.btn-outline-success:hover,
+.btn-outline-success:focus-visible,
+.btn-outline-success:active {
+  color: #fff;
+}
+.btn-outline-danger:hover,
+.btn-outline-danger:focus-visible,
+.btn-outline-danger:active {
+  color: #fff;
+}
+.btn-outline-warning:hover,
+.btn-outline-warning:focus-visible,
+.btn-outline-warning:active {
+  color: #111827;
+}
+.btn-light:hover,
+.btn-light:focus-visible,
+.btn-light:active {
+  color: #111827;
+}
+.btn-dark:hover,
+.btn-dark:focus-visible,
+.btn-dark:active {
+  color: #fff;
+}
+
+/* Navbar dropdown items: never invisible on hover/focus/active */
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus-visible,
+.dropdown-menu .dropdown-item:active {
+  color: #0b4aa2;
+}
+.dropdown-menu .dropdown-item:hover .text-muted,
+.dropdown-menu .dropdown-item:hover small {
+  color: #0b4aa2;
+}
+
+/* Links/buttons inside cards that change colour on hover must stay readable */
+.card a:hover,
+.card a:focus-visible {
+  color: #083a7f;
+}
+
+/* Table row hovers keep readable text (light background, dark text) */
+.table tbody tr:hover {
+  background-color: #f1f5fb;
+  color: #2c3e50;
+}
+.table tbody tr:hover td,
+.table tbody tr:hover a {
+  color: #2c3e50;
+}
 
 /* ── Navbar & Header ────────────────────── */
 /* Submenu dropdown styles (applies to all levels of submenus) */
@@ -273,9 +394,10 @@ h1, h5 { margin-bottom: 1rem; }
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  .navbar-nav .dropdown-item:active {
-    background-color: lightgray !important;
-    color: inherit !important;
+  .navbar-nav .dropdown-item:active,
+  .navbar-nav .dropdown-item:focus {
+    background-color: #0b4aa2 !important;
+    color: #fff !important;
     transition: background-color 0.2s ease;
   }
 

@@ -299,7 +299,7 @@ $pageStyles = <<<'CSS'
     
     .btn-outline-gold:hover {
       background: var(--pgs-gold);
-      color: #fff;
+      color: var(--pgs-gold-dark);
     }
     
     @media (max-width: 991px) {

@@ -107,6 +107,14 @@ $pageStyles = 'html,
       color: white !important;
       border-color: #d4ac0d;
     }
+    .notice-card:hover h5,
+    .notice-card:hover p,
+    .notice-card:hover a,
+    .notice-card:hover small,
+    .notice-card:hover .text-muted,
+    .notice-card:hover .card-title {
+      color: #1f2d3d !important;
+    }
 
     .notice-card img {
       max-width: 100%;
