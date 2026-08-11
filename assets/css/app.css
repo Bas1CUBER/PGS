@@ -222,7 +222,6 @@ h1, h5 { margin-bottom: 1rem; }
     right: 0;
     z-index: 1050;
     font-family: 'Inter', 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 0.45rem 2rem;
     background-color: #0b4aa2 !important;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
@@ -397,21 +396,9 @@ h1, h5 { margin-bottom: 1rem; }
     color: white;
   }
 
-  /* Center main nav items, keep notifications/logout at far right */
+  /* Nav links + right utilities: ms-auto pushes bell/logout to the far right */
   #navbarNavDropdown {
-    position: relative;
-    /* Reserve space so the centered menu never slides under the pinned bell/logout */
-    padding-right: 205px;
-  }
-  #navbarNavDropdown > .navbar-nav:first-child {
-    margin: 0 auto;
-  }
-  #navbarNavDropdown > .navbar-nav:last-child {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    gap: 0.5rem;
+    flex-grow: 1;
   }
   #navbarNavDropdown > .navbar-nav:last-child .nav-item {
     margin-left: 0; /* spacing handled by the gap, not per-item margins */
@@ -433,7 +420,6 @@ h1, h5 { margin-bottom: 1rem; }
 
   /* ── Responsive (tablet/mobile) fixes ────────── */
   @media (min-width: 1200px) and (max-width: 1299.98px) {
-    .navbar { padding: 0.45rem 0.75rem; }
     #navbarNavDropdown { padding-right: 160px; }
     .navbar-brand { margin-right: 0.5rem !important; }
     .navbar-brand img { height: 40px; }
@@ -442,7 +428,6 @@ h1, h5 { margin-bottom: 1rem; }
   }
 
   @media (min-width: 1300px) and (max-width: 1399.98px) {
-    .navbar { padding: 0.45rem 0.75rem; }
     #navbarNavDropdown { padding-right: 160px; }
     .navbar-brand { margin-right: 0.5rem !important; }
     .navbar-brand img { height: 42px; }
@@ -451,7 +436,6 @@ h1, h5 { margin-bottom: 1rem; }
   }
 
   @media (min-width: 1400px) and (max-width: 1599.98px) {
-    .navbar { padding: 0.45rem 0.75rem; }
     #navbarNavDropdown { padding-right: 180px; }
     .navbar-brand { margin-right: 0.75rem !important; }
     .navbar-brand img { height: 44px; }
@@ -460,7 +444,6 @@ h1, h5 { margin-bottom: 1rem; }
   }
 
   @media (max-width: 1199.98px) {
-    .navbar { padding: 0.45rem 1rem; }
     #navbarNavDropdown { padding-right: 0; }
     .navbar-brand img { height: 44px; }
     .navbar-nav .nav-item { margin-left: 0; }
@@ -474,8 +457,7 @@ h1, h5 { margin-bottom: 1rem; }
 
     /* Bell + logout flow inline under the menu, not over it */
     #navbarNavDropdown > .navbar-nav:last-child {
-      position: static;
-      transform: none;
+      margin-left: 0;
       flex-direction: row;
       align-items: center;
       gap: 0.75rem;

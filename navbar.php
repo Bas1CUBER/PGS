@@ -50,7 +50,7 @@ if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal']
 ?>
 
 <!-- Updated Navbar HTML with Example Nested Submenu -->
-<nav class="navbar navbar-expand-xl navbar-dark sticky-top">
+<nav class="navbar navbar-expand-xl navbar-dark sticky-top bg-primary px-4 py-2">
   <div class="container-fluid">
     <!-- Logo and Brand -->
     <a class="navbar-brand d-flex align-items-center me-4" href="<?php echo $dashboardLink; ?>">
@@ -66,7 +66,7 @@ if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal']
     <!-- Navigation Menu -->
     <div class="collapse navbar-collapse" id="navbarNavDropdown">
       <!-- Left-aligned Links -->
-      <ul class="navbar-nav mb-2 mb-xl-0">
+      <ul class="navbar-nav d-flex align-items-center gap-3 mb-0">
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" data-allowed="<?= (int)$pageAccess['roadmaps'] ?>">Roadmaps</a>
           <ul class="dropdown-menu">
@@ -219,7 +219,7 @@ if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal']
       </ul>
 
       <!-- Right-aligned Notifications and Logout -->
-      <ul class="navbar-nav">
+      <ul class="navbar-nav ms-auto d-flex align-items-center gap-3 mb-0">
         <li class="nav-item dropdown" id="notificationDropdown">
           <a class="nav-link text-white position-relative bell-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             <span class="bell-icon-wrap"><i data-lucide="bell"></i></span>
