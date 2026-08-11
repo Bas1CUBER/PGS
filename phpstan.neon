@@ -1,0 +1,8 @@
+parameters:
+    level: 0
+    paths:
+        - src
+        - templates
+    excludePaths:
+        - vendor
+        - _archive

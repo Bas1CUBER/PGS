@@ -1,0 +1,18 @@
+{
+    "name": "trc-doh/pgs",
+    "description": "Performance Governance System - TRC DOH",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "PGS\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "*",
+        "phpstan/phpstan": "*",
+        "friendsofphp/php-cs-fixer": "*"
+    }
+}

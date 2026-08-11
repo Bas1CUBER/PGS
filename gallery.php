@@ -1,0 +1,501 @@
+<?php
+require_once __DIR__ . '/src/bootstrap.php';
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? null, ['admin', 'employee', 'focal'], true)) {
+    header("Location: " . BASE_URL . "/login");
+    exit();
+}
+$role = $_SESSION['role'] ?? null;
+
+// Create tables if not exist
+$pdo->exec("
+    CREATE TABLE IF NOT EXISTS gallery_albums (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    
+    CREATE TABLE IF NOT EXISTS gallery_photos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        album_id INT NOT NULL,
+        filename VARCHAR(255) NOT NULL,
+        caption TEXT,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (album_id) REFERENCES gallery_albums(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+");
+
+// Upload directory
+$uploadDir = __DIR__ . '/gallery_uploads';
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0755, true);
+}
+
+$message = '';
+$messageType = '';
+
+// Handle POST actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf()) {
+    http_response_code(403);
+    echo "Invalid or expired form token.";
+    exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    
+    // Add Album (admin and focal)
+    if ($action === 'add_album' && in_array($role, ['admin', 'focal'])) {
+        $name = trim($_POST['album_name'] ?? '');
+        $description = trim($_POST['album_description'] ?? '');
+        if ($name !== '') {
+            $stmt = $pdo->prepare('INSERT INTO gallery_albums (name, description) VALUES (?, ?)');
+            $stmt->execute([$name, $description]);
+            $message = 'Album created successfully.';
+            $messageType = 'success';
+        } else {
+            $message = 'Album name is required.';
+            $messageType = 'danger';
+        }
+    }
+
+    // Edit Album (admin and focal)
+    if ($action === 'update_album' && in_array($role, ['admin', 'focal'])) {
+        $albumId = (int)($_POST['album_id'] ?? 0);
+        $name = trim($_POST['album_name'] ?? '');
+        $description = trim($_POST['album_description'] ?? '');
+        if ($albumId > 0 && $name !== '') {
+            $stmt = $pdo->prepare('UPDATE gallery_albums SET name = ?, description = ? WHERE id = ?');
+            $stmt->execute([$name, $description !== '' ? $description : null, $albumId]);
+            $message = 'Album updated successfully.';
+            $messageType = 'success';
+        } else {
+            $message = 'Album name is required.';
+            $messageType = 'danger';
+        }
+    }
+    
+    // Delete Album (admin only)
+    if ($action === 'delete_album' && $role === 'admin') {
+        $albumId = (int)($_POST['album_id'] ?? 0);
+        if ($albumId > 0) {
+            // Get photos to delete files
+            $stmt = $pdo->prepare('SELECT filename FROM gallery_photos WHERE album_id = ?');
+            $stmt->execute([$albumId]);
+            $photos = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($photos as $filename) {
+                $filePath = $uploadDir . '/' . $filename;
+                if (file_exists($filePath)) {
+                    @unlink($filePath);
+                }
+            }
+            // Delete album (photos will cascade delete)
+            $stmt = $pdo->prepare('DELETE FROM gallery_albums WHERE id = ?');
+            $stmt->execute([$albumId]);
+            $message = 'Album deleted successfully.';
+            $messageType = 'success';
+        }
+    }
+    
+    // Upload Photos (admin and focal)
+    if ($action === 'upload_photos' && in_array($role, ['admin', 'focal'])) {
+        $albumId = (int)($_POST['album_id'] ?? 0);
+        if ($albumId > 0 && isset($_FILES['photos'])) {
+            $captions = $_POST['captions'] ?? [];
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            $extMap = [
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                'image/gif' => 'gif'
+            ];
+            $maxSize = 20 * 1024 * 1024;
+            $uploadCount = 0;
+            
+            foreach ($_FILES['photos']['tmp_name'] as $i => $tmpName) {
+                if (is_uploaded_file($tmpName)) {
+                    $fileType = $_FILES['photos']['type'][$i];
+                    $fileSize = $_FILES['photos']['size'][$i];
+                    
+                    if (in_array($fileType, $allowedTypes) && $fileSize <= $maxSize) {
+                        $ext = $extMap[$fileType];
+                        $filename = uniqid('img_') . '.' . $ext;
+                        $destPath = $uploadDir . '/' . $filename;
+                        
+                        if (move_uploaded_file($tmpName, $destPath)) {
+                            $caption = trim($captions[$i] ?? '');
+                            $stmt = $pdo->prepare('INSERT INTO gallery_photos (album_id, filename, caption) VALUES (?, ?, ?)');
+                            $stmt->execute([$albumId, $filename, $caption !== '' ? $caption : null]);
+                            $uploadCount++;
+                        }
+                    }
+                }
+            }
+            $message = "$uploadCount photo(s) uploaded successfully.";
+            $messageType = 'success';
+        }
+    }
+    
+    // Delete Photo (admin only)
+    if ($action === 'delete_photo' && $role === 'admin') {
+        $photoId = (int)($_POST['photo_id'] ?? 0);
+        if ($photoId > 0) {
+            $stmt = $pdo->prepare('SELECT filename FROM gallery_photos WHERE id = ?');
+            $stmt->execute([$photoId]);
+            $filename = $stmt->fetchColumn();
+            if ($filename) {
+                $filePath = $uploadDir . '/' . $filename;
+                if (file_exists($filePath)) {
+                    @unlink($filePath);
+                }
+                $stmt = $pdo->prepare('DELETE FROM gallery_photos WHERE id = ?');
+                $stmt->execute([$photoId]);
+                $message = 'Photo deleted successfully.';
+                $messageType = 'success';
+            }
+        }
+    }
+    
+    // Update Caption (admin and focal)
+    if ($action === 'update_caption' && in_array($role, ['admin', 'focal'])) {
+        $photoId = (int)($_POST['photo_id'] ?? 0);
+        $caption = trim($_POST['caption'] ?? '');
+        if ($photoId > 0) {
+            $stmt = $pdo->prepare('UPDATE gallery_photos SET caption = ? WHERE id = ?');
+            $stmt->execute([$caption !== '' ? $caption : null, $photoId]);
+            $message = 'Caption updated successfully.';
+            $messageType = 'success';
+        }
+    }
+}
+
+// Fetch albums
+$stmt = $pdo->query('SELECT * FROM gallery_albums ORDER BY created_at DESC');
+$albums = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch photos for selected album
+$selectedAlbum = null;
+$photos = [];
+$albumId = isset($_GET['album_id']) ? (int)$_GET['album_id'] : 0;
+if ($albumId > 0) {
+    $stmt = $pdo->prepare('SELECT * FROM gallery_albums WHERE id = ?');
+    $stmt->execute([$albumId]);
+    $selectedAlbum = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    $stmt = $pdo->prepare('SELECT * FROM gallery_photos WHERE album_id = ? ORDER BY uploaded_at DESC');
+    $stmt->execute([$albumId]);
+    $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+$pageTitle = 'Gallery - PGS';
+$pageStyles = <<<'STYLES'
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif; background-color: #f5f7fa; }
+main { flex: 1; }
+.page-container { padding-top: 90px; }
+.album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+.album-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.3s ease; cursor: pointer; position: relative; }
+.album-card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.15); }
+.album-cover { height: 200px; background: linear-gradient(135deg, #1e88e5 0%, #0b4aa2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem; }
+.album-cover img { width: 100%; height: 100%; object-fit: cover; }
+.album-info { padding: 1rem; }
+.album-info h5 { margin: 0; font-weight: 600; color: #2c3e50; }
+.album-info p { margin: 0.5rem 0 0; color: #6c757d; font-size: 0.875rem; }
+.album-count { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; }
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+.photo-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); transition: all 0.3s ease; }
+.photo-card:hover { transform: scale(1.02); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+.photo-img { width: 100%; height: 200px; object-fit: cover; cursor: zoom-in; }
+.photo-caption { padding: 0.75rem; font-size: 0.875rem; color: #495057; min-height: 50px; }
+.photo-actions { padding: 0.5rem 0.75rem; background: #f8f9fa; display: flex; gap: 0.5rem; }
+.back-btn { margin-bottom: 1.5rem; }
+.toolbar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.modal-img { max-width: 100%; max-height: 70vh; border-radius: 8px; }
+.modal-caption { padding: 1rem; background: #f8f9fa; border-radius: 8px; margin-top: 1rem; font-size: 1rem; color: #495057; }
+.upload-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; max-height: 400px; overflow-y: auto; padding: 1rem; background: #f8f9fa; border-radius: 8px; }
+.preview-item { position: relative; }
+.preview-item img { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; }
+.preview-item textarea { width: 100%; margin-top: 0.5rem; font-size: 0.75rem; border-radius: 4px; border: 1px solid #dee2e6; padding: 0.25rem; resize: none; height: 50px; }
+STYLES;
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
+  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css">
+  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
+</head>
+<body>
+  <?php include PGS_TEMPLATES . '/navbar.php'; ?>
+  <div class="page-wrapper">
+
+    <main>
+        <div class="container page-container">
+            <?php if ($message): ?>
+                <div class="alert alert-<?php echo h($messageType); ?> alert-dismissible fade show" role="alert">
+                    <?php echo h($message); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($selectedAlbum): ?>
+                <!-- Photo View -->
+                <button class="btn btn-outline-secondary back-btn" onclick="window.location.href='gallery.php'">
+                    <i data-lucide="arrow-left" class="me-2"></i>Back to Albums
+                </button>
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 class="fw-bold mb-1"><?php echo h($selectedAlbum['name']); ?></h3>
+                        <?php if ($selectedAlbum['description']): ?>
+                            <p class="text-muted mb-0"><?php echo h($selectedAlbum['description']); ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (in_array($role, ['admin', 'focal'])): ?>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                            <i data-lucide="upload" class="me-2"></i>Upload Photos
+                        </button>
+                    <?php endif; ?>
+                </div>
+                
+                <?php if (empty($photos)): ?>
+                    <div class="text-center py-5">
+                        <i data-lucide="images" width="4em" height="4em" class="text-muted mb-3"></i>
+                        <h5 class="text-muted">No photos yet</h5>
+                        <?php if (in_array($role, ['admin', 'focal'])): ?>
+                            <p class="text-muted">Click "Upload Photos" to add photos to this album.</p>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="photo-grid">
+                        <?php foreach ($photos as $photo): ?>
+                            <div class="photo-card">
+                                <img src="gallery_uploads/<?php echo h($photo['filename']); ?>" 
+                                     alt="Photo" class="photo-img"
+                                     data-filename="<?php echo h($photo['filename']); ?>"
+                                     data-caption="<?php echo h($photo['caption'] ?? ''); ?>"
+                                     style="cursor: zoom-in;">
+                                <?php if ($photo['caption']): ?>
+                                    <div class="photo-caption"><?php echo h($photo['caption']); ?></div>
+                                <?php endif; ?>
+                                <?php if (in_array($role, ['admin', 'focal'])): ?>
+                                    <div class="photo-actions">
+                                        <button class="btn btn-sm btn-outline-primary edit-caption-btn"
+                                                data-photo-id="<?php echo h($photo['id']); ?>"
+                                                data-caption="<?php echo h($photo['caption'] ?? ''); ?>">
+                                            <i data-lucide="pencil"></i>
+                                        </button>
+                                        <?php if ($role === 'admin'): ?>
+                                        <button class="btn btn-sm btn-outline-danger delete-photo-btn"
+                                                data-photo-id="<?php echo h($photo['id']); ?>">
+                                            <i data-lucide="trash-2"></i>
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+                
+            <?php else: ?>
+                <!-- Album Grid View -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="fw-bold mb-0">Gallery</h3>
+                    <?php if (in_array($role, ['admin', 'focal'])): ?>
+                        <div class="toolbar">
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAlbumModal">
+                                <i data-lucide="plus" class="me-2"></i>Add Album
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                
+                <?php if (empty($albums)): ?>
+                    <div class="text-center py-5">
+                        <i data-lucide="folder-open" width="4em" height="4em" class="text-muted mb-3"></i>
+                        <h5 class="text-muted">No albums yet</h5>
+                        <?php if (in_array($role, ['admin', 'focal'])): ?>
+                            <p class="text-muted">Click "Add Album" to create your first album.</p>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="album-grid">
+                        <?php foreach ($albums as $album): ?>
+                            <?php
+                            // Get photo count and cover image
+                            $stmt = $pdo->prepare('SELECT COUNT(*) as cnt, filename FROM gallery_photos WHERE album_id = ? ORDER BY uploaded_at DESC LIMIT 1');
+                            $stmt->execute([$album['id']]);
+                            $photoInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+                            $photoCount = $photoInfo['cnt'] ?? 0;
+                            $coverImage = $photoInfo['filename'] ?? null;
+                            ?>
+                            <div class="album-card" onclick="window.location.href='gallery.php?album_id=<?php echo h($album['id']); ?>'">
+                                <div class="album-cover">
+                                    <?php if ($coverImage && file_exists($uploadDir . '/' . $coverImage)): ?>
+                                        <img src="gallery_uploads/<?php echo h($coverImage); ?>" alt="Cover">
+                                    <?php else: ?>
+                                        <i data-lucide="images"></i>
+                                    <?php endif; ?>
+                                </div>
+                                <span class="album-count"><?php echo h($photoCount); ?> photo<?php echo $photoCount !== 1 ? 's' : ''; ?></span>
+                                <div class="album-info">
+                                    <h5><?php echo h($album['name']); ?></h5>
+                                    <?php if ($album['description']): ?>
+                                        <p><?php echo h(mb_strimwidth($album['description'], 0, 80, '...')); ?></p>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (in_array($role, ['admin', 'focal'])): ?>
+                                    <div class="position-absolute bottom-0 end-0 p-2">
+                                        <button class="btn btn-sm btn-warning me-1 edit-album-btn"
+                                                data-album-id="<?php echo (int)$album['id']; ?>"
+                                                data-album-name="<?php echo h($album['name']); ?>"
+                                                data-album-description="<?php echo h($album['description'] ?? ''); ?>"
+                                                onclick="event.stopPropagation();">
+                                            <i data-lucide="pencil"></i>
+                                        </button>
+                                        <?php if ($role === 'admin'): ?>
+                                        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteAlbum(<?php echo h($album['id']); ?>)">
+                                            <i data-lucide="trash-2"></i>
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+<?php
+$pageScripts = '<script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var photoGrid = document.querySelector(".photo-grid");
+            if (photoGrid) {
+                photoGrid.addEventListener("click", function(e) {
+                    var photoImg = e.target.closest(".photo-img");
+                    if (photoImg && !e.target.closest(".photo-actions")) {
+                        var filename = photoImg.getAttribute("data-filename");
+                        var caption = photoImg.getAttribute("data-caption");
+                        if (filename) {
+                            var zoomImg = document.getElementById("zoomImg");
+                            var captionEl = document.getElementById("zoomCaption");
+                            zoomImg.src = "gallery_uploads/" + filename;
+                            if (caption && caption.trim() !== "") {
+                                captionEl.textContent = caption;
+                                captionEl.style.display = "block";
+                            } else {
+                                captionEl.style.display = "none";
+                            }
+                            var zoomModal = new bootstrap.Modal(document.getElementById("zoomModal"));
+                            zoomModal.show();
+                        }
+                    }
+';
+if (in_array($role, ['admin', 'focal'])) {
+    $pageScripts .= '
+                    var editBtn = e.target.closest(".edit-caption-btn");
+                    if (editBtn) {
+                        e.stopPropagation();
+                        var photoId = editBtn.getAttribute("data-photo-id");
+                        var caption = editBtn.getAttribute("data-caption");
+                        document.getElementById("captionPhotoId").value = photoId;
+                        document.getElementById("captionText").value = caption || "";
+                        var captionModal = new bootstrap.Modal(document.getElementById("captionModal"));
+                        captionModal.show();
+                    }
+';
+}
+if ($role === 'admin') {
+    $pageScripts .= '
+                    var deleteBtn = e.target.closest(".delete-photo-btn");
+                    if (deleteBtn) {
+                        e.stopPropagation();
+                        var photoId = deleteBtn.getAttribute("data-photo-id");
+                        if (confirm("Are you sure you want to delete this photo?")) {
+                            document.getElementById("deletePhotoId").value = photoId;
+                            document.getElementById("deletePhotoForm").submit();
+                        }
+                    }
+';
+}
+$pageScripts .= '            });
+            }
+';
+if ($role === 'admin') {
+    $pageScripts .= '
+            window.deleteAlbum = function(albumId) {
+                if (confirm("Are you sure you want to delete this album and all its photos?")) {
+                    document.getElementById("deleteAlbumId").value = albumId;
+                    document.getElementById("deleteAlbumForm").submit();
+                }
+            };
+';
+}
+if (in_array($role, ['admin', 'focal'])) {
+    $pageScripts .= '
+            document.querySelectorAll(".edit-album-btn").forEach(function(btn) {
+                btn.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    var albumId = this.getAttribute("data-album-id");
+                    var albumName = this.getAttribute("data-album-name") || "";
+                    var albumDescription = this.getAttribute("data-album-description") || "";
+                    document.getElementById("editAlbumId").value = albumId;
+                    document.getElementById("editAlbumName").value = albumName;
+                    document.getElementById("editAlbumDescription").value = albumDescription;
+                    var editAlbumModal = new bootstrap.Modal(document.getElementById("editAlbumModal"));
+                    editAlbumModal.show();
+                });
+            });
+
+            var photoInput = document.getElementById("photoInput");
+            if (photoInput) {
+                photoInput.addEventListener("change", function() {
+                    var previewArea = document.getElementById("previewArea");
+                    var previewGrid = document.getElementById("previewGrid");
+                    previewGrid.innerHTML = "";
+                    
+                    if (this.files.length > 0) {
+                        previewArea.style.display = "block";
+                        
+                        for (var i = 0; i < this.files.length; i++) {
+                            var file = this.files[i];
+                            if (file.type.startsWith("image/")) {
+                                (function(index) {
+                                    var reader = new FileReader();
+                                    reader.onload = function(e) {
+                                        var div = document.createElement("div");
+                                        div.className = "preview-item";
+                                        div.innerHTML = "<img src=\"" + e.target.result + "\" alt=\"Preview\">" +
+                                            "<textarea name=\"captions[]\" placeholder=\"Caption (optional)\"></textarea>";
+                                        previewGrid.appendChild(div);
+                                    };
+                                    reader.readAsDataURL(file);
+                                })(i);
+                            }
+                        }
+                    } else {
+                        previewArea.style.display = "none";
+                    }
+                });
+            }
+';
+}
+$pageScripts .= '        });
+    </script>';
+?>
+  </div>
+  <?php include PGS_TEMPLATES . '/footer.php'; ?>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <?php if (!empty($pageScripts)): ?><?= $pageScripts ?><?php endif; ?>
+</body>
+</html>
+<?php
+

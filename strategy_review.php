@@ -1,0 +1,668 @@
+<?php
+require_once __DIR__ . '/src/bootstrap.php';
+
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? null, ['admin', 'employee', 'focal'], true)) {
+    header("Location: " . BASE_URL . "/login");
+    exit();
+}
+require_page_access('performance_assessment');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf()) {
+    http_response_code(403);
+    echo json_encode(['success'=>false, 'error'=>'Invalid or expired form token.']);
+    exit();
+}
+
+// Admin: handle Strategy Review template upload (PDF)
+if (($_SESSION['role'] ?? null) === 'admin' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    if ($action === 'upload_review_template') {
+        $imgDir = __DIR__ . '/img';
+        if (!is_dir($imgDir)) {
+            @mkdir($imgDir, 0755, true);
+        }
+        $msg = '';
+        if (isset($_FILES['review_template']) && is_uploaded_file($_FILES['review_template']['tmp_name'])) {
+            $file = $_FILES['review_template'];
+            $allowed = ['application/pdf'];
+            $maxSize = 20 * 1024 * 1024;
+            if (!in_array($file['type'], $allowed, true)) {
+                $msg = 'error:Only PDF files are allowed.';
+            } elseif ($file['size'] > $maxSize) {
+                $msg = 'error:File exceeds 20MB.';
+            } else {
+                $dest = $imgDir . '/strategy_review_template.pdf';
+                if (move_uploaded_file($file['tmp_name'], $dest)) {
+                    $msg = 'success:Template updated.';
+                    $userInfo = getUserInfo((int)($_SESSION['user_id'] ?? 0));
+                    $userIdent = formatUserIdentifier($userInfo ?: []);
+                    $notifTitle = 'Strategy Review Template Updated';
+                    $notifMsg = 'Admin ' . $userIdent . ' updated the Strategy Review template.';
+                    notifyAdmins('edit', $notifTitle, $notifMsg, null, 'strategy_review_template');
+                    notifyFocals('edit', $notifTitle, $notifMsg, null, 'strategy_review_template');
+                    $empRes = $conn->query("SELECT id FROM users WHERE role = 'employee'");
+                    while ($empRes && ($row = $empRes->fetch_assoc())) {
+                        createNotification((int)$row['id'], 'edit', $notifTitle, $notifMsg, null, 'strategy_review_template');
+                    }
+                } else {
+                    $msg = 'error:Failed to save uploaded file.';
+                }
+            }
+        } else {
+            $msg = 'error:No file selected.';
+        }
+        $_SESSION['review_template_msg'] = $msg;
+        header('Location: strategy_review.php');
+        exit();
+    }
+    if ($action === 'delete_upload') {
+        header('Content-Type: application/json');
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) { echo json_encode(['success' => false, 'error' => 'Invalid ID']); exit(); }
+        try {
+            $stmt = $conn->prepare("SELECT filename FROM strategy_review_uploads WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $row = $res ? $res->fetch_assoc() : null;
+            if (!$row) { echo json_encode(['success' => false, 'error' => 'Record not found']); exit(); }
+            $filePath = __DIR__ . '/uploads/strategy_review/' . $row['filename'];
+            if (is_file($filePath)) { @unlink($filePath); }
+            $del = $conn->prepare("DELETE FROM strategy_review_uploads WHERE id = ?");
+            $del->bind_param("i", $id);
+            $ok = $del->execute();
+            echo json_encode(['success' => $ok]);
+        } catch (Throwable $e) {
+            echo json_encode(['success' => false, 'error' => 'Delete failed']);
+        }
+        exit();
+    }
+}
+
+// Resolve Strategy Review template URL for preview
+$reviewTemplateUrl = '';
+$legacyName = __DIR__ . '/img/TRC-LU STRATEGY REVIEW TEMPLATE AND PROCESS FLOW.pdf';
+$newName = __DIR__ . '/img/strategy_review_template.pdf';
+if (is_file($newName)) {
+    $reviewTemplateUrl = 'img/strategy_review_template.pdf?v=' . filemtime($newName);
+} elseif (is_file($legacyName)) {
+    $reviewTemplateUrl = 'img/TRC-LU%20STRATEGY%20REVIEW%20TEMPLATE%20AND%20PROCESS%20FLOW.pdf?v=' . filemtime($legacyName);
+}
+// DOCX template for download (Word format for editing)
+$reviewTemplateDocxUrl = '';
+$newDocx = __DIR__ . '/img/strategy_review_template.docx';
+if (is_file($newDocx)) {
+    $reviewTemplateDocxUrl = 'img/strategy_review_template.docx?v=' . filemtime($newDocx);
+}
+
+// Check if strategy_review_uploads table exists
+$tableExists = false;
+try {
+    $res = $conn->query("SHOW TABLES LIKE 'strategy_review_uploads'");
+    $tableExists = $res && $res->num_rows > 0;
+} catch (Throwable $e) {
+    $tableExists = false;
+}
+
+// Create table if it doesn't exist
+if (!$tableExists) {
+    $createTable = "
+    CREATE TABLE IF NOT EXISTS strategy_review_uploads (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id INT NOT NULL,
+        filename VARCHAR(255) NOT NULL,
+        original_name VARCHAR(255) NOT NULL,
+        file_size INT NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        status ENUM('Pending', 'Approved', 'Returned') DEFAULT 'Pending',
+        status_updated_at TIMESTAMP NULL DEFAULT NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE
+    )";
+    $conn->query($createTable);
+} else {
+    $columnCheck = $conn->query("SHOW COLUMNS FROM strategy_review_uploads LIKE 'status'");
+    if ($columnCheck->num_rows === 0) {
+        $conn->query("ALTER TABLE strategy_review_uploads ADD COLUMN status ENUM('Pending', 'Approved', 'Returned') DEFAULT 'Pending'");
+    }
+    $colCheck2 = $conn->query("SELECT COUNT(*) AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'strategy_review_uploads' AND COLUMN_NAME = 'status_updated_at'");
+    $colRow2 = $colCheck2 ? $colCheck2->fetch_assoc() : null;
+    if ($colRow2 && (int)$colRow2['c'] === 0) {
+        $conn->query("ALTER TABLE strategy_review_uploads ADD COLUMN status_updated_at TIMESTAMP NULL DEFAULT NULL AFTER status");
+    }
+}
+
+$uploads = [];
+if ($tableExists) {
+    $q = $conn->query("
+        SELECT o.id, o.employee_id, o.filename, o.original_name, o.file_size, o.mime_type, o.uploaded_at, o.status, o.status_updated_at, u.email AS uploader_email
+        FROM strategy_review_uploads o
+        JOIN users u ON o.employee_id = u.id
+        ORDER BY o.uploaded_at DESC
+    ");
+    while ($q && ($r = $q->fetch_assoc())) {
+        $uploads[] = $r;
+    }
+}
+
+$pageTitle = 'Strategy Review';
+
+$pageStyles = <<<'STYLES'
+<style>
+    html, body {
+        background-color: #f5f7fa;
+        color: #2c3e50;
+        height: 100%;
+        margin: 0;
+        padding-top: 20px;
+    }
+    .page-wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+    main {
+        flex: 1;
+    }
+    .card {
+        border: none;
+        border-radius: 1rem;
+        background-color: #ffffff;
+    }
+    .card-body {
+        padding: 2rem;
+    }
+    .section-title {
+        background: #0b4aa2;
+        color: #fff;
+        text-align: center;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 14px 16px;
+        border-radius: 1rem 1rem 0 0;
+    }
+    .btn-primary-custom {
+        background-color: #0b4aa2;
+        border-color: #0b4aa2;
+        color: #fff;
+    }
+    .btn-primary-custom:hover {
+        background-color: #083a7f;
+        border-color: #083a7f;
+        color: #fff;
+    }
+    .download-btn {
+        background: linear-gradient(135deg, #0b4aa2, #083a7f);
+        border: none;
+        color: white;
+        padding: 20px 40px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(11, 74, 162, 0.3);
+        transition: all 0.3s ease;
+        margin: 20px 0;
+    }
+    .download-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(11, 74, 162, 0.4);
+        background: linear-gradient(135deg, #083a7f, #0b4aa2);
+    }
+    .pdf-preview {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        max-height: 600px;
+        overflow: auto;
+        background: #fff;
+    }
+    .upload-area {
+        border: 2px dashed #0b4aa2;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .upload-area:hover {
+        background: #e9ecef;
+        border-color: #083a7f;
+    }
+    .upload-area.dragover {
+        background: #d4edda;
+        border-color: #28a745;
+    }
+    .table th {
+        background-color: #f0f2f5;
+        color: #34495e;
+        font-weight: 600;
+        border-color: #e9ecef;
+    }
+</style>
+STYLES;
+
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
+  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css">
+  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
+</head>
+<body>
+  <?php include PGS_TEMPLATES . '/navbar.php'; ?>
+  <div class="page-wrapper">
+
+<div class="page-wrapper container my-5" style="padding-top: 70px;">
+    <div class="card shadow-sm mb-5">
+        <div class="section-title">STRATEGY REVIEW</div>
+        <div class="card-body">
+            <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal'], true)): ?>
+                <div class="text-center mb-5">
+                    <h4 class="mb-4">TRC-LU STRATEGY REVIEW TEMPLATE</h4>
+                    
+                    <?php if ($reviewTemplateUrl): ?>
+                        <div class="mb-4">
+                            <div class="pdf-preview">
+                                <iframe src="<?= h($reviewTemplateUrl) ?>#view=FitH" 
+                                        width="100%" height="600px" style="border: none;">
+                                    <p>Your browser does not support PDF viewing. 
+                                       <a href="<?= h($reviewTemplateUrl) ?>" download>
+                                           Download the PDF
+                                       </a>
+                                    </p>
+                                </iframe>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-warning">No Strategy Review template available.</div>
+                    <?php endif; ?>
+                    
+                    <?php if ($reviewTemplateDocxUrl): ?>
+                    <a href="<?= h($reviewTemplateDocxUrl) ?>"
+                       class="btn download-btn" download>
+                        <i data-lucide="download" class="me-2"></i> Download Template (.docx)
+                    </a>
+                    <?php elseif ($reviewTemplateUrl): ?>
+                    <a href="<?= h($reviewTemplateUrl) ?>"
+                       class="btn download-btn" download>
+                        <i data-lucide="download" class="me-2"></i> Download Template
+                    </a>
+                    <?php endif; ?>
+                    
+                    <div class="mt-5">
+                        <h5 class="mb-3">Submit Completed Form</h5>
+                        <div class="upload-area" id="uploadArea">
+                            <i data-lucide="cloud-upload" width="3em" height="3em" class="text-primary mb-3"></i>
+                            <h5>Drop your completed form here or click to browse</h5>
+                            <p class="text-muted">Supported formats: PDF, JPG, PNG (Max size: 10MB)</p>
+                            <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+                        </div>
+                        <div id="uploadProgress" class="mt-3" style="display: none;">
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <?php if (!empty($uploads)): ?>
+                        <div class="mt-5">
+                            <h5 class="mb-3">Your Uploaded Documents</h5>
+                            <p class="text-muted mb-3" style="font-size:0.9rem;">
+                                Please follow the file name format before uploading: <strong>Date-Section-Head/Focal</strong>. Example: <strong>120326-HIMS-LJTV</strong>.
+                            </p>
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Date & Time</th>
+                                            <th>Document Name</th>
+                                            <th>File Size</th>
+                                            <th>Status</th>
+                                            <th>Date Approved/Returned</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $employeeUploads = array_filter($uploads, function($u) {
+                                            return isset($u['employee_id']) && $u['employee_id'] == $_SESSION['user_id'];
+                                        });
+                                        foreach ($employeeUploads as $u): ?>
+                                            <tr>
+                                                <td><?= h(date('Y-m-d H:i:s', strtotime($u['uploaded_at']))) ?></td>
+                                                <td><?= h($u['original_name']) ?></td>
+                                                <td><?= number_format($u['file_size'] / 1024, 2) ?> KB</td>
+                                                <td>
+                                                    <span class="badge
+                                                        <?php
+                                                        switch($u['status']) {
+                                                            case 'Approved':
+                                                                echo 'bg-success';
+                                                                break;
+                                                            case 'Returned':
+                                                                echo 'bg-danger';
+                                                                break;
+                                                            default:
+                                                                echo 'bg-warning text-dark';
+                                                        }
+                                                        ?>">
+                                                        <?= h($u['status']) ?>
+                                                    </span>
+                                                </td>
+                                                <td><?= !empty($u['status_updated_at']) ? h(date('M d, Y g:i A', strtotime($u['status_updated_at']))) : '<span class="text-muted">â€”</span>' ?></td>
+                                                <td>
+                                                    <a href="strategy_review_view.php?id=<?=  h($u['id']) ?>" 
+                                                       class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                                                        <i data-lucide="eye" class="me-1"></i> View
+                                                    </a>
+                                                    <a href="uploads/strategy_review/<?= h($u['filename']) ?>" 
+                                                       class="btn btn-sm btn-outline-success" download>
+                                                        <i data-lucide="download" class="me-1"></i> Download
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
+                <div class="mb-5">
+                    <h4 class="mb-3">TRC-LU STRATEGY REVIEW TEMPLATE</h4>
+                    <?php if (!empty($_SESSION['review_template_msg'])): 
+                        $m = $_SESSION['review_template_msg']; unset($_SESSION['review_template_msg']);
+                        $isErr = str_starts_with($m, 'error:'); $text = substr($m, strpos($m, ':')+1);
+                    ?>
+                        <div class="alert <?= $isErr ? 'alert-danger' : 'alert-success' ?> py-2"><?= h($text) ?></div>
+                    <?php endif; ?>
+                    <?php if ($reviewTemplateUrl): ?>
+                    <div class="pdf-preview mb-3">
+                        <iframe src="<?= h($reviewTemplateUrl) ?>#view=FitH"
+                                width="100%" height="600px" style="border:none;"></iframe>
+                    </div>
+                    <?php if ($reviewTemplateDocxUrl): ?>
+                    <a href="<?= h($reviewTemplateDocxUrl) ?>" class="btn download-btn" download>
+                        <i data-lucide="download" class="me-2"></i> Download Template (.docx)
+                    </a>
+                    <?php else: ?>
+                    <a href="<?= h($reviewTemplateUrl) ?>" class="btn download-btn" download>
+                        <i data-lucide="download" class="me-2"></i> Download Template
+                    </a>
+                    <?php endif; ?>
+                    <?php else: ?>
+                    <div class="alert alert-warning">No template found. Please upload a PDF template.</div>
+                    <?php endif; ?>
+                    <form method="POST" enctype="multipart/form-data" class="mt-3">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="upload_review_template">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-sm-8">
+                                <input type="file" name="review_template" class="form-control" accept=".pdf" required>
+                            </div>
+                            <div class="col-sm-4">
+                                <button type="submit" class="btn btn-primary-custom w-100">
+                                    <i data-lucide="upload" class="me-2"></i> Upload Template
+                                </button>
+                            </div>
+                            <div class="col-12">
+                                <small class="text-muted">PDF only, up to 20MB. Replaces the current template.</small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <h4 class="mb-4">Uploaded Documents</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th>Uploaded By</th>
+                                <th>Date & Time</th>
+                                <th>Document Name</th>
+                                <th>File Size</th>
+                                <th>Status</th>
+                                <th>Date Approved/Returned</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($uploads)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">
+                                        No documents uploaded yet.
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($uploads as $u): ?>
+                                    <tr>
+                                        <td><?= h($u['uploader_email']) ?></td>
+                                        <td><?= h(date('Y-m-d H:i:s', strtotime($u['uploaded_at']))) ?></td>
+                                        <td><?= h($u['original_name']) ?></td>
+                                        <td><?= number_format($u['file_size'] / 1024, 2) ?> KB</td>
+                                        <td>
+                                            <select class="form-select form-select-sm status-select"
+                                                    data-id="<?=  h($u['id']) ?>"
+                                                    style="min-width: 120px;">
+                                                <option value="Pending" <?= $u['status'] === 'Pending' ? 'selected' : '' ?>>Pending</option>
+                                                <option value="Approved" <?= $u['status'] === 'Approved' ? 'selected' : '' ?>>Approved</option>
+                                                <option value="Returned" <?= $u['status'] === 'Returned' ? 'selected' : '' ?>>Returned</option>
+                                            </select>
+                                        </td>
+                                        <td><?= !empty($u['status_updated_at']) ? h(date('M d, Y g:i A', strtotime($u['status_updated_at']))) : '<span class="text-muted">â€”</span>' ?></td>
+                                        <td>
+                                            <a href="strategy_review_view.php?id=<?=  h($u['id']) ?>" 
+                                               class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                                                <i data-lucide="eye" class="me-1"></i> View
+                                            </a>
+                                            <a href="uploads/strategy_review/<?= h($u['filename']) ?>" 
+                                               class="btn btn-sm btn-outline-success" download>
+                                                <i data-lucide="download" class="me-1"></i> Download
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="<?=  h($u['id']) ?>">
+                                                <i data-lucide="trash-2" class="me-1"></i> Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<?php if (($_SESSION['role'] ?? null) === 'admin'): ?>
+    <script>
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const id = this.dataset.id;
+                const status = this.value;
+                
+                Swal.fire({
+                    title: 'Update Status',
+                    text: `Change status to ${status}?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, update',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch('strategy_review_update_status.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                id: id,
+                                status: status,
+                                _token: '<?= csrf_token() ?>'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: 'Status updated successfully',
+                                    icon: 'success',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire('Error', data.error || 'Failed to update status', 'error');
+                                this.value = this.getAttribute('data-original') || 'Pending';
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire('Error', 'Failed to update status', 'error');
+                            this.value = this.getAttribute('data-original') || 'Pending';
+                        });
+                    } else {
+                        this.value = this.getAttribute('data-original') || 'Pending';
+                    }
+                });
+            });
+            
+            select.setAttribute('data-original', select.value);
+        });
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                if (!id) return;
+                Swal.fire({
+                    title: 'Delete Document',
+                    text: 'Are you sure you want to delete this document?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, delete',
+                    cancelButtonText: 'Cancel'
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+                    const fd = new FormData();
+                    fd.append('_token','<?= csrf_token() ?>');
+                    fd.append('action', 'delete_upload');
+                    fd.append('id', id);
+                    fetch('strategy_review.php', { method: 'POST', body: fd })
+                        .then(r => r.json()).then(d => {
+                            if (d && d.success) {
+                                Swal.fire({ title: 'Deleted', icon: 'success', timer: 1200, showConfirmButton: false });
+                                setTimeout(() => location.reload(), 1000);
+                            } else {
+                                Swal.fire('Error', d && d.error ? d.error : 'Delete failed', 'error');
+                            }
+                        }).catch(() => Swal.fire('Error', 'Delete failed', 'error'));
+                });
+            });
+        });
+    </script>
+<?php endif; ?>
+
+<?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal'], true)): ?>
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadProgress = document.getElementById('uploadProgress');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            const maxSize = 10 * 1024 * 1024;
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+
+            if (!allowedTypes.includes(file.type)) {
+                Swal.fire('Error', 'Please upload a PDF, JPG, or PNG file', 'error');
+                return;
+            }
+
+            if (file.size > maxSize) {
+                Swal.fire('Error', 'File size must be less than 10MB', 'error');
+                return;
+            }
+
+            uploadFile(file);
+        }
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('_token','<?= csrf_token() ?>');
+            formData.append('file', file);
+
+            uploadProgress.style.display = 'block';
+            const progressBar = uploadProgress.querySelector('.progress-bar');
+
+            fetch('strategy_review_upload.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                uploadProgress.style.display = 'none';
+                fileInput.value = '';
+
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Your document has been uploaded successfully',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    Swal.fire('Error', data.error || 'Upload failed', 'error');
+                }
+            })
+            .catch(error => {
+                uploadProgress.style.display = 'none';
+                Swal.fire('Error', 'Upload failed', 'error');
+            });
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                progressBar.style.width = progress + '%';
+                if (progress >= 90) clearInterval(interval);
+            }, 200);
+        }
+    </script>
+<?php endif; ?>
+  </div>
+  <?php include PGS_TEMPLATES . '/footer.php'; ?>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <?php if (!empty($pageScripts)): ?><?= $pageScripts ?><?php endif; ?>
+</body>
+</html>
+<?php

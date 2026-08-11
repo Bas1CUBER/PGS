@@ -1,0 +1,38 @@
+# Dependencies
+/vendor/
+
+# Environment / config with secrets
+/src/Config/config.php
+
+# Runtime storage & user uploads
+/storage/
+/uploads/
+/gallery_uploads/
+/strategy_review_forms/
+/data/
+/forms/
+
+# Backups & archives
+/.layout_backup/
+/_archive/
+/import_planning_sql/
+/rendered_pages/
+
+# Database files
+/.freebuff/
+*.sql
+
+# PHPUnit / caching
+/.phpunit.cache/
+.phpunit.result.cache
+
+# Logs
+*.log
+storage/logs/*.log
+
+# OS / editor
+Thumbs.db
+.DS_Store
+*.swp
+.idea/
+.vscode/

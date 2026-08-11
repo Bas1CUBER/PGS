@@ -1,0 +1,527 @@
+/* ── Base ─────────────────────────────────────── */
+html, body {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background-color: #f5f7fa;
+  color: #2c3e50;
+  height: 100%;
+  margin: 0;
+}
+body { padding-top: 20px; }
+
+.page-wrapper { display: flex; flex-direction: column; min-height: 100vh; }
+main { flex: 1; }
+
+/* ── Cards ────────────────────────────────────── */
+.card { border: none; border-radius: 1rem; background-color: #ffffff; }
+.card-body { padding: 2rem; }
+h1, h5 { margin-bottom: 1rem; }
+
+/* ── Tables ───────────────────────────────────── */
+.table thead th { background-color: #f0f2f5; color: #34495e; font-weight: 600; }
+.table td, .table th { vertical-align: top; padding: 1rem; border-color: #e9ecef; }
+.table ul { padding-left: 1.2rem; margin-bottom: 0; }
+
+/* ── Buttons ──────────────────────────────────── */
+.btn { border-radius: 0.5rem; }
+
+/* ── Modals ───────────────────────────────────── */
+.modal-content { border-radius: 1rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1); }
+
+/* ── Forms ────────────────────────────────────── */
+.form-control, .form-select { border-radius: 0.5rem; }
+
+/* ── Alerts ───────────────────────────────────── */
+.alert-info { background-color: #eef7ff; color: #31708f; border-radius: 0.5rem; }
+.alert-warning { border-radius: 0.5rem; }
+
+/* ── Utilities ────────────────────────────────── */
+.fw-semibold { font-weight: 600; }
+.text-muted { font-size: 0.95rem; }
+.form-label { font-size: 0.95rem; margin-bottom: 0.25rem; }
+.bg-green { background-color: #0b4aa2 !important; }
+
+/* ── Section Title (shared across many pages) ─── */
+.section-title {
+  background: #0b4aa2;
+  color: #fff;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 14px 16px;
+  border-radius: 1rem 1rem 0 0;
+}
+
+/* ── Dashboards ───────────────────────────────── */
+.dashboard-container { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem; }
+.dashboard-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 1rem; padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+  flex: 1; min-width: 280px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.dashboard-card:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+.dashboard-card h6 { color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+.chart-container { position: relative; height: 220px; display: flex; align-items: center; justify-content: center; }
+
+/* ── Hero (dashboard pages) ───────────────────── */
+.hero {
+  background: linear-gradient(90deg, #1e88e5 0%, #0d5bd1 50%, #0b4aa2 100%);
+  color: white;
+  padding: 40px 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+}
+.hero-lamp { flex-shrink: 0; margin-left: 40px; }
+.hero-lamp img {
+  height: 200px;
+  width: auto;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+.hero-content { flex: 1; text-align: center; }
+.hero h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; }
+.hero p { font-size: 1.1rem; margin: 0 auto; max-width: 600px; }
+@media (max-width: 768px) {
+  .hero h1 { font-size: 2rem; }
+  .hero p { font-size: 1rem; }
+}
+
+/* ── Notice Cards (dashboard pages) ───────────── */
+.notice-card {
+  background: linear-gradient(145deg, #c0c0c0, #f8f9fa);
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08), inset 0 0 12px rgba(240, 240, 245, 0.9);
+  transition: all 0.35s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(220, 220, 230, 0.7);
+}
+.notice-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+  background: linear-gradient(90deg, #1e88e5 0%, #0d5bd1 50%, #0b4aa2 100%);
+  color: white !important;
+  border-color: #0b4aa2;
+}
+.notice-card img { max-width: 100%; border-radius: 8px; margin-bottom: 10px; }
+.notice-card .card-body { display: flex; flex-direction: column; justify-content: space-between; }
+.notice-card h5 { font-weight: 700; color: #2c3e50; }
+.notice-card p, .notice-card a { color: #6c757d; margin-bottom: 10px; word-break: break-word; }
+.notice-card a { text-decoration: underline; }
+#noticeModal img { max-width: 100%; height: auto; display: block; margin: 10px 0; border-radius: 6px; }
+
+/* ── Empty State ──────────────────────────────── */
+.empty-panel {
+  background: linear-gradient(90deg, #f1f3f5 0%, #e9ecef 50%, #f1f3f5 100%);
+  background-size: 200% 100%;
+  border: 1px solid #e2e6ea;
+  border-radius: 16px;
+  padding: 36px 18px;
+  animation: shimmer 6s ease-in-out infinite;
+  color: #36454f;
+}
+@keyframes shimmer {
+  0% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
+}
+.empty-icon { color: #6c757d; animation: floaty 4s ease-in-out infinite; }
+@keyframes floaty {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+/* ── Approvals (admin dashboard) ──────────────── */
+.approvals-card {
+  border: none;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(183, 149, 11, 0.12);
+}
+.approvals-card .card-body { padding: 1.5rem; }
+
+/* ── Deadline Banner ──────────────────────────── */
+.deadline-banner {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1040;
+  background: rgba(245, 158, 11, 0.85);
+  color: #111827;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  font-size: 0.95rem;
+}
+
+/* ── Page-specific overrides (kept minimal) ───── */
+.text-green { background-color: #196a6b; color: white; }
+
+/* ── Navbar & Header ────────────────────── */
+/* Submenu dropdown styles (applies to all levels of submenus) */
+  .dropdown-submenu .dropdown-menu {
+    left: 100%;
+    top: 0;
+    margin-top: -5px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    /* Start hidden */
+    transform: translateX(-10px);
+    /* Subtle slide for smoother effect */
+    visibility: hidden;
+    /* Prevent interaction when hidden */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s step-end;
+    /* Smooth open/close */
+    display: block;
+    /* Override Bootstrapâ€™s display: none */
+  }
+
+  /* Show state for submenu dropdown */
+  .dropdown-submenu .dropdown-menu.show {
+    opacity: 1;
+    /* Fully visible */
+    transform: translateX(0);
+    /* Slide to position */
+    visibility: visible;
+    /* Allow interaction */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s step-start;
+    /* Immediate visibility on open */
+  }
+
+  /* Main dropdown styles */
+  .dropdown-menu {
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transform: translateY(-10px);
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s step-end;
+    /* Smooth open/close */
+    display: block;
+  }
+
+  .dropdown-menu.show {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s step-start;
+  }
+
+  /* Existing styles (unchanged) */
+  .navbar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    font-family: 'Inter', 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 0.45rem 2rem;
+    background-color: #0b4aa2 !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .nav-link {
+    color: #fff !important;
+    font-weight: 500;
+  }
+
+  .navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .navbar-logo {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+  }
+
+  .navbar-brand img {
+    height: 56px;
+    width: auto;
+  }
+
+  .navbar-nav .nav-item {
+    margin-left: 20px;
+  }
+
+  .navbar-nav .nav-link {
+    font-size: 1rem;
+    padding: 10px 15px;
+    border-radius: 8px;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  /* Hover highlight for all top-level nav items (menus, Survey, Logout) */
+  .navbar-nav .nav-link:not(.bell-link):hover,
+  .navbar-nav .nav-link:not(.bell-link):focus {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #fff !important;
+  }
+
+  .navbar-nav .dropdown-item {
+    padding: 10px 20px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .navbar-nav .dropdown-item:active {
+    background-color: lightgray !important;
+    color: inherit !important;
+    transition: background-color 0.2s ease;
+  }
+
+  .navbar-nav .dropdown-item:hover {
+    color: #0b4aa2;
+    background-color: #eef4fc;
+  }
+
+  .navbar-toggler {
+    border: none;
+    background-color: transparent;
+  }
+
+  .nav-link.text-white {
+    color: white;
+    font-size: 1rem;
+  }
+
+  .nav-link.text-white:hover {
+    color: #f8f9fa;
+  }
+
+  .dropdown-submenu {
+    position: relative;
+  }
+
+  .dropdown-submenu>.dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-left: 0.1rem;
+  }
+
+  /* Notification dropdown styles */
+  .notification-badge {
+    font-size: 0.65rem;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    padding: 0 4px;
+  }
+  
+  .notification-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .notification-item:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .notification-item.unread {
+    background-color: #e8f4fd;
+    border-left: 3px solid #0b4aa2;
+  }
+  
+  .notification-item.unread:hover {
+    background-color: #dceefb;
+  }
+  
+  .notification-item:last-child {
+    border-bottom: none;
+  }
+  
+  .notification-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 2px;
+  }
+  
+  .notification-message {
+    font-size: 0.8rem;
+    color: #666;
+    line-height: 1.4;
+    margin-bottom: 4px;
+  }
+  
+  .notification-time {
+    font-size: 0.7rem;
+    color: #999;
+  }
+  
+  .notification-type-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  
+  .notification-type-icon.upload {
+    background-color: #198754;
+    color: white;
+  }
+  
+  .notification-type-icon.approved {
+    background-color: #0dcaf0;
+    color: white;
+  }
+  
+  .notification-type-icon.returned {
+    background-color: #ffc107;
+    color: #333;
+  }
+  
+  .notification-type-icon.edit {
+    background-color: #6f42c1;
+    color: white;
+  }
+  
+  .notification-type-icon.default {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  /* Center main nav items, keep notifications/logout at far right */
+  #navbarNavDropdown {
+    position: relative;
+    /* Reserve space so the centered menu never slides under the pinned bell/logout */
+    padding-right: 205px;
+  }
+  #navbarNavDropdown > .navbar-nav:first-child {
+    margin: 0 auto;
+  }
+  #navbarNavDropdown > .navbar-nav:last-child {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    gap: 0.5rem;
+  }
+  #navbarNavDropdown > .navbar-nav:last-child .nav-item {
+    margin-left: 0; /* spacing handled by the gap, not per-item margins */
+  }
+
+  /* Bell icon gets its own spaced, tappable container */
+  .bell-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+  }
+  .bell-link:hover .bell-icon-wrap {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* ── Responsive (tablet/mobile) fixes ────────── */
+  @media (min-width: 1200px) and (max-width: 1299.98px) {
+    .navbar { padding: 0.45rem 0.75rem; }
+    #navbarNavDropdown { padding-right: 160px; }
+    .navbar-brand { margin-right: 0.5rem !important; }
+    .navbar-brand img { height: 40px; }
+    .navbar-nav .nav-item { margin-left: 1px; }
+    .navbar-nav .nav-link { font-size: 0.84rem; padding: 5px 3px; }
+  }
+
+  @media (min-width: 1300px) and (max-width: 1399.98px) {
+    .navbar { padding: 0.45rem 0.75rem; }
+    #navbarNavDropdown { padding-right: 160px; }
+    .navbar-brand { margin-right: 0.5rem !important; }
+    .navbar-brand img { height: 42px; }
+    .navbar-nav .nav-item { margin-left: 3px; }
+    .navbar-nav .nav-link { font-size: 0.9rem; padding: 6px 5px; }
+  }
+
+  @media (min-width: 1400px) and (max-width: 1599.98px) {
+    .navbar { padding: 0.45rem 0.75rem; }
+    #navbarNavDropdown { padding-right: 180px; }
+    .navbar-brand { margin-right: 0.75rem !important; }
+    .navbar-brand img { height: 44px; }
+    .navbar-nav .nav-item { margin-left: 6px; }
+    .navbar-nav .nav-link { font-size: 0.92rem; padding: 8px 6px; }
+  }
+
+  @media (max-width: 1199.98px) {
+    .navbar { padding: 0.45rem 1rem; }
+    #navbarNavDropdown { padding-right: 0; }
+    .navbar-brand img { height: 44px; }
+    .navbar-nav .nav-item { margin-left: 0; }
+    .navbar-nav .nav-link { font-size: 0.95rem; padding: 8px 12px; }
+
+    /* Real show/hide — hidden menus must not leave blank space */
+    .dropdown-menu { display: none; opacity: 1; visibility: visible; }
+    .dropdown-menu.show { display: block; }
+    .dropdown-submenu .dropdown-menu { display: none; }
+    .dropdown-submenu .dropdown-menu.show { display: block; }
+
+    /* Bell + logout flow inline under the menu, not over it */
+    #navbarNavDropdown > .navbar-nav:last-child {
+      position: static;
+      transform: none;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Submenus stack downward — never fly off-screen right */
+    .dropdown-submenu .dropdown-menu {
+      position: static !important;
+      left: 0 !important;
+      top: auto !important;
+      margin: 0 0 0 1rem;
+      box-shadow: none;
+      transform: none;
+      background: rgba(0, 0, 0, 0.15);
+      border: none;
+    }
+
+    /* On the dark stacked submenus, hover uses white tint instead of the light-blue pill */
+    .navbar-nav .dropdown-item:hover {
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Notification panel must fit phone widths */
+    .notification-dropdown {
+      width: min(360px, calc(100vw - 2rem)) !important;
+      max-width: calc(100vw - 2rem);
+    }
+  }
+/* ── Footer ─────────────────────────────────── */
+.footer {
+  background-color: #0b4aa2;
+  color: white;
+  padding: 20px 20px;
+  text-align: center;
+}
+.footer p {
+  margin-top: 0;
+  margin-bottom: 0;
+  color: rgba(255, 255, 255, 0.78);
+}
+.footer a {
+  color: #fff;
+  margin: 0 10px;
+  font-size: 1.2rem;
+}

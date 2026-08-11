@@ -1,0 +1,30 @@
+RewriteEngine On
+
+# Disable directory listing
+Options -Indexes
+
+# Block access to sensitive files
+<FilesMatch "^(composer\.(json|lock)|package-lock\.json|phpunit\.xml|phpstan\.neon|\.php-cs-fixer\.cache|planning\.sql|config\.php|db\.php|DOCUMENTATION\.md)$">
+  Require all denied
+</FilesMatch>
+
+# Block direct access to sensitive directories (keep uploads/ reachable for files, but no listings)
+RewriteRule ^(_archive|storage|data|vendor|src|import_planning_sql|templates|tests)(/|$) - [F,L,NC]
+
+# Security headers
+<IfModule mod_headers.c>
+  Header always set X-Frame-Options "DENY"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# Redirect GET .php requests to clean URLs
+RewriteCond %{THE_REQUEST} ^GET\s/(PGS/)?([^.]+)\.php[\s?] [NC]
+RewriteRule ^ /%1%2 [R=301,L]
+
+# Internally rewrite clean URL to .php file
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+)$ $1.php [L]
