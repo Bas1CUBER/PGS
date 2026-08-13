@@ -1,5 +1,5 @@
 html, body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: #f5f7fa; }
-    .page-container { padding-top: 110px; }
+    .page-container { padding-top: 96px; }
     .header-wrap { display:flex; align-items:center; gap:1rem; margin-bottom:1rem; }
     .header-logo { width:80px; height:80px; object-fit:contain; border-radius:8px; border:2px solid #0b4aa2; background:#fff; }
     .header-title h4 { margin:0; font-weight:700; }

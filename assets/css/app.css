@@ -656,3 +656,8 @@ a:hover {
 .header-green { background-color: #196a6b; color: #fff; border: none; }
 .header-cyan { background: #00A3D9; color: #000; font-weight: 700; }
 .header-cyan-w25 { background: #00A3D9; color: #000; font-weight: 700; width: 25%; }
+
+/* Standard content offset below the fixed navbar (all pages consistent) */
+.page-wrapper, .page-container, .cascading-container {
+  padding-top: 96px;
+}

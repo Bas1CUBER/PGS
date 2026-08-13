@@ -1,5 +1,5 @@
 html, body { font-family: \'Inter\', \'Segoe UI\', sans-serif; background: #f5f7fa; }
-    .page-container { padding-top: 110px; padding-bottom: 3rem; }
+    .page-container { padding-top: 96px; padding-bottom: 3rem; }
     .page-header { background: linear-gradient(135deg, #0b4aa2 0%, #1a6bbf 100%); color:#fff; border-radius:1rem; padding:1.5rem 2rem; margin-bottom:1.5rem; box-shadow:0 8px 24px rgba(11,74,162,.2); }
     .page-header h4 { margin:0; font-weight:700; }
     .page-header small { opacity:.8; }
