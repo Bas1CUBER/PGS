@@ -40,7 +40,7 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
                     const fd = new FormData();
                     fd.append('id', id);
                     fd.append('is_active', String(nextActive));
-
+                    fd.append('_token', PGS.csrf);
                     fetch('user_toggle.php', {
                         method: 'POST',
                         body: fd
@@ -116,7 +116,7 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
                     if (!res.isConfirmed) return;
                     const fd = new FormData();
                     fd.append('id', id);
-
+                    fd.append('_token', PGS.csrf);
                     fetch('user_delete.php', {
                         method: 'POST',
                         body: fd
@@ -142,6 +142,7 @@ document.getElementById('addUserForm').addEventListener('submit', function(e) {
                 const fd = new FormData();
                 fd.append('id', id);
                 fd.append('role', role);
+                fd.append('_token', PGS.csrf);
                 fetch('user_role_update.php', { method:'POST', body:fd })
                   .then(r => r.json())
                   .then(data => {

@@ -239,6 +239,7 @@ $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/impact_indicato
     <div class="modal fade" id="addImpactModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <form id="addImpactForm" class="modal-content">
+  <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Add Impact</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -283,6 +284,7 @@ $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/impact_indicato
     <div class="modal fade" id="addYearModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <form id="addYearForm" class="modal-content">
+  <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Add Year</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -315,6 +317,7 @@ $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/impact_indicato
     <div class="modal fade" id="deleteYearModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form id="deleteYearForm" class="modal-content">
+  <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Delete Year</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -344,6 +347,7 @@ $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/impact_indicato
     <div class="modal fade" id="deleteImpactModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form id="deleteImpactForm" class="modal-content">
+  <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Delete Impact</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -375,6 +379,7 @@ $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/impact_indicato
     <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <form id="editForm" class="modal-content">
+  <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Edit Impact Scorecard Row</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

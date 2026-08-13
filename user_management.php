@@ -426,7 +426,7 @@ $pageStyles = 'body {
                                                       data-by="<?= h($h['performed_by'] ?? '', ENT_QUOTES) ?>">
                                                     <?= h($h['details']) ?>
                                                 </span>
-                                                <span class="text-muted" style="font-size:.78rem;">â€” by <?= h($h['performed_by']) ?></span>
+                                                <span class="text-muted" style="font-size:.78rem;">Ã¢â‚¬â€ by <?= h($h['performed_by']) ?></span>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -474,7 +474,7 @@ $pageStyles = 'body {
     <!-- Add User Modal -->
     <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form id="addUserForm" class="modal-content">
+            <form id="addUserForm" class="modal-content">`n  <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Add User</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -516,7 +516,7 @@ $pageStyles = 'body {
     <!-- Page Access Modal -->
     <div class="modal fade" id="accessModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <form id="accessForm" class="modal-content">
+            <form id="accessForm" class="modal-content">`n  <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Page Access</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -556,7 +556,7 @@ $pageStyles = 'body {
     <!-- Edit User Modal -->
     <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <form id="editUserForm" class="modal-content">
+            <form id="editUserForm" class="modal-content">`n  <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Edit User</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

@@ -33,16 +33,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
 $deadline = null;
 if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal'], true)) {
     try {
-        $pdo->exec("
-      CREATE TABLE IF NOT EXISTS deadline_controls (
-        role ENUM('employee','focal') PRIMARY KEY,
-        enabled TINYINT(1) NOT NULL DEFAULT 0,
-        end_time DATETIME DEFAULT NULL,
-        message VARCHAR(255) DEFAULT 'Please comply with the submission requirements before the deadline.',
-        updated_by INT DEFAULT NULL,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
         $stmt = $pdo->prepare('SELECT enabled, end_time, message FROM deadline_controls WHERE role = :r');
         $stmt->execute([':r' => $_SESSION['role']]);
         $deadline = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
@@ -257,7 +247,7 @@ if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal']
 </nav>
 
 <script>
-  window.PGS = { baseUrl: '<?= BASE_URL ?>' };
+  window.PGS = { baseUrl: '<?= BASE_URL ?>', csrf: '<?= csrf_token() ?>' };
 </script>
 <?php if ($deadline && (int)$deadline['enabled'] === 1):
     $endTs = $deadline['end_time'] ? strtotime($deadline['end_time']) : null;

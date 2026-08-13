@@ -410,3 +410,8 @@ vendor/bin/phpunit
 ---
 
 *For questions or support, contact the system administrator.*
+
+### Security
+- All 13 POST-only endpoints (user CRUD, impact indicator, insert, employee upload) verify CSRF; all forms emit hidden tokens, AJAX calls append _token from the window.PGS.csrf bootstrap
+- deadline_controls DDL removed from per-request paths (navbar/access_guard); schema lives in planning.sql
+- Runtime schema migrations (status_updated_at, status columns) appended to planning.sql so fresh installs are complete

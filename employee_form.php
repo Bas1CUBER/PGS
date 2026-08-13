@@ -41,6 +41,7 @@ $pageStyles = '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/
     <h1 class="text-2xl font-semibold text-gray-800">Form Upload</h1>
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
         <form method="GET" action="" class="d-flex align-items-center gap-2 flex-wrap" style="gap: 0.5rem;">
+  <?= csrf_field() ?>
             <input
                 type="text"
                 name="search"
@@ -125,6 +126,7 @@ $pageStyles = '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form id="uploadForm" enctype="multipart/form-data" class="modal-content">
+  <?= csrf_field() ?>
             <div class="modal-header">
                 <h5 class="modal-title" id="uploadModalLabel">Upload MOV File</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

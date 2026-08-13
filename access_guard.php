@@ -45,15 +45,6 @@ function is_role_frozen(): bool {
     if (!session_get('role') || (session_get('role') === 'admin')) return false;
     try {
         global $pdo;
-        $stmt = $pdo->prepare("CREATE TABLE IF NOT EXISTS deadline_controls (
-          role ENUM('employee','focal') PRIMARY KEY,
-          enabled TINYINT(1) NOT NULL DEFAULT 0,
-          end_time DATETIME DEFAULT NULL,
-          message VARCHAR(255) DEFAULT 'Please comply with the submission requirements before the deadline.',
-          updated_by INT DEFAULT NULL,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-        $stmt->execute();
         $q = $pdo->prepare("SELECT enabled, end_time FROM deadline_controls WHERE role = :r");
         $q->execute([':r' => session_get('role')]);
         $row = $q->fetch(PDO::FETCH_ASSOC);

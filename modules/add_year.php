@@ -1,7 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../src/bootstrap.php';
-$moduleKey = $_GET['module'] ?? '';
+$moduleKey = $_GET['module'] ?? ($moduleKey ?? '');
 $modules = require __DIR__ . '/module_config.php';
 if (!isset($modules[$moduleKey])) {
     echo json_encode(['status' => 'error', 'message' => 'Invalid module']);

@@ -1,5 +1,10 @@
 <?php
 require_once __DIR__ . '/src/bootstrap.php';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf()) {
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'error' => 'Invalid or expired form token. Please try again.']);
+    exit;
+}
 header('Content-Type: application/json');
 
 // Only allow employee
