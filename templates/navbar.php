@@ -53,6 +53,28 @@ if (in_array($role, ['employee', 'focal'], true)) {
 // Current page (for aria-current)
 $currentPage = basename((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
 
+// Profile info (session-cached 60s)
+$profile = ['name' => null, 'office' => null, 'email' => null];
+if ($userId > 0) {
+    $profileCache = 'pgs_profile_' . $userId;
+    if (!isset($_SESSION[$profileCache]) || $_SESSION[$profileCache]['t'] < time() - 60) {
+        try {
+            $stmt = $pdo->prepare('SELECT name, office, email FROM users WHERE id = :id');
+            $stmt->execute([':id' => $userId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $profile = ['name' => $row['name'], 'office' => $row['office'], 'email' => $row['email']];
+            }
+            $_SESSION[$profileCache] = ['t' => time(), 'data' => $profile];
+        } catch (Throwable $e) {
+        }
+    } else {
+        $profile = $_SESSION[$profileCache]['data'];
+    }
+}
+$profileName = !empty($profile['name']) ? $profile['name'] : $profile['email'];
+$roleLabel = ucfirst((string)$role);
+
 // Navigation config — single source of truth for every role
 $menus = [
   ['key' => 'roadmaps', 'label' => 'Roadmaps', 'gated' => true, 'items' => [
@@ -119,7 +141,7 @@ if ($role === 'admin') {
     </button>
 
     <div class="collapse navbar-collapse" id="navbarNavDropdown">
-      <ul class="navbar-nav d-flex align-items-center gap-3 mb-0">
+      <ul class="navbar-nav mx-auto d-flex align-items-center gap-3 mb-0">
         <?php foreach ($menus as $menu):
             if ($menu['gated'] && ($pageAccess[$menu['key']] ?? 0) !== 1) {
                 continue;
@@ -170,8 +192,22 @@ if ($role === 'admin') {
         <li class="nav-item d-flex align-items-center" aria-hidden="true">
           <span class="vr text-white-50"></span>
         </li>
-        <li class="nav-item">
-          <a class="nav-link text-white" href="<?= BASE_URL ?>/logout"><?= ui_icon('log-out', 16, 'me-1') ?> Logout</a>
+        <li class="nav-item dropdown">
+          <a class="nav-link d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Profile menu">
+            <?= ui_avatar($profileName ?: $roleLabel) ?>
+          </a>
+          <div class="dropdown-menu dropdown-menu-end profile-dropdown">
+            <div class="px-3 py-2">
+              <div class="fw-semibold text-truncate"><?= h($profileName ?: $roleLabel) ?></div>
+              <div class="text-muted small text-uppercase"><?= h($roleLabel) ?></div>
+              <?php if (!empty($profile['office'])): ?>
+              <div class="text-muted small text-truncate"><?= h($profile['office']) ?></div>
+              <?php endif; ?>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="<?= BASE_URL ?>/change_password"><?= ui_icon('key-round', 15, 'me-2') ?>Change Password</a>
+            <a class="dropdown-item text-danger" href="<?= BASE_URL ?>/logout"><?= ui_icon('log-out', 15, 'me-2') ?>Logout</a>
+          </div>
         </li>
       </ul>
     </div>

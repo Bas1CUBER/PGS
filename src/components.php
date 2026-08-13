@@ -116,3 +116,20 @@ function ui_alert(string $message, string $type = 'danger'): string
         . h($message)
         . '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
 }
+
+// Initials from a display name / username (e.g. "Jane Dela Cruz" -> "JD", "admin" -> "A")
+function ui_initials(string $name): string
+{
+    $parts = preg_split('/[\s@._-]+/', trim($name), -1, PREG_SPLIT_NO_EMPTY);
+    $initials = '';
+    foreach (array_slice($parts, 0, 2) as $p) {
+        $initials .= strtoupper(mb_substr($p, 0, 1));
+    }
+    return $initials !== '' ? $initials : '?';
+}
+
+// Circular profile avatar
+function ui_avatar(string $name, string $extraClass = ''): string
+{
+    return '<span class="profile-avatar ' . $extraClass . '" aria-hidden="true">' . h(ui_initials($name)) . '</span>';
+}

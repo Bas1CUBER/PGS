@@ -661,3 +661,30 @@ a:hover {
 .page-wrapper, .page-container, .cascading-container {
   padding-top: 96px;
 }
+/* Profile avatar + dropdown */
+.profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  color: #0b4aa2;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  user-select: none;
+}
+.profile-avatar:hover {
+  border-color: #fff;
+}
+.profile-dropdown {
+  width: 260px;
+}
+.profile-dropdown .dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+}
