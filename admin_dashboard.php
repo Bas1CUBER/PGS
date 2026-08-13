@@ -586,70 +586,8 @@ $pageStyles = 'html, body {
       </div>
     </div>
   </div>
-<script>
-    window.PGS_CSRF = '<?= csrf_token() ?>';
-    function viewNotice(title, description, image, video) {
-      document.getElementById('modalTitle').innerText = title;
-      let html = `<p class="text-secondary">${description.replace(/\n/g, "<br>")}</p>`;
-      if (image) {
-        if (image.toLowerCase().endsWith('.pdf')) {
-          html += `<a href="${image}" target="_blank" class="btn btn-primary mt-2"><i data-lucide="file-text" class="me-1"></i> View PDF Document</a>`;
-        } else {
-          html += `<img src="${image}" alt="Notice Image">`;
-        }
-      }
-      if (video) html += `<p>Video Link: <a href="${video}" target="_blank">${video}</a></p>`;
-      document.getElementById('modalBody').innerHTML = html;
-
-      let noticeModal = new bootstrap.Modal(document.getElementById('noticeModal'));
-      noticeModal.show();
-    }
-
-    function deleteNotice(noticeId) {
-      if (!Number.isInteger(noticeId) || noticeId <= 0) {
-        alert('Invalid notice id');
-        return;
-      }
-
-      const confirmed = confirm('Are you sure you want to delete this notice?');
-      if (!confirmed) return;
-
-      const formData = new FormData();
-      formData.append('notice_id', String(noticeId));
-      formData.append('_token', window.PGS_CSRF);
-
-      fetch('delete_notice.php', {
-        method: 'POST',
-        body: formData
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.success) {
-            location.reload();
-            return;
-          }
-          alert((data && data.message) ? data.message : 'Delete failed');
-        })
-        .catch(() => {
-          alert('Delete failed');
-        });
-    }
-  </script>
-  <script>
-    (function(){
-      const btn = document.querySelector('[data-bs-target="#approvalsCollapse"]');
-      const collapseEl = document.getElementById('approvalsCollapse');
-      if (!btn || !collapseEl) return;
-      function update(){
-        const visible = collapseEl.classList.contains('show');
-        btn.innerHTML = visible ? '<i data-lucide="chevron-up" class="me-1"></i> Hide' : '<i data-lucide="chevron-down" class="me-1"></i> Show';
-        btn.setAttribute('aria-expanded', visible ? 'true' : 'false');
-      }
-      collapseEl.addEventListener('shown.bs.collapse', update);
-      collapseEl.addEventListener('hidden.bs.collapse', update);
-      update();
-    })();
-  </script>
+<?php $pgsPage = ['csrf' => csrf_token()]; ?><script>window.PGS.page = <?= json_encode($pgsPage) ?>;</script><script src="<?= asset('js/pages/admin_dashboard_1.js') ?>"></script>
+  <script src="<?= asset('js/pages/admin_dashboard_2.js') ?>"></script>
   </div>
   <?php include PGS_TEMPLATES . '/footer.php'; ?>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

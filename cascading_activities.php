@@ -289,20 +289,7 @@ $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/cascading_activ
         </form>
     </div>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var editModal = document.getElementById('editModal');
-    editModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var id = button.getAttribute('data-id');
-        var title = button.getAttribute('data-title');
-        var description = button.getAttribute('data-description');
-        document.getElementById('edit-id').value = id;
-        document.getElementById('edit-title').value = title;
-        document.getElementById('edit-description').value = description;
-    });
-});
-</script>
+<script src="<?= asset('js/pages/cascading_activities_1.js') ?>"></script>
 <?php endif; ?>
   </div>
   <?php include PGS_TEMPLATES . '/footer.php'; ?>

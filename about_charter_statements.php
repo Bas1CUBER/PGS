@@ -442,26 +442,7 @@ CSS;
     </div>
   </div>
 <?php if ($role === 'admin'): ?>
-  <script>
-    (function(){
-      var toggle = document.getElementById('editToggle');
-      var editForm = document.getElementById('editForm');
-      var viewMode = document.getElementById('viewMode');
-      var cancelBtn = document.getElementById('cancelBtn');
-      if (toggle) {
-        toggle.addEventListener('click', function(){
-          editForm.style.display = 'flex';
-          viewMode.style.display = 'none';
-        });
-      }
-      if (cancelBtn) {
-        cancelBtn.addEventListener('click', function(){
-          editForm.style.display = 'none';
-          viewMode.style.display = 'flex';
-        });
-      }
-    })();
-  </script>
+  <script src="<?= asset('js/pages/about_charter_statements_1.js') ?>"></script>
   <?php endif; ?>
   </div>
   <?php include PGS_TEMPLATES . '/footer.php'; ?>

@@ -500,14 +500,7 @@ $baseUrl = BASE_URL;
 
 <?php include PGS_TEMPLATES . '/footer.php'; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-window.PGS_MODULE = {
-  role: <?= json_encode($role) ?>,
-  categories: <?= json_encode($categories, JSON_UNESCAPED_UNICODE) ?>,
-  years: <?= json_encode($years) ?>,
-  apiUrl: location.href
-};
-</script>
+<?php $pgsPage = ['role' => $role, 'categories' => $categories, 'years' => $years]; ?><script>window.PGS.page = <?= json_encode($pgsPage) ?>;</script><script src="<?= asset('js/pages/src_Modules_module_page_1.js') ?>"></script>
 <script src="<?= $baseUrl ?>/assets/js/module.js"></script>
 </body>
 </html>

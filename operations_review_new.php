@@ -385,67 +385,10 @@ $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/operations_revi
   </div>
 </div>
 <?php if (in_array($role, ['employee','focal'], true)): ?>
-<script>
-  const uploadArea = document.getElementById('uploadArea');
-  const fileInput = document.getElementById('fileInput');
-  const uploadProgress = document.getElementById('uploadProgress');
-  uploadArea.addEventListener('click', ()=> fileInput.click());
-  uploadArea.addEventListener('dragover', (e)=> { e.preventDefault(); uploadArea.classList.add('dragover'); });
-  uploadArea.addEventListener('dragleave', ()=> uploadArea.classList.remove('dragover'));
-  uploadArea.addEventListener('drop', (e)=> { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
-  fileInput.addEventListener('change', (e)=> handleFiles(e.target.files));
-  function handleFiles(files){
-    if (!files || !files.length) return;
-    const f = files[0];
-    const allowed = ['application/pdf','image/jpeg','image/jpg','image/png'];
-    if (!allowed.includes(f.type)) { alert('Please upload PDF, JPG or PNG'); return; }
-    if (f.size > 10*1024*1024) { alert('Max size 10MB'); return; }
-    const fd = new FormData(); fd.append('_token','<?= csrf_token() ?>'); fd.append('file', f);
-    uploadProgress.style.display = 'block';
-    const bar = uploadProgress.querySelector('.progress-bar'); bar.style.width = '0%';
-    fetch('operations_review_upload.php', { method:'POST', body: fd })
-      .then(r=>r.json()).then(data=>{
-        uploadProgress.style.display='none'; fileInput.value='';
-        if (data && data.success) { location.reload(); }
-        else { alert(data && data.error ? data.error : 'Upload failed'); }
-      }).catch(()=>{ uploadProgress.style.display='none'; alert('Upload failed'); });
-    let p=0; const iv=setInterval(()=>{ p+=10; bar.style.width=p+'%'; if (p>=90) clearInterval(iv); },200);
-  }
-</script>
+<?php $pgsPage = ['csrf' => csrf_token()]; ?><script>window.PGS.page = <?= json_encode($pgsPage) ?>;</script><script src="<?= asset('js/pages/operations_review_new_1.js') ?>"></script>
 <?php endif; ?>
 <?php if ($role === 'admin'): ?>
-<script>
-  document.querySelectorAll('.status-select').forEach(sel=>{
-    sel.setAttribute('data-original', sel.value);
-    sel.addEventListener('change', function(){
-      const id = this.dataset.id; const status = this.value;
-      fetch('operations_review_update_status.php', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ id:id, status: status, _token: '<?= csrf_token() ?>' })
-      }).then(r=>r.json()).then(d=>{
-        if (!(d && d.success)) { alert(d && d.error? d.error : 'Update failed'); this.value=this.getAttribute('data-original')||'Pending'; }
-        else { this.setAttribute('data-original', status); }
-      }).catch(()=>{ alert('Update failed'); this.value=this.getAttribute('data-original')||'Pending'; });
-    });
-  });
-  document.querySelectorAll('.btn-delete').forEach(btn=>{
-    btn.addEventListener('click', function(){
-      const id = this.getAttribute('data-id');
-      if (!id) return;
-      if (!confirm('Delete this document?')) return;
-      const fd = new FormData();
-      fd.append('_token','<?= csrf_token() ?>');
-      fd.append('action', 'delete_upload');
-      fd.append('id', id);
-      fetch('operations_review_new.php', { method:'POST', body: fd })
-        .then(r=>r.json()).then(d=>{
-          if (d && d.success) { location.reload(); }
-          else { alert(d && d.error ? d.error : 'Delete failed'); }
-        }).catch(()=> alert('Delete failed'));
-    });
-  });
-</script>
+<?php $pgsPage = ['csrf' => csrf_token()]; ?><script>window.PGS.page = <?= json_encode($pgsPage) ?>;</script><script src="<?= asset('js/pages/operations_review_new_2.js') ?>"></script>
 <?php endif; ?>
   </div>
   <?php include PGS_TEMPLATES . '/footer.php'; ?>

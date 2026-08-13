@@ -23,7 +23,7 @@ if (in_array($_SESSION['role'] ?? null, ['employee','focal'], true)) {
                 text: "YOU DON\'T HAVE ACCESS TO THIS PAGE",
                 confirmButtonColor: "#d33"
             }).then(() => {
-                window.location.href = "<?= BASE_URL ?>/employee_dashboard";
+                window.location.href = "' . BASE_URL . '/employee_dashboard";
             });
         </script>
     </body>
@@ -308,148 +308,11 @@ $pageStyles = '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-document.getElementById('deliverableForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const form = document.getElementById('deliverableForm');
-    const formData = new FormData(form);
-    fetch('insert.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.status === 'success') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'Deliverable added successfully!',
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
-                    location.reload();
-                });
+<script src="<?= asset('js/pages/form_2.js') ?>"></script>
 
-                form.reset();
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addFormModal'));
-                if (modal) {
-                    modal.hide();
-                }
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: result.message || 'Failed to insert record.'
-                });
-            }
-        })
-        .catch(err => {
-            Swal.fire({
-                icon: 'error',
-                title: 'Server Error',
-                text: 'Something went wrong with the server.'
-            });
-        });
-});
-</script>
+<script src="<?= asset('js/pages/form_3.js') ?>"></script>
 
-<script>
-// Delete deliverable
-document.querySelectorAll('.deleteBtn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const id = this.getAttribute('data-id');
-        Swal.fire({
-            title: 'Delete this record?',
-            text: 'This will permanently delete the row from the database.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it'
-        }).then((result) => {
-            if (!result.isConfirmed) return;
-
-            const formData = new FormData();
-            formData.append('id', id);
-
-            fetch('delete_deliverables.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Deleted!', 'Record deleted successfully.', 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error', data.error || 'Delete failed.', 'error');
-                }
-            })
-            .catch(() => {
-                Swal.fire('Error', 'Something went wrong while deleting.', 'error');
-            });
-        });
-    });
-});
-</script>
-
-<script>
-// Open edit modal and populate fields
-document.querySelectorAll('.editBtn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const data = JSON.parse(this.getAttribute('data-info'));
-
-        document.getElementById('edit_id').value = data.id;
-        document.getElementById('edit_title').value = data.title;
-        document.getElementById('edit_focal_person').value = data.focal_person;
-        document.getElementById('edit_division').value = data.division;
-        document.getElementById('edit_form_type').value = data.form_type;
-        document.getElementById('edit_target_date').value = data.target_date;
-        document.getElementById('edit_status').value = data.status;
-        document.getElementById('edit_actual_date').value = data.actual_date || '';
-
-        const currentMOVDiv = document.getElementById('current_mov_file');
-        if (data.mov_file) {
-            currentMOVDiv.innerHTML = `
-                <p class="mb-0">Current File: 
-                    <a href="uploads/${data.mov_file}" target="_blank">${data.mov_file}</a>
-                </p>
-            `;
-        } else {
-            currentMOVDiv.innerHTML = '<p class="text-muted mb-0">No file uploaded.</p>';
-        }
-
-        const editModal = new bootstrap.Modal(document.getElementById('editFormModal'));
-        editModal.show();
-    });
-});
-
-// Handle form submission
-document.getElementById('editDeliverableForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const form = this;
-    const formData = new FormData(form);
-
-    fetch('update.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 'success') {
-                Swal.fire('Updated!', 'Deliverable updated successfully.', 'success').then(() => {
-                    location.reload();
-                });
-            } else {
-                Swal.fire('Error', data.message || 'Update failed.', 'error');
-            }
-        })
-        .catch(err => {
-            Swal.fire('Error', 'Something went wrong while updating.', 'error');
-        });
-});
-</script>
+<script src="<?= asset('js/pages/form_4.js') ?>"></script>
   </div>
   <?php include PGS_TEMPLATES . '/footer.php'; ?>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

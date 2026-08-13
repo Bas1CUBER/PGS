@@ -399,7 +399,8 @@ vendor/bin/phpunit
 - Single database connection per request (PDO + mysqli, guarded against duplicates in `db.php`)
 - Shared `<head>` templates (`templates/head.php`, `templates/head_module.php`) — change site-wide styles in one place
 - All CSS is external: `assets/css/app.css` + `assets/css/pages/*.css` (one per page/scope; identical blocks merged, e.g. all 7 `*_view.php` pages share `view.css`)
-- All shared JS lives in `assets/js/app.js` (notifications polling, deadline countdown, submenus, flash toasts); page-specific JS stays inline and reads server data via `window.PGS` bootstrap + `data-*` attributes
+- All shared JS lives in `assets/js/app.js` (notifications polling, deadline countdown, submenus, flash toasts); page-specific JS lives in `assets/js/pages/*.js` (~58 files) with server data passed via the `window.PGS.page` JSON bootstrap (one line per page) + `data-*` attributes
+- Only remaining inline scripts: `window.PGS` bootstraps (accepted practice) and the access-denied SweetAlert in `form.php` (inside a PHP string)
 - `.htaccess` sets browser cache headers for static assets (1 month CSS/JS, 1 year images)
 - Cache-busting via the `asset()` helper (`src/helpers.php`) — `?v=` = filemtime, no stale assets after deploys
 - OPcache enabled in `php.ini`
