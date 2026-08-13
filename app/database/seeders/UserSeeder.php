@@ -30,6 +30,7 @@ final class UserSeeder extends Seeder
                     'office' => $u['office'],
                     'password' => Hash::make('password'),
                     'is_active' => true,
+                    'email_verified_at' => now(), // internal LAN accounts: no email verification flow
                 ],
             );
 
