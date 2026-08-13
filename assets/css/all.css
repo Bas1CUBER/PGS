@@ -614,7 +614,6 @@ a:hover {
   .notification-empty-sub {
     font-size: 0.78rem;
   }
-  }
   
   .notification-type-icon {
     width: 40px;
@@ -839,6 +838,17 @@ a:hover {
   }
   .notification-mark-read {
     display: inline-flex !important;
+  }
+}
+
+
+@media (min-width: 1200px) {
+  #navbarNavDropdown > .navbar-nav:first-child > .nav-item.dropdown:hover > .dropdown-menu,
+  #navbarNavDropdown > .navbar-nav:first-child > .nav-item.dropdown:focus-within > .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out, visibility 0.2s step-start;
   }
 }
 
