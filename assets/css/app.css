@@ -315,10 +315,10 @@ a:hover {
     border-radius: 0.5rem;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-8px);
     visibility: hidden;
-    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s step-end;
-    /* Smooth open/close */
+    transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out, visibility 0s linear 0.25s;
+    /* visibility flips to hidden only AFTER the fade-out finishes */
     display: block;
   }
 
@@ -326,7 +326,8 @@ a:hover {
     opacity: 1;
     transform: translateY(0);
     visibility: visible;
-    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s step-start;
+    transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out, visibility 0s;
+    /* visibility flips to visible immediately so the fade-in is not delayed */
   }
 
   /* Existing styles (unchanged) */
