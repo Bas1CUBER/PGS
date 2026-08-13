@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -7,16 +9,23 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Merged schema: Laravel auth requirements + legacy `users` columns
+     * (role, office, is_active, reset_token). Primary key stays INT to
+     * preserve legacy foreign keys (e.g. cascading_activities.uploaded_by)
+     * during the dual-run period (docs/DataModel.md).
      */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
+            $table->integer('id')->autoIncrement()->primary(); // signed INT: matches legacy FK columns
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role')->default('employee'); // legacy ENUM('admin','employee','focal')
+            $table->string('reset_token', 64)->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->string('name')->nullable();
+            $table->string('office')->nullable();
+            $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

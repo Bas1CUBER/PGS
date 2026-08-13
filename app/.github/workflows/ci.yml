@@ -70,6 +70,9 @@ jobs:
       - name: Formatting (Pint)
         run: composer lint
 
+      - name: Grep-gate (banned patterns)
+        run: bash bin/grep-gate.sh
+
       - name: Security audit (Composer)
         run: composer audit --no-interaction
 

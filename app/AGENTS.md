@@ -37,7 +37,7 @@ npm run build               # production assets
 
 - Local: XAMPP PHP 8.2 + MariaDB on `127.0.0.1:3306`, DB `pgs_app` (root, no password).
 - App URL: `http://127.0.0.1:8082` (Apache vhost `pgs.app` in `C:/xampp/apache/conf/extra/httpd-vhosts.conf` — requires Apache restart to take effect).
-- Tests run on SQLite `:memory:` (phpunit.xml).
+- Tests run on MySQL `pgs_test` (phpunit.xml) — mirrors the MariaDB/MySQL-specific legacy migrations.
 - No Docker on this machine — native XAMPP stack only.
 
 ## Repository layout

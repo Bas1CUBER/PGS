@@ -13,6 +13,14 @@ parameters:
     excludePaths:
         - app/Providers/*.php
 
+    ignoreErrors:
+        # phpstan-strict-rules' DynamicCallOnStaticMethodsRule flags Eloquent's
+        # __call magic (query builder methods like ->first(), scopes, and
+        # Request macros) as "dynamic calls to static methods". This is a known
+        # false positive with Larastan: those methods ARE instance methods
+        # resolved via __call. All other strict-rules checks remain enforced.
+        - identifier: staticMethod.dynamicCall
+
 # Note: tests/ intentionally excluded. PHPStan cannot resolve Pest's
 # `$this` binding for test()/it() closures; tests are enforced by Pest
 # runtime execution, Pint, and CI coverage gates instead.
