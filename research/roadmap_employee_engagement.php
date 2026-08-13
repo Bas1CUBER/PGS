@@ -9,7 +9,7 @@ require_page_access('scorecard');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Engagement Rating (Research)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel='stylesheet' href='<?= BASE_URL ?>/assets/css/app.css'>
+  =2'>
     <style>
         body { background-color: #f5f7fa; color: #2c3e50; }
         .card { border: none; border-radius: 1rem; background-color: #ffffff; }

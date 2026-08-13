@@ -229,7 +229,7 @@ STYLES;
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
   <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
 </head>
 <body>
@@ -491,6 +491,155 @@ if (in_array($role, ['admin', 'focal'])) {
 $pageScripts .= '        });
     </script>';
 ?>
+
+<!-- Add Album Modal -->
+<?php if (in_array($role, ['admin', 'focal'])): ?>
+<div class="modal fade" id="addAlbumModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="gallery.php" class="modal-content">
+      <?= csrf_field() ?>
+      <input type="hidden" name="action" value="add_album">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Album</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Album Name</label>
+          <input type="text" name="album_name" class="form-control" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Description (optional)</label>
+          <textarea name="album_description" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Album</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Album Modal -->
+<div class="modal fade" id="editAlbumModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="gallery.php" class="modal-content">
+      <?= csrf_field() ?>
+      <input type="hidden" name="action" value="update_album">
+      <input type="hidden" name="album_id" id="editAlbumId">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Album</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Album Name</label>
+          <input type="text" name="album_name" id="editAlbumName" class="form-control" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Description (optional)</label>
+          <textarea name="album_description" id="editAlbumDescription" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
+
+<!-- Upload Photos Modal -->
+<?php if (in_array($role, ['admin', 'focal'])): ?>
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" action="gallery.php" enctype="multipart/form-data" class="modal-content">
+      <?= csrf_field() ?>
+      <input type="hidden" name="action" value="upload_photos">
+      <input type="hidden" name="album_id" value="<?= (int)$albumId ?>">
+      <div class="modal-header">
+        <h5 class="modal-title">Upload Photos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Select Photos (JPG, PNG, WebP, GIF — max 20MB each)</label>
+          <input type="file" name="photos[]" id="photoInput" class="form-control" accept="image/*" multiple required>
+        </div>
+        <div id="previewArea" style="display:none;">
+          <label class="form-label">Captions (optional)</label>
+          <div id="previewGrid" class="upload-preview"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Upload Photos</button>
+      </div>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
+
+<!-- Caption Modal -->
+<?php if (in_array($role, ['admin', 'focal'])): ?>
+<div class="modal fade" id="captionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="gallery.php" class="modal-content">
+      <?= csrf_field() ?>
+      <input type="hidden" name="action" value="update_caption">
+      <input type="hidden" name="photo_id" id="captionPhotoId">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Caption</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label">Caption</label>
+          <textarea name="caption" id="captionText" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Caption</button>
+      </div>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
+
+<!-- Delete Album Form (hidden) -->
+<?php if ($role === 'admin'): ?>
+<form method="POST" action="gallery.php" id="deleteAlbumForm" class="d-none">
+  <?= csrf_field() ?>
+  <input type="hidden" name="action" value="delete_album">
+  <input type="hidden" name="album_id" id="deleteAlbumId">
+</form>
+
+<!-- Delete Photo Form (hidden) -->
+<form method="POST" action="gallery.php" id="deletePhotoForm" class="d-none">
+  <?= csrf_field() ?>
+  <input type="hidden" name="action" value="delete_photo">
+  <input type="hidden" name="photo_id" id="deletePhotoId">
+</form>
+<?php endif; ?>
+
+<!-- Zoom Modal -->
+<div class="modal fade" id="zoomModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Photo Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="" alt="Zoomed Photo" id="zoomImg" class="modal-img">
+        <div id="zoomCaption" class="modal-caption" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
   </div>
   <?php include PGS_TEMPLATES . '/footer.php'; ?>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

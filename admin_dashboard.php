@@ -202,70 +202,86 @@ $pageStyles = 'html, body {
     .hero {
       background: linear-gradient(90deg, #1e88e5 0%, #0d5bd1 50%, #0b4aa2 100%);
       color: white;
-      padding: 40px 20px;
+      padding: 34px 24px;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       display: flex;
       align-items: center;
-      gap: -15px;
+      justify-content: center;
+      gap: 24px;
+      position: relative;
+      min-height: 210px;
+      margin-top: 78px;
+      margin-left: 24px;
+      margin-right: 24px;
     }
 
+    /* Lamp: subtle left-side decoration, fully inside the hero */
     .hero-lamp {
+      position: absolute;
+      left: 48px;
+      top: 50%;
+      transform: translateY(-50%);
       flex-shrink: 0;
-      margin-left: 40px;
+      opacity: 1;
+      line-height: 0;
     }
 
     .hero-lamp img {
-      height: 200px;
+      height: 160px;
       width: auto;
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      display: block;
+      filter: none;
     }
 
     .hero-content {
-      flex: 1;
       text-align: center;
     }
 
     .hero h1 {
-      font-size: 2.5rem;
+      font-size: 2.25rem;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .hero p {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       margin: 0 auto;
       max-width: 600px;
+      opacity: 0.96;
     }
 
     /* Notices Section */
     .notice-card {
-      background: linear-gradient(145deg,rgb(192, 192, 192), #f8f9fa); /* very subtle glowing greyish background */
-      border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08), 
-                  inset 0 0 12px rgba(240, 240, 245, 0.9); /* soft inner glow */
-      transition: all 0.35s ease;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e9edf2;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
       height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      border: 1px solid rgba(220, 220, 230, 0.7);
     }
 
     .notice-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
-      background: linear-gradient(90deg, #1e88e5 0%, #0d5bd1 50%, #0b4aa2 100%);
-      color: white !important;
-      border-color: linear-gradient(90deg, #1e88e5 0%, #0d5bd1 50%, #0b4aa2 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
+      border-color: #d0d7de;
+      background: #ffffff;
     }
+    /* Preserve exact normal text colors on hover (scoped to notice card only) */
     .notice-card:hover h5,
-    .notice-card:hover p,
-    .notice-card:hover a,
-    .notice-card:hover small,
-    .notice-card:hover .text-muted,
     .notice-card:hover .card-title {
-      color: #fff !important;
+      color: #2c3e50;
+    }
+    .notice-card:hover p,
+    .notice-card:hover small,
+    .notice-card:hover .text-muted {
+      color: #6c757d;
+    }
+    .notice-card:hover a {
+      color: #0d6efd;
     }
 
     .notice-card img {
@@ -294,16 +310,17 @@ $pageStyles = 'html, body {
       border: none;
       border-radius: 12px;
       background: #ffffff;
-      box-shadow: 0 6px 18px rgba(183, 149, 11, .12);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     }
     .approvals-header {
       background: linear-gradient(90deg, #1e88e5 0%, #0d5bd1 50%, #0b4aa2 100%);
       color: #fff;
       border-radius: 12px 12px 0 0;
-      padding: 14px 16px;
+      padding: 14px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
     }
     .approvals-header .title {
       font-weight: 700;
@@ -362,11 +379,25 @@ $pageStyles = 'html, body {
     }
 
     @media (max-width: 768px) {
+      .hero {
+        padding: 26px 16px;
+        min-height: 150px;
+        margin-top: 70px;
+        margin-left: 12px;
+        margin-right: 12px;
+      }
       .hero h1 {
-        font-size: 2rem;
+        font-size: 1.6rem;
       }
       .hero p {
-        font-size: 1rem;
+        font-size: 0.9rem;
+      }
+      .hero-lamp {
+        left: 16px;
+        opacity: 1;
+      }
+      .hero-lamp img {
+        height: 100px;
       }
     }';
 
@@ -382,7 +413,7 @@ $pageStyles = 'html, body {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
   <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
 </head>
 <body>
@@ -567,6 +598,7 @@ $pageStyles = 'html, body {
     </div>
   </div>
 <script>
+    window.PGS_CSRF = '<?= csrf_token() ?>';
     function viewNotice(title, description, image, video) {
       document.getElementById('modalTitle').innerText = title;
       let html = `<p class="text-secondary">${description.replace(/\n/g, "<br>")}</p>`;
@@ -595,6 +627,7 @@ $pageStyles = 'html, body {
 
       const formData = new FormData();
       formData.append('notice_id', String(noticeId));
+      formData.append('_token', window.PGS_CSRF);
 
       fetch('delete_notice.php', {
         method: 'POST',

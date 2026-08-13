@@ -340,7 +340,7 @@ $chartTrendTargetData = array_values(array_map(fn($y) => $trendTargetMap[$y], $t
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Governance Scorecard: Client Satisfaction Rating</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel='stylesheet' href='<?= BASE_URL ?>/assets/css/app.css'>
+  =2'>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

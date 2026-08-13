@@ -141,9 +141,15 @@ $pageStyles = '<style>
 
 $pageScripts = '';
 if ($role === 'admin') {
-    $pageScripts = <<<'EOSCRIPT'
+    $csrf = csrf_token();
+    $pageScripts = <<<EOSCRIPT
 <script>
 (function(){
+  const CSRF_TOKEN = '{$csrf}';
+  function p(params) {
+    params.set('_token', CSRF_TOKEN);
+    return params;
+  }
   const table = document.getElementById('matrixTable');
   table.addEventListener('focusout', function(e){
     const td = e.target;
@@ -154,7 +160,7 @@ if ($role === 'admin') {
       fetch('about_user_access.php', {
         method:'POST',
         headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body: new URLSearchParams({ action:'edit_cell', row: row, col: col, value: value })
+        body: p(new URLSearchParams({ action:'edit_cell', row: row, col: col, value: value }))
       }).then(async r=>{
         let data=null; try { data = await r.json(); } catch(e){}
         if (!(data && data.ok)) {
@@ -167,7 +173,7 @@ if ($role === 'admin') {
     fetch('about_user_access.php', {
       method:'POST',
       headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body: new URLSearchParams({ action:'add_row' })
+      body: p(new URLSearchParams({ action:'add_row' }))
     }).then(async r=>{
       let d=null; try { d = await r.json(); } catch(e){}
       if (d && d.ok) location.reload(); else alert((d && d.error) || 'Add row failed');
@@ -179,7 +185,7 @@ if ($role === 'admin') {
     fetch('about_user_access.php', {
       method:'POST',
       headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body: new URLSearchParams({ action:'add_column', label: label })
+      body: p(new URLSearchParams({ action:'add_column', label: label }))
     }).then(async r=>{
       let d=null; try { d = await r.json(); } catch(e){}
       if (d && d.ok) location.reload(); else alert((d && d.error) || 'Add column failed');
@@ -202,7 +208,7 @@ EOSCRIPT;
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
   <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
 </head>
 <body>

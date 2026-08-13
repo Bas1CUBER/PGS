@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
   <?php
     // Pages pass either raw CSS or already-wrapped <style>/<link> snippets.
     // Wrap raw CSS so the browser applies it instead of rendering it as text.
