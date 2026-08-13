@@ -44,6 +44,28 @@ final class NotificationController extends Controller
         ]);
     }
 
+    public function feed(Request $request): JsonResponse
+    {
+        $user = $this->userOrFail($request);
+
+        $items = Notification::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get()
+            ->map(static fn (Notification $notification): array => [
+                'id' => $notification->id,
+                'type' => $notification->type->value,
+                'title' => $notification->title,
+                'message' => $notification->message,
+                'is_read' => $notification->is_read,
+                'created_at' => $notification->created_at->toIso8601String(),
+            ]);
+
+        return response()->json(['data' => $items]);
+    }
+
     public function markAsRead(Request $request, int $notification): RedirectResponse
     {
         $this->notifications->markAsRead($notification, $this->userOrFail($request)->id);

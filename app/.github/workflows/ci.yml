@@ -94,8 +94,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint (ESLint, zero warnings)
+        run: npm run lint
+
+      - name: Formatting (Prettier)
+        run: npm run format:check
+
       - name: Build assets
         run: npm run build
+
+      - name: Bundle budget (initial JS <= 250 kB gzip)
+        run: npm run bundle:budget
 
       - name: Security audit (npm)
         run: npm audit --audit-level=high

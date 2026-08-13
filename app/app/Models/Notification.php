@@ -13,7 +13,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $user_id
- * @property string $type
+ * @property NotificationType $type
  * @property string $title
  * @property string $message
  * @property int|null $related_id

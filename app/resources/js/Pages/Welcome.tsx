@@ -1,4 +1,4 @@
-import { PageProps } from '@/types';
+import type { PageProps } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 
 export default function Welcome({
@@ -7,13 +7,9 @@ export default function Welcome({
     phpVersion,
 }: PageProps<{ laravelVersion: string; phpVersion: string }>) {
     const handleImageError = () => {
-        document
-            .getElementById('screenshot-container')
-            ?.classList.add('!hidden');
+        document.getElementById('screenshot-container')?.classList.add('!hidden');
         document.getElementById('docs-card')?.classList.add('!row-span-1');
-        document
-            .getElementById('docs-card-content')
-            ?.classList.add('!flex-row');
+        document.getElementById('docs-card-content')?.classList.add('!flex-row');
         document.getElementById('background')?.classList.add('!hidden');
     };
 
@@ -23,7 +19,7 @@ export default function Welcome({
             <div className="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
                 <img
                     id="background"
-                    className="absolute -left-20 top-0 max-w-[877px]"
+                    className="absolute top-0 -left-20 max-w-[877px]"
                     src="https://laravel.com/assets/img/welcome/background.svg"
                 />
                 <div className="relative flex min-h-screen flex-col items-center justify-center selection:bg-[#FF2D20] selection:text-white">
@@ -123,14 +119,11 @@ export default function Welcome({
                                                 </h2>
 
                                                 <p className="mt-4 text-sm/relaxed">
-                                                    Laravel has wonderful
-                                                    documentation covering every
-                                                    aspect of the framework.
-                                                    Whether you are a newcomer
-                                                    or have prior experience
-                                                    with Laravel, we recommend
-                                                    reading our documentation
-                                                    from beginning to end.
+                                                    Laravel has wonderful documentation covering
+                                                    every aspect of the framework. Whether you are a
+                                                    newcomer or have prior experience with Laravel,
+                                                    we recommend reading our documentation from
+                                                    beginning to end.
                                                 </p>
                                             </div>
                                         </div>
@@ -174,12 +167,10 @@ export default function Welcome({
                                         </h2>
 
                                         <p className="mt-4 text-sm/relaxed">
-                                            Laracasts offers thousands of video
-                                            tutorials on Laravel, PHP, and
-                                            JavaScript development. Check them
-                                            out, see for yourself, and massively
-                                            level up your development skills in
-                                            the process.
+                                            Laracasts offers thousands of video tutorials on
+                                            Laravel, PHP, and JavaScript development. Check them
+                                            out, see for yourself, and massively level up your
+                                            development skills in the process.
                                         </p>
                                     </div>
 
@@ -223,12 +214,10 @@ export default function Welcome({
                                         </h2>
 
                                         <p className="mt-4 text-sm/relaxed">
-                                            Laravel News is a community driven
-                                            portal and newsletter aggregating
-                                            all of the latest and most important
-                                            news in the Laravel ecosystem,
-                                            including new package releases and
-                                            tutorials.
+                                            Laravel News is a community driven portal and newsletter
+                                            aggregating all of the latest and most important news in
+                                            the Laravel ecosystem, including new package releases
+                                            and tutorials.
                                         </p>
                                     </div>
 
@@ -267,9 +256,8 @@ export default function Welcome({
                                         </h2>
 
                                         <p className="mt-4 text-sm/relaxed">
-                                            Laravel's robust library of
-                                            first-party tools and libraries,
-                                            such as{' '}
+                                            Laravel's robust library of first-party tools and
+                                            libraries, such as{' '}
                                             <a
                                                 href="https://forge.laravel.com"
                                                 className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white dark:focus-visible:ring-[#FF2D20]"
@@ -304,9 +292,8 @@ export default function Welcome({
                                             >
                                                 Herd
                                             </a>{' '}
-                                            help you take your projects to the
-                                            next level. Pair them with powerful
-                                            open source libraries like{' '}
+                                            help you take your projects to the next level. Pair them
+                                            with powerful open source libraries like{' '}
                                             <a
                                                 href="https://laravel.com/docs/billing"
                                                 className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
