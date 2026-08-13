@@ -5,7 +5,9 @@ import {
     FileText,
     Home,
     LayoutDashboard,
+    LayoutList,
     LogIn,
+    Megaphone,
     ScrollText,
     Timer,
     Users,
@@ -35,8 +37,19 @@ export function navigationFor(user: User): NavSection[] {
             items: [
                 { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
                 { title: 'Notifications', href: '/notifications', icon: Bell },
-                { title: 'Profile', href: '/profile', icon: Home },
             ],
+        },
+        {
+            title: 'Modules',
+            items: [
+                { title: 'Deliverables', href: '/deliverables', icon: FileText },
+                { title: 'Roadmaps', href: '/roadmaps', icon: LayoutList },
+                { title: 'Notices', href: '/notices', icon: Megaphone },
+            ],
+        },
+        {
+            title: 'Account',
+            items: [{ title: 'Profile', href: '/profile', icon: Home }],
         },
     ];
 

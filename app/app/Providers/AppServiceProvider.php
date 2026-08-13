@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Enums\DeliverableStatus;
+use App\Http\Controllers\DeliverableController;
+use App\Models\Deliverable;
+use App\Services\TransitionsWorkflowService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
@@ -45,5 +49,25 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', function (Request $request): Limit {
             return Limit::perMinute(5)->by((string) $request->input('email').'|'.$request->ip());
         });
+
+        // Deliverable progress workflow (docs/Workflows.md §2).
+        $this->app->when(DeliverableController::class)
+            ->needs(TransitionsWorkflowService::class)
+            ->give(fn (): TransitionsWorkflowService => new TransitionsWorkflowService(
+                Deliverable::class,
+                [
+                    DeliverableStatus::NotYetStarted->value => [
+                        ['to' => DeliverableStatus::Ongoing->value, 'actor' => '*'],
+                        ['to' => DeliverableStatus::Accomplished->value, 'actor' => 'admin|focal'],
+                    ],
+                    DeliverableStatus::Ongoing->value => [
+                        ['to' => DeliverableStatus::Accomplished->value, 'actor' => '*'],
+                        ['to' => DeliverableStatus::NotYetStarted->value, 'actor' => 'admin|focal'],
+                    ],
+                    DeliverableStatus::Accomplished->value => [
+                        ['to' => DeliverableStatus::Ongoing->value, 'actor' => 'admin|focal'],
+                    ],
+                ],
+            ));
     }
 }

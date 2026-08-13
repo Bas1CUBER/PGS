@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require __DIR__.'/../routes/notifications.php';
                 require __DIR__.'/../routes/users.php';
                 require __DIR__.'/../routes/admin.php';
+                require __DIR__.'/../routes/modules.php';
             });
         },
     )

@@ -24,20 +24,31 @@
 
 ## 2. Task checklist (per module)
 
-1. **Business rules doc**: read the legacy file, write `docs/<Module>.md` — statuses, validations, edge cases (e.g. `uploaded_by` backfill, deadline enforcement).
-2. **Controllers + Form Requests**: thin controllers, `Store/Update` requests, service layer for workflows.
-3. **Policies**: employee uploads own deliverables; focal approves; admin manages all.
-4. **Uploads**: `Storage` disks, MIME whitelist, size limits, virus scan hook, filename sanitization, chunking if >50 MB. Never trust client filename (see [Security.md](./Security.md)).
-5. **UI**: pages via Inertia + shadcn components; uploads via `UploadDropzone`; statuses via `StatusBadge`; tables via `DataTable` wrapper.
-6. **Notifications**: wire events (`UploadApproved`, `UploadReturned`, `TemplateUpdated`) → notification service.
-7. **Tests**: feature tests for each workflow state transition + permission matrix; upload validation tests.
-8. **PDF/export**: server-side (DomPDF/Browsershot) replacing `jspdf`/`html2canvas` browser hacks.
+### Workflow engine (foundation)
+- [x] `TransitionsWorkflowService` — generic status engine (from/to/actor/preconditions), row-locked transitions in transactions, audit entries per transition (`{table}.status_changed`); DI-bound per module via `AppServiceProvider`
+- [x] `DeliverableStatus` enum (legacy values) + deliverables transition map (NotYetStarted → Ongoing → Accomplished; reopen admin/focal) — tested (allowed, denied, wrong actor, audit)
 
-### Cross-cutting
-- [ ] Roadmap page-builder blocks ported to a `Block` model with JSON content typed in TS
-- [ ] Status workflow engine: single source of truth (enum + transitions map), tested
-- [ ] Search/sort/pagination everywhere; no loading full tables
-- [ ] Legacy endpoints stop being linked from new UI (dual-run mode: new UI in prod, legacy still reachable for UAT)
+### Deliverables module (`p_deliverables`)
+- [x] Controller CRUD + MOV upload (storage disk `local/deliverables`, whitelisted types ≤25MB), download with policy, delete removes file
+- [x] Employee scoping on index; admin/focal see all; policy matrix tested
+- [x] Status transitions via `POST /deliverables/{id}/status` (workflow engine) — tested
+- [x] Audit on create/update/delete; feature tests (9)
+
+### Roadmaps module (`roadmap_titles` / `roadmap_items` / `roadmap_page_blocks`)
+- [x] Titles CRUD; items CRUD with legacy columns (`sub_letter` auto A/B/C, `sub_label`, `page_slug` via `Str::slug`, `has_builder_page`) + up/down reorder (transactional swap)
+- [x] Blocks CRUD with JSON content (legacy enum types `heading|paragraph|table|dashboard_stat`) — tested
+- [x] Page-access matrix enforced (`page.access:roadmaps`) — tested
+
+### Notices module (`notices`)
+- [x] CRUD with audit; admin/focal manage, all roles read — tested
+
+### Not yet ported (next sessions, per module checklist above)
+- [ ] Communication plan module
+- [ ] Reviews module (strategy review / refresh / operations review + PDF)
+- [ ] Resources module
+- [ ] Gallery module
+- [ ] Cascading activities module
+- [ ] Notifications wiring per workflow transition (events → NotificationService)
 
 ---
 
