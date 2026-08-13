@@ -23,7 +23,7 @@ Security baseline for the PGS application. This is an internal government health
 
 - Laravel Breeze auth; password policy: min 12 chars, breached-password validation, `password:history` on change.
 - Login throttling + lockout (5 fails → 15 min); rate limit on reset (1/min).
-- Sessions: Redis store, HttpOnly + SameSite=Lax + Secure (prod), idle timeout 8h, `regenerate()` on privilege change.
+- Sessions: database store, HttpOnly + SameSite=Lax + Secure (prod), idle timeout 8h, `regenerate()` on privilege change.
 - Admin: TOTP 2FA enforced (Phase 8); recovery codes stored hashed.
 - Passwords: Argon2id (`bcrypt` acceptable for existing hashes at import); never log/echo credentials; `Hash::check` only.
 

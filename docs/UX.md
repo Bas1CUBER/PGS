@@ -19,9 +19,8 @@ User-experience standard for the PGS app. Fixes the legacy app's UX debt: alert-
 
 ## 2. Information architecture
 
-- **Sidebar (role-filtered)**: Dashboard · Roadmaps · Deliverables · Reviews · Communication Plan · Notices · Resources · Gallery · User Management (admin) · System (admin: deadlines, backup, audit).
+- **Sidebar (role-filtered)**: Dashboard · Deliverables · Roadmaps · Sectors · Notices · User Management (admin) · Deadlines · Backups · Audit Log (admin).
 - Module pages follow one pattern: **List → (Filters/Search) → Row actions → Detail**.
-- Global search (Phase 8): users, deliverables, notices, roadmaps — one box in topbar.
 - Breadcrumbs on every page ≥ 2 levels deep; page title = H1 = route name.
 
 ---
@@ -32,7 +31,7 @@ User-experience standard for the PGS app. Fixes the legacy app's UX debt: alert-
 |---|---|
 | Loading | Skeleton matching layout (never spinner-only) |
 | Empty | Icon + title + reason + primary action ("No deliverables yet — Upload your first") |
-| Error | Friendly title, retry button, no stack traces; Sentry captures details |
+| Error | Friendly title, retry button, no stack traces; details in Laravel logs |
 | Success | Toast + destination (redirect); visible state change on origin page |
 | Partial/failure | Inline field errors; form data preserved on reload |
 | Offline | Banner when network drops; retry semantics on uploads |
@@ -46,14 +45,14 @@ User-experience standard for the PGS app. Fixes the legacy app's UX debt: alert-
 
 - One column on mobile, up to two on desktop; labels always visible (no placeholder-only).
 - Validation: inline errors under fields on submit; disabled submit while pending; `aria-describedby` wiring.
-- Upload forms: dropzone with drag feedback, size/type check before send, progress %, cancel, resume on error (retry button).
+- Upload forms: dropzone with drag feedback, size/type check before send, progress %, cancel, retry on error.
 - Drafting: auto-save indicator for long forms (strategy reviews) — "Saved 2 min ago".
 
 ---
 
 ## 5. Notifications UX
 
-- Badge with unread count (live via 60s polling; Reverb later); grouped by day; types color-coded (upload/approved/returned/edit).
+- Badge with unread count (60s polling); grouped by day; types color-coded (upload/approved/returned/edit).
 - Clicking a notification navigates to the related item (`related_id`); mark-read on click; "Mark all read" with undo toast.
 - Empty state for zero notifications; link to notification history (paginated).
 
@@ -77,17 +76,17 @@ User-experience standard for the PGS app. Fixes the legacy app's UX debt: alert-
 
 ## 8. Mobile & responsive
 
-- Breakpoints: mobile < 640, tablet ≥ 768, desktop ≥ 1024. Test matrix: iPhone SE (small), Pixel 7, 1366×768 desktop.
+- Breakpoints: mobile < 640, tablet ≥ 768, desktop ≥ 1024.
 - Sidebar → drawer; tables → horizontal scroll or card-ification for the 3 most-used tables (deliverables, users, notifications).
 - Tap targets ≥ 44×44px; sticky primary action (e.g., "Upload") on mobile lists.
 
 ---
 
-## 9. Accessibility (WCAG 2.1 AA)
+## 9. Accessibility (WCAG 2.1 AA — manual checks on the LAN)
 
 - Full keyboard path: skip link, focus order = visual order, visible focus rings (token `--ring`).
 - Screen readers: landmarks (header/nav/main), heading hierarchy H1→H3 max, `aria-current` on active nav, live regions for toasts/notifications.
-- Content: plain language, no jargon-only labels; PDF/annex exports have text layer.
+- Content: plain language, no jargon-only labels; PDF/annex exports have a text layer.
 - Motion: reduce-motion respected (no spinning skeletons under `prefers-reduced-motion`).
 
 ---
@@ -96,6 +95,6 @@ User-experience standard for the PGS app. Fixes the legacy app's UX debt: alert-
 
 - [ ] 3-click task completion verified on the page's core tasks
 - [ ] Loading/empty/error/success states all present (tested)
-- [ ] Keyboard-only pass; axe scan clean
+- [ ] Keyboard-only pass; manual axe-style review clean
 - [ ] Mobile layout reviewed at 375px and 768px
 - [ ] Notifications + audit wired for state-changing actions

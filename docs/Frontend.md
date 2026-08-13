@@ -70,7 +70,7 @@ resources/
 
 ### 3.5 Error states
 - Every data view has: loading skeleton, empty state (icon + action), error state (retry button).
-- `PageError` boundary component catches render errors with Sentry reporting.
+- `PageError` boundary component catches render errors and logs them (Laravel log; no Sentry on LAN).
 
 ---
 
@@ -94,5 +94,5 @@ resources/
 ## 6. Testing
 
 - Component tests: Vitest + React Testing Library for `components/app` logic.
-- E2E: Playwright for critical flows (login, upload, workflow transitions).
+- Verification: feature tests (Pest) for critical flows; manual LAN smoke checklist.
 - CI runs all; axe-core scans on key routes.

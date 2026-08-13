@@ -1,6 +1,6 @@
 # Phase 1 — Foundation & Quality Gates
 
-**Goal**: A green-from-day-one Laravel skeleton with CI, Docker, static analysis, and formatting enforced before any feature work begins.
+**Goal**: A green-from-day-one Laravel skeleton with CI, static analysis, and formatting enforced before any feature work begins.
 
 **Effort**: 2–3 weeks · **Depends on**: nothing · **Unblocks**: everything
 
@@ -8,7 +8,7 @@
 
 ## 1. Objectives
 
-1. Scaffold the new app with a one-command local environment (Docker).
+1. Scaffold the new app with a one-command local environment (XAMPP-native).
 2. Enforce quality gates in CI **before** migrating features, so every later phase inherits them.
 3. Replace `config.php` constants with `.env` configuration.
 4. Establish docs as living source of truth (this directory).
@@ -19,12 +19,12 @@
 
 ### 2.1 Scaffolding
 - [x] `composer create-project laravel/laravel` in `app/` (new code lives alongside legacy `htdocs` tree during migration)
-- [x] Native XAMPP stack: PHP 8.2 (XAMPP) + MariaDB 10.4 on `127.0.0.1:3306`, DB `pgs_app` — **no Docker** (machine constraint; `docker compose` steps in this doc are skipped for this environment)
+- [x] Native XAMPP stack: PHP 8.2 (XAMPP) + MariaDB 10.4 on `127.0.0.1:3306`, DB `pgs_app` — **no Docker** (machine constraint; Docker is not used anywhere in this project)
 - [x] `.env.example` with every required variable; **never** commit `.env`
 - [x] `APP_KEY` generation in setup script
 - [x] Delete legacy `config.php`/`db.php` dependencies from the new codebase (Phase 2 owns the DB)
-- [x] Health check route (`/up`) that verifies DB + Redis connectivity — `/up` returns JSON `{status, services.database}`; 503 when DB down
-- [ ] Apache vhost `pgs.app` on `127.0.0.1:8082` — **config written** (`httpd-vhosts.conf`) but requires an Apache restart (XAMPP Control Panel, admin rights) to activate; dev via `php artisan serve` until then
+- [x] Health check route (`/up`) that verifies DB connectivity — `/up` returns JSON `{status, services.database}`; 503 when DB down (no Redis on the LAN host)
+- [ ] Apache vhost `pgs.app` on `0.0.0.0:8082` — **config written** (`httpd-vhosts.conf`) but requires an Apache restart (XAMPP Control Panel, admin rights) to activate; dev via `php artisan serve` until then. Binding to `0.0.0.0` lets LAN peers reach the app at `http://<server-LAN-IP>:8082` (see TechStack.md §1b)
 
 ### 2.2 Quality gates (CI: GitHub Actions)
 - [x] PHPStan `--level=max` + `phpstan/phpstan-strict-rules` + `larastan` — `app/` + `routes/`
@@ -49,7 +49,7 @@
 
 ## 3. Definition of Done / acceptance criteria
 
-- [x] `docker compose up` → fresh clone boots a working app with migrations run — **adapted**: native XAMPP: `composer install` → `.env` → `php artisan key:generate` → `php artisan migrate` → `npm run dev` → app at `http://127.0.0.1:8082` (vhost, pending Apache restart) or `php artisan serve`
+- [x] Fresh clone boots a working app with migrations run — **native XAMPP**: `composer install` → `.env` → `php artisan key:generate` → `php artisan migrate` → `npm run dev` → app at `http://127.0.0.1:8082` (vhost, pending Apache restart) or `php artisan serve`
 - [x] CI pipeline fully green on a trivial PR — workflow committed (`app/.github/workflows/ci.yml`); first run verifies on push
 - [x] PHPStan max: 0 errors on `app/` + `routes/`
 - [x] No `config.php`-style global constants anywhere in new code
@@ -62,7 +62,7 @@
 | Risk | Mitigation |
 |---|---|
 | CI setup stalls feature work | CI is tiny; keep it in the very first PR, before any feature PR |
-| Docker not available on some dev machines | Fallback: local PHP 8.4 + MySQL + Redis documented in README |
+| Docker not available on some dev machines | Fallback: local PHP 8.4 + MySQL documented in README (this project runs XAMPP-native; Docker unused) |
 | Migration of old git history is messy | Use `git subtree` / `git filter-repo` script in a spike PR; abort if >1 day |
 
 ---

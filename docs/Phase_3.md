@@ -35,7 +35,7 @@
 - [x] `Notification` Eloquent model (`notifications` table, `is_read`, `related_*`) + `NotificationType` enum
 - [x] `NotificationService`: `create`, `createForRole`, `createForMany` (bulk insert + dedupe), `unreadCount`, `markAsRead`, `markAllAsRead` — fully tested
 - [ ] `NotificationController` API: index (paginated), unreadCount, mark-read (bulk), mark-all — **index/unread/read/read-all done**; React page shipped (Breeze shell styling; shadcn in Phase 4)
-- [ ] Real-time badge via polling — **deferred to Phase 8** (Reverb/WebSocket); `unreadCount` shared prop is poll-ready
+- [x] Badge refresh via polling (60s) — `unreadCount` shared prop + JSON feed endpoint; no WebSocket/Reverb (LAN deployment)
 - [x] Backfill + parity check against legacy `notifications` rows — data imported in Phase 2 (74/74 row parity)
 
 ### 2.4 Audit log

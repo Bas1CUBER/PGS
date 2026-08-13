@@ -1,6 +1,6 @@
 # Architecture
 
-System architecture for the rebuilt PGS: modules, request flow, data boundaries, and conventions. Replaces the legacy shape (every `.php` file an entry point, global state, three parallel conventions).
+System architecture for the rebuilt PGS: modules, request flow, data boundaries, and conventions. Replaces the legacy shape (every `.php` file an entry point, global state, three parallel conventions). Deployment model: **single XAMPP host on the LAN** (no Redis, no Sentry, no Docker — see [TechStack.md](./TechStack.md) §1b).
 
 ---
 
@@ -21,9 +21,9 @@ System architecture for the rebuilt PGS: modules, request flow, data boundaries,
 │      → Events → Listeners → NotificationService/AuditLog      │
 │      → Eloquent Models → MySQL                                 │
 │                                                               │
-│  Infrastructure: Redis (cache/session/queue) · Horizon        │
+│  Infrastructure: database cache/queue (no Redis)              │
 │  Storage: uploads (private) · backups · logs                  │
-│  Observability: Sentry · Telescope · structured logs          │
+│  Observability: Laravel logs · audit log · /up                │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -95,12 +95,12 @@ Module rules:
 |---|---|
 | Auth | Breeze + policies (Phase 3) |
 | Authorization matrix | `Role` enum + `CanAccessPage` + policies; tested per route |
-| Notifications | `NotificationService` + domain events; polling for badge |
+| Notifications | `NotificationService` + domain events; 60s polling for badge |
 | Audit | `AuditLog` model via event listeners |
 | File storage | `Storage` disks (private/uploads), signed URLs |
-| Caching | Redis: access cache, deadline, dashboard aggregates (60s TTL) |
-| Queues | Horizon: upload scan, PDF gen, backup, mail, notifications |
-| Errors | Sentry + `abort()` + logging with request IDs |
+| Caching | Cache facade on the **`database` driver**: access cache, deadline, dashboard aggregates (60s TTL) |
+| Queues | `database` queue driver; `php artisan queue:work` via Windows scheduled task (no Horizon/Redis) |
+| Errors | `abort()` + logging with request IDs (no Sentry on LAN) |
 | Feature flags | Config-driven flags for rollout (legacy↔new dual-run) |
 
 ---
@@ -115,18 +115,19 @@ Module rules:
 
 ---
 
-## 8. Deployment topology
+## 8. Deployment topology (LAN host)
 
 ```
-GitHub → CI (test/lint/audit/build) → artifact → Deploy server
-  Nginx (TLS, static assets) → PHP-FPM (8.4) → MySQL · Redis
-  Workers: Horizon (queues) · scheduler (cron: backups, cleanup)
-  Storage: uploads disk (persistent volume), backups (S3/volume)
-  Monitoring: Sentry · uptime checks · /up endpoint
+GitHub → CI (test/lint/audit/build) → artifact → XAMPP host (htdocs)
+  Apache (port 8080 legacy / 8082 app vhost) → PHP (XAMPP) → MySQL
+  Queue worker: Windows scheduled task (php artisan queue:work --once)
+  Storage: uploads (private dir), backups (local disk), logs (storage/logs)
+  Monitoring: /up endpoint · Laravel logs · audit log
 ```
 
-- Blue/green or simple rolling deploy; `php artisan migrate --force` runs as part of deploy with `migrate:status` pre-check.
-- Rollback = redeploy previous artifact (DB migrations must be backward-compatible where possible).
+- Simple deploy: `git pull` on the host + `php artisan migrate --force` + `npm run build` (runbook in [Operations.md](./Operations.md)).
+- Rollback = checkout previous tag; DB migrations must be backward-compatible where possible.
+- LAN clients reach the app at `http://<server-LAN-IP>:8082` (Apache bound to `0.0.0.0`).
 
 ---
 
@@ -136,4 +137,5 @@ Decisions recorded here as they're made (first one entered):
 
 - **ADR-001 (2026-08)**: Modular monolith, not microservices — team size 1–2, single deploy unit, no distributed complexity.
 - **ADR-002 (2026-08)**: Inertia over API-only SPA — shared session/CSRF, no double auth stack, progressive migration path for legacy pages.
-- *(Add entries per phase: charts lib, PDF engine, cache strategy, queue driver, hosting.)*
+- **ADR-003 (2026-08)**: LAN deployment on XAMPP — no Redis/queue services (database drivers), no Sentry (logs + audit), no Docker; all subsequent phases assume this.
+- *(Add entries per phase: charts lib, PDF engine, cache strategy, hosting.)*

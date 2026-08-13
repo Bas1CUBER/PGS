@@ -26,16 +26,16 @@ Client (UploadDropzone)
   → UploadPipelineService::handle()
       1. stream to private disk: uploads/{module}/{uuid}.{ext}
       2. persist metadata row (original_name, size, mime, sha256, uploaded_by, module, related_id)
-      3. dispatch queue job: virus scan
+      3. dispatch queue job: metadata/review step
          - clean  → keep; notify success listeners
-         - threat → move to quarantine/, delete row, notify uploader + admin (audit)
+         - flagged → move to review/ for manual operator inspection (no ClamAV on the LAN host; see Security.md §5)
       4. image variant generation (if image): responsive sizes, strip EXIF/GPS
       5. index/denormalize triggers (module-specific)
   → signed, expiring download URL for preview
 ```
 
-- Status column reflects pipeline: `staging → stored → scanned → ready` (UI shows spinner until `ready`).
-- Failed scans are retried (3 attempts, backoff); persistent failure → quarantine + alert (Sev 3).
+- Status column reflects pipeline: `staging → stored → ready` (UI shows spinner until `ready`).
+- **Manual review**: the operator reviews flagged uploads (heuristic flags: executable extensions, size anomalies) via the admin list; approved files stay, flagged files are moved to `review/` and audited.
 
 ## 3. Storage & naming
 
@@ -60,7 +60,7 @@ Client (UploadDropzone)
 - [ ] Path traversal in `original_name`/`related` params → 422 (no filesystem escape)
 - [ ] Double extension / mangled MIME → rejected
 - [ ] Oversize → rejected before stream (Content-Length + streamed guard)
-- [ ] Virus-hit file never reaches public path; quarantine audited
+- [ ] Flagged file never reaches the public path; manual-review actions audited
 - [ ] EXIF/GPS stripped from images at ingest
 - [ ] Signed URL expiry enforced server-side; download logged
 - [ ] Deadline enforcement at upload time (Workflows §6)

@@ -9,7 +9,7 @@ Current legacy stack vs. the target stack, with versions, rationale, and rejecte
 | Layer | Choice | Version (pin) | Rationale |
 |---|---|---|---|
 | Language | PHP | 8.4.x | 8.0 is EOL; 8.4 is current stable. `declare(strict_types=1)` everywhere. |
-| Framework | Laravel | 12.x | Router, Eloquent, migrations, auth, queues, validation, Horizon, Telescope — closes every backend gap in one move. |
+| Framework | Laravel | 12.x | Router, Eloquent, migrations, auth, queues, validation — closes every backend gap in one move. |
 | Frontend framework | React | 19.x | Most-documented ecosystem; team familiarity optional (see Skills). |
 | Data layer | Inertia.js (React) | 2.x | Server-rendered pages + client components; no API/SPA split; CSRF & auth free. |
 | Styling | Tailwind CSS | 4.x | Utility-first, CSS-variable theming, dark mode; shadcn/ui is built on it. |
@@ -22,10 +22,32 @@ Current legacy stack vs. the target stack, with versions, rationale, and rejecte
 | Static analysis | PHPStan | `--level=max` + strictRules | Catches the class of bugs this codebase has historically shipped. |
 | Formatting | Pint (Laravel default) + Prettier + ESLint | latest | Zero-debate formatting; enforced in CI. |
 | CI | GitHub Actions | — | PR gates: tests, lint, build, audit, coverage. |
-| Observability | Sentry + Laravel Telescope | latest | Error tracking + local debugging; structured logs. |
-| Ops | Docker Compose | — | PHP-FPM, MySQL, Redis, Mailpit — one-command parity env. |
-| Cache/Queue | Redis | 7.x | Cache, sessions, queues (uploads, PDF generation). |
+| Observability | Laravel structured logs + `storage/logs` | (framework) | Log-based monitoring; no external services (no Sentry). |
+| Ops | XAMPP Apache on the LAN host | — | App served from `htdocs`; LAN peers reach it over HTTP. No Docker. |
+| Cache/Queue | Laravel `database` drivers | (framework) | Cache + queues via MySQL tables; **no Redis** (LAN deployment constraint). |
 | Backup | `spatie/laravel-backup` | latest | Replaces `exec(mysqldump)` in `admin_backup_restore.php`. |
+
+---
+
+## 1b. Deployment model: LAN server (htdocs)
+
+The system runs on one XAMPP machine inside the TRC DOH network. Other users on
+the same LAN reach it through the browser. Consequences that the whole roadmap
+assumes:
+
+| Topic | Decision |
+|---|---|
+| Hosting | XAMPP Apache (`httpd` on port 8080, vhost `pgs.app` bound to `0.0.0.0:8082`) |
+| Access URL | `http://<server-LAN-IP>:8082` — `APP_URL` is set to the server's LAN IP so assets/routes work for every client |
+| Auth | Password-based sessions only (No 2FA — not required for a closed LAN deployment) |
+| Encryption | Optional self-signed TLS if LAN policy demands it; default plain HTTP on the internal network |
+| Cache/queue | Laravel `database` drivers (no Redis service on the host) |
+| Uploads scanning | Manual review/quarantine (no ClamAV service) — see [Uploads.md](./Uploads.md) |
+| Monitoring | Laravel logs + audit log + `/up` endpoint (no Sentry/APM) |
+| Testing | Pest/PHPUnit feature tests only (no Playwright/k6/load-test infra) |
+| Firewall | Port 8082 (and 8080) open to the LAN; Apache bound to `0.0.0.0` |
+
+Documented in [LocalDev.md](./LocalDev.md) §2b and enforced per phase.
 
 ---
 
@@ -62,14 +84,17 @@ Current legacy stack vs. the target stack, with versions, rationale, and rejecte
 | Vue 3 (via `laravel-inertia-vue`) | Fine choice, but React chosen for ecosystem + shadcn/ui + type safety at scale |
 | Next.js/Remix frontend | Requires separate server, complicates PHP asset pipeline and deploys |
 | Livewire | Excellent for simple CRUD but weak for the data-heavy, chart/table modules (annexes, sector roadmaps) |
-| Symfony | Powerful, but Laravel's batteries-included tooling (Breeze, Telescope, Horizon) fits this team's size |
+| Symfony | Powerful, but Laravel's batteries-included tooling (Breeze, migrations, testing) fits this team's size |
 | PostgreSQL | No business reason to migrate; MySQL stays in prod |
 | Server-side rendered Blade-only | Viable, but loses the interactive dashboards, drag-reorder blocks, and chart components the legacy app already implies |
+| **Redis / queue services** | **No extra services on the LAN host** — Laravel `database` cache/queue drivers are sufficient at this scale |
+| **Sentry / APM** | No external accounts — structured logs + audit log + `/up` cover monitoring needs |
+| **Docker** | Not used on this machine (XAMPP native); documented only for reference |
 
 ---
 
 ## 5. Runtime dependencies to know
 
 - **CDN ban**: all fonts, CSS, JS vendored through Vite. No runtime network dependency.
-- **Environment**: `APP_ENV`, DB, Redis, mail via `.env` only; `config.php` constants removed.
-- **PHP extensions required**: `pdo_mysql`, `redis`, `gd`/`imagick` (uploads), `mbstring`, `intl`, `zip` (backup).
+- **Environment**: `APP_ENV`, DB, mail via `.env` only; `config.php` constants removed. `APP_URL` = `http://<server-LAN-IP>:8082` for LAN clients.
+- **PHP extensions required**: `pdo_mysql`, `gd`/`imagick` (uploads), `mbstring`, `intl`, `zip` (backup). **No `redis` extension needed.**

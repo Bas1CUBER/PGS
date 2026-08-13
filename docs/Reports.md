@@ -48,7 +48,7 @@ Specification for all generated documents: annexes, OPCR, strategy reviews, oper
 ## 6. Testing
 
 - Golden-value tests: known dataset → expected PDF/CSV content (text extraction, row counts).
-- Layout tests: Playwright print screenshot diff vs baseline for each document.
+- Layout checks: manual print-preview comparison against the design baseline for each document.
 - Size tests: 1000-row export completes under budget; PDF < 5 MB typical.
 - Auth tests: export respects role/policy (no data leak via direct URL — signed or session-checked).
 

@@ -8,7 +8,7 @@ Test strategy for the PGS app: what we test, with what, and how CI enforces it. 
 
 ```
         ┌──────────┐
-        │  E2E     │  Playwright: critical user journeys (login, upload, approve, backup)
+        │  E2E     │  Manual LAN smoke: critical user journeys (login, upload, approve)
         │  few     │
        ─┼──────────┼──
       ┌─┴──────────┴─┐
@@ -30,10 +30,9 @@ Ratio target: ~70% unit / 20% feature / 10% E2E. Coverage gate: **≥ 85%** on `
 | PHP tests | Pest 3.x (PHPUnit 11 under the hood) | `phpunit.xml`; parallel; `RefreshDatabase` |
 | Coverage | PHPUnit `--coverage` | `phpunit.coverage.xml`; CI artifact + badge |
 | JS unit | Vitest + React Testing Library | `vitest.config.ts`; `jsdom` |
-| E2E | Playwright | `tests/e2e/`; 3 projects (chromium desktop/mobile, webkit) |
 | N+1 guard | Laravel `assertNoNPlusOneQueries` | every index/show feature test |
-| A11y | axe-core (Playwright integration) | key routes |
-| Screenshot parity | Playwright diff (legacy vs new) | Phase 6–7 modules |
+| A11y | Manual checklist (UX.md §10) | key routes, quarterly pass |
+| Parity | Manual side-by-side review with focal users | Phase 6–7 modules (no Playwright infra on LAN) |
 
 ## 3. Test database strategy
 
@@ -53,7 +52,7 @@ Ratio target: ~70% unit / 20% feature / 10% E2E. Coverage gate: **≥ 85%** on `
 7. **Audit**: every admin mutation writes a row with before/after.
 8. **Validation**: Form Request rules — required, format, length, boundary values.
 
-## 5. Critical E2E journeys (Playwright)
+## 5. Critical journeys (manual LAN smoke checklist)
 
 | Journey | Steps |
 |---|---|
@@ -64,13 +63,13 @@ Ratio target: ~70% unit / 20% feature / 10% E2E. Coverage gate: **≥ 85%** on `
 | Deadline enforcement | close window → upload denied with message → admin extends |
 | Print (annex/OPCR) | open → print PDF → text layer present, sidebar hidden |
 
-E2E run on staging against seeded data; flaky tests are disabled only with a logged issue and owner.
+Run manually on the LAN host after each release (or per phase exit); a focal user signs off each journey. No Playwright/k6/axe tooling on the LAN deployment.
 
 ## 6. CI integration
 
-- PR pipeline: unit+feature (parallel, MySQL service) → coverage gate → Vitest → lint (Pint, ESLint, Prettier, PHPStan max) → Playwright (staging preview) → audits (composer/npm) → bundle budget.
-- Nightly: full Playwright suite + axe scans + k6 smoke.
-- Weekly: OWASP ZAP baseline, screenshot parity suite.
+- PR pipeline: unit+feature (parallel, MySQL service) → coverage gate → Vitest → lint (Pint, ESLint, Prettier, PHPStan max) → audits (composer/npm) → bundle budget.
+- Nightly: full Pest suite; log review.
+- Weekly: Dependabot review; slow-query log review.
 - Quarantine rule: failing test blocks merge; no "test skip due to time" without `@todo` + issue + owner.
 
 ## 7. Writing tests — conventions

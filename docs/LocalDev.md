@@ -34,6 +34,8 @@ Requires PHP 8.2+ (XAMPP) with `pdo_mysql`, `gd`, `intl`, `zip`, `exif` extensio
 
 ## 3. Docker (documented for reference only — NOT used on this machine)
 
+> Docker is **not used**. This project runs XAMPP-native (see §2 and TechStack.md §1b). The commands below exist only for completeness if the project is ever containerized.
+
 ```bash
 git clone <repo> pgs && cd pgs/app
 cp .env.example .env
@@ -45,8 +47,16 @@ docker compose exec app npm ci && docker compose exec app npm run dev
 ```
 
 - `docker compose exec app php artisan test` — run the suite.
-- `docker compose exec app php artisan horizon` already runs via service.
 - Hot reload: `npm run dev`; production assets: `npm run build`.
+
+## 2b. LAN access (how colleagues reach the app)
+
+1. Set `APP_URL=http://<server-LAN-IP>:8082` in `.env` (find the IP with `ipconfig`).
+2. Apache vhost `pgs.app` binds `0.0.0.0:8082` — after restart, LAN peers open `http://<server-LAN-IP>:8082` in their browsers.
+3. Windows firewall must allow inbound TCP 8082 (and 8080 for the legacy app until cutover).
+4. Verify from another machine: open the URL, log in as admin, load the dashboard, upload a file.
+
+No Redis, no mail server — reset links are logged (`MAIL_MAILER=log`).
 
 ## 4. Day-to-day commands
 
@@ -58,9 +68,9 @@ docker compose exec app npm ci && docker compose exec app npm run dev
 | Static analysis | `vendor/bin/phpstan analyse --level=max` |
 | JS lint | `npm run lint` / `npm run lint:fix` |
 | Type check | `npm run types` |
-| E2E | `npx playwright test` (staging URL via `PLAYWRIGHT_BASE_URL`) |
+| LAN smoke | manual checklist (Testing.md §5) |
 | Migrate fresh | `php artisan migrate:fresh --seed` (dev only!) |
-| Queue work | `php artisan queue:work` (if not using horizon service) |
+| Queue work | `php artisan queue:work --once` (Windows scheduled task in prod) |
 | Debug UI | http://localhost:8080/telescope (non-prod) |
 
 ## 5. Dev fixtures
@@ -72,13 +82,13 @@ docker compose exec app npm ci && docker compose exec app npm run dev
 
 | Symptom | Fix |
 |---|---|
-| `Connection refused` on 3306 | MySQL container not ready: `docker compose restart mysql`; wait for health |
+| `Connection refused` on 3306 | MariaDB not started — start via XAMPP Control Panel |
 | 419 page expired | Clear browser cookies; restart `npm run dev` (XSRF stale) |
 | Vite not found asset | `npm ci && npm run build` or keep `npm run dev` running |
-| Migrations failed | `docker compose exec app php artisan migrate:fresh --seed` |
-| Mail not sending | Mailpit at :1025; check `MAIL_HOST=mailpit` in `.env` |
+| Migrations failed | `php artisan migrate:fresh --seed` (dev only) |
+| LAN peers get unstyled pages | `APP_URL` must be the server LAN IP (see §2b) |
 | Slow first page | `php artisan optimize` (caches config/routes) |
-| Permission errors (native) | `storage/` + `bootstrap/cache/` writable: `chmod -R 775` |
+| Permission errors (native) | `storage/` + `bootstrap/cache/` writable |
 
 ## 7. Onboarding checklist (first PR)
 

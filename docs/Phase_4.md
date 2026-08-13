@@ -39,14 +39,14 @@
 - [x] `lib/utils.ts` (cn), `types/` typed (User role/office, DeadlineState, FlashMessages)
 
 ### 2.4 Quality
-- [ ] axe-core automated checks in CI — **deferred to Phase 8** (needs Playwright infra per Testing.md); keyboard/a11y verified manually in shell
+- [x] A11y checks are **manual** (no Playwright infra on the LAN deployment): keyboard-complete shadcn primitives, focus rings, labels — verified in shell + manual checklist in UX.md §10
 - [x] Bundle budget: initial JS ≤ 250 kB gzip — `scripts/bundle-budget.mjs` + CI step (**140.3 kB gzip today**)
 
 ---
 
 ## 3. Definition of Done / acceptance criteria
 
-- [x] `npm run build` clean; Lighthouse shell — **Lighthouse deferred to Phase 8** (no Playwright/Lighthouse infra yet); bundle budget enforced (140.3 kB gzip initial)
+- [x] `npm run build` clean; Lighthouse — **manual pass in Phase 8** (single LAN host, no CI infra); bundle budget enforced (140.9 kB gzip initial)
 - [x] Dark mode toggle persists (localStorage `pgs-theme`) and respects OS preference
 - [x] Keyboard: shell navigable (shadcn primitives are keyboard-complete: focus traps, esc, arrows)
 - [x] No CDN `<script>`/`<link>` anywhere; Inter and all components served locally (bunny CDN font links removed)

@@ -11,7 +11,7 @@
 | `local` | Developer machine | Seeded dev data | `APP_DEBUG=true`, Telescope on, Mailpit, no TLS |
 | `testing` | CI | Fresh migrated + seeded per run | `DB_CONNECTION=mysql` to `pgs_test`, in-memory queue |
 | `staging` | Parity, E2E, UAT | Masked production copy (Phase 2) | Realistic data, Sentinel reports, debug off |
-| `production` | Live | Real | Debug off, HTTPS only, Sentry on, CSP enforced |
+| `production` | Live | Real | Debug off, CSP enforced, log review on |
 
 ## 2. `.env.example` (reference)
 
@@ -36,62 +36,51 @@ DB_USERNAME=pgs_app
 DB_PASSWORD=
 DB_SCHEMA_CHARSET=utf8mb4
 
-SESSION_DRIVER=redis
+# LAN deployment: sessions/cache/queue all use MySQL tables — no Redis service.
+SESSION_DRIVER=database
 SESSION_LIFETIME=480
 SESSION_SECURE_COOKIE=false
 
-CACHE_STORE=redis
-QUEUE_CONNECTION=redis
-REDIS_HOST=127.0.0.1
-REDIS_PASSWORD=null
-REDIS_PORT=6379
+CACHE_STORE=database
+QUEUE_CONNECTION=database
 
-MAIL_MAILER=smtp
-MAIL_HOST=mailpit
-MAIL_PORT=1025
+MAIL_MAILER=log            # no mail server on the LAN host; reset links logged
 MAIL_FROM_ADDRESS="pgs@example.ph"
 MAIL_FROM_NAME="${APP_NAME}"
 
 FILESYSTEM_DISK=local
 PRIVATE_DISK=uploads
-BACKUP_DISK=s3          # or 'local' in dev
+BACKUP_DISK=local          # LAN host disk; S3 only if provisioned later
 BACKUP_RETENTION_DAILY=14
 BACKUP_RETENTION_WEEKLY=8
 BACKUP_RETENTION_MONTHLY=12
 
-SENTRY_DSN=
-SENTRY_TRACES_SAMPLE_RATE=0.25
-
 UPLOAD_MAX_SIZE_MB=25
 UPLOAD_WHITELIST="pdf,docx,xlsx,pptx,jpg,jpeg,png,zip"
-VIRUS_SCAN_ENABLED=true
-CLAMAV_HOST=clamav
+UPLOAD_MANUAL_REVIEW=true  # no ClamAV; flagged uploads are reviewed manually
 
-TOTP_ENABLED=true
 RATE_LIMIT_LOGIN=5
-RATE_LIMIT_UPLOAD=30
+RATE_LIMIT_SUBMISSIONS=30
 
 FEATURE_LEGACY_REDIRECT=true   # dual-run bookmark redirect map
+LAN_HOST_IP=192.168.1.10       # server LAN IP used for APP_URL on the network
 ```
 
+- `APP_URL` = `http://<LAN_HOST_IP>:8082` so every LAN client resolves assets/routes correctly (see LocalDev.md §2b).
 - `DB_USERNAME`: least-privilege app user (SELECT/INSERT/UPDATE/DELETE + migrations user separate during deploys) — never root.
 - `APP_KEY`: `php artisan key:generate`; rotated on suspected exposure.
-- `SESSION_SECURE_COOKIE=true` in staging/prod.
+- `SESSION_SECURE_COOKIE` stays `false` for plain-HTTP LAN use; set `true` only if TLS is added.
 
-## 3. Docker services (docker-compose.yml)
+## 3. Runtime services (XAMPP — no Docker)
 
-| Service | Image (pinned) | Ports (host) | Volumes |
-|---|---|---|---|
-| `app` | `php:8.4-fpm-alpine` (custom Dockerfile: extensions pdo_mysql, redis, gd, intl, zip, exif) | — | app code, uploads, storage |
-| `nginx` | `nginx:1.27-alpine` | 8080:80 | app code, public/build |
-| `mysql` | `mysql:8.0` (or `mariadb:10.11`) | 3306 | `db_data` |
-| `redis` | `redis:7.4-alpine` | 6379 | — |
-| `mailpit` | `axllent/mailpit:latest` | 8025 (UI), 1025 (SMTP) | — |
-| `horizon` | same image as `app` | — | — (workers) |
-| `scheduler` | same image as `app` | — | — (cron) |
-| `clamav` | `clamav/clamav:stable` | — | quarantine dir |
+| Service | Role | Notes |
+|---|---|---|
+| Apache (XAMPP) | Web server | vhost `pgs.app` on port 8082 (bound `0.0.0.0`); legacy app stays on 8080 until cutover |
+| MySQL (XAMPP) | Database + cache + queue tables | `pgs` (app), `pgs_test` (tests) |
+| PHP (XAMPP) | Runtime | extensions: pdo_mysql, gd, mbstring, intl, zip, exif |
+| Windows Task Scheduler | Queue worker | `php artisan queue:work --once` every minute (Operations.md) |
 
-`docker compose up -d` boots everything; `compose.override.yml` optional per-developer (ports, debug tooling).
+No Redis, no ClamAV, no mail server, no Docker — the LAN host runs XAMPP only.
 
 ## 4. Config vs env
 
@@ -105,5 +94,5 @@ FEATURE_LEGACY_REDIRECT=true   # dual-run bookmark redirect map
 - [ ] `APP_KEY` matches artifact's cache expectations (or `config:cache` rebuilt on deploy)
 - [ ] DB credentials least-privilege; migration user separate
 - [ ] Backups configured with retention; restore drill passed (Operations §3)
-- [ ] Sentry DSN set; release tag matched
+- [ ] Error log path verified and writable
 - [ ] Rate limits and TOTP settings as per Security §2

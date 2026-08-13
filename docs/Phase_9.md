@@ -1,6 +1,6 @@
 # Phase 9 — Cutover & Decommission
 
-**Goal**: Move production traffic fully onto the new app, verify parity under real usage, then delete the legacy codebase and complete the handover.
+**Goal**: Move production traffic fully onto the new app, verify parity under real usage, then delete the legacy codebase and complete the handover. Deployment target: the **XAMPP LAN host** (vhost on port 8082).
 
 **Effort**: 2 weeks · **Depends on**: Phase 8 · **Unblocks**: project completion
 
@@ -10,7 +10,7 @@
 
 1. Controlled cutover with rollback plan.
 2. Data verification before and after the final migration window.
-3. Deletion of all legacy scripts, templates, and dual-driver code.
+3. Deletion of all legacy scripts, templates, and dual-driver code (owner sign-off required).
 4. Handover: runbooks, docs review, final KPIs.
 
 ---
@@ -22,15 +22,16 @@
 - [ ] Freeze feature changes 1 week prior; only bug fixes — **scheduling item**
 - [ ] Full backup (spatie) + checksums; snapshot of uploads directory — tooling ready (Phase 5)
 - [ ] Feature-parity sign-off checklist signed by admin, focal, and employee UAT users — **user sign-off required**
-- [ ] Playwright parity suite run on staging — needs Playwright infra (Phase 8e)
+- [ ] Manual parity walkthrough on the LAN: admin/focal/employee each run their key flows on the new app and sign off
 - [ ] Runbook written: cutover steps, rollback steps, contacts — **documented in Operations.md; to be rehearsed**
-- [ ] DNS/config switch rehearsed twice in staging — **scheduling item**
+- [ ] Cutover rehearsal twice on the host — **scheduling item**
 
 ### 2.2 Cutover window
 - [ ] Read-only maintenance banner — **implement with maintenance mode at cutover**
 - [ ] Final export → migrate (Phase 2 pipeline) → verify row counts + checksums — scripts ready (Migration.md)
-- [ ] Switch virtual host / routing to Laravel entry point — **scheduling item**
+- [ ] Switch Apache vhost for port 8080 (legacy) → 8082 (new app) or update the redirect map
 - [ ] Smoke tests: login (3 roles), dashboard KPIs, one upload per module, notifications, backup restore check
+- [ ] LAN clients verify from their own machines (http://<server-LAN-IP>:8082)
 
 ### 2.3 Decommission
 - [ ] 2-week parallel watch: compare logs (legacy reachable on internal IP only, read-only)
@@ -49,11 +50,11 @@
 
 ## 3. Definition of Done / acceptance criteria
 
-- [ ] Production fully on Laravel app; legacy endpoints 404
+- [ ] Production fully on the Laravel app; legacy endpoints 404 (after redirect watch ends)
 - [ ] Zero data-loss incidents; checksum report committed
 - [ ] Rollback never required during watch window
 - [ ] All docs files updated and consistent; single source of truth
-- [ ] Coverage, PHPStan, Lighthouse, load-test KPIs at target
+- [ ] Coverage, PHPStan, manual-Lighthouse KPIs at target (no load-test tooling on the LAN deployment)
 
 ---
 
@@ -62,7 +63,7 @@
 | Risk | Mitigation |
 |---|---|
 | Hidden dependency on a legacy script found post-cutover | Grep-gate + log watch catches references; rollback rehearsed |
-| Users bookmarked old URLs | Redirect map (`.htaccess` → new routes) maintained for 6 months |
+| Users bookmarked old URLs | Redirect map (301s) maintained for 6 months |
 | Uploaded legacy files referenced by old paths | Storage adapter resolves legacy paths until watch ends |
 
 ---

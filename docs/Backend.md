@@ -47,7 +47,7 @@ Route → Middleware → Controller → FormRequest → Service → Eloquent Mod
 
 - `Storage` disks; private disk for deliverables; signed URLs for preview (expire 15 min).
 - Whitelist MIME + extension; enforce size limit (configurable per module); rename to UUID-based filenames; keep original name in DB for display.
-- Virus scan hook (ClamAV) on the queue; quarantine storage for failures.
+- Manual review hook: flagged uploads are listed for operator review (no ClamAV on the LAN host; see Uploads.md).
 - Never echo a client filename without sanitization (see [Security.md](./Security.md)).
 
 ---
@@ -62,7 +62,7 @@ Route → Middleware → Controller → FormRequest → Service → Eloquent Mod
 
 ## 6. Errors & logging
 
-- Exceptions → `report()`/Sentry; user-facing messages generic; details in logs with request ID.
+- Exceptions → `report()`/Laravel logging; user-facing messages generic; details in logs with request ID.
 - No `die()`, no swallowed `try/catch {}` (legacy pattern) — catch, log, and rethrow or handle.
 - `Log::info` for audit-relevant events; structured context arrays.
 - Abort helpers (`abort(403)`) instead of inline HTML responses.

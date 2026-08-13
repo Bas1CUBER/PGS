@@ -15,7 +15,7 @@
 | Survey | `survey.php` | Form with validation + results views |
 | Governance | `governance_culture*.php`, `governance_sharing*.php` | Standard CRUD + uploads pattern |
 | Strategy content | `about_*.php` (charter, pathway, strategy map, user access) | Static content → content models or Markdown, rendered in shell |
-| Misc | `pgs_core_team.php`, `impact_indicator*.php`, `roadmap_*` dashboard widgets | Port using Phase 5–6 patterns |
+| Misc | `pgs_core_team.php`, `impact_indicator*.php` | Port using Phase 5–6 patterns |
 
 ---
 
@@ -26,7 +26,7 @@
 - [x] `SectorModuleController` — index + show (indicators paginated, progress, schedule) + row/progress updates with audit
 - [x] `Sectors/Index` + `Sectors/Show` pages (shadcn) + nav entry
 - [x] Generic feature tests parameterized over the pattern (5 tests: list, show, unknown slug, row update, progress update)
-- [ ] `YearlyIndicatorTable` / `EventList` / `TrendChartCard` / `DataEntryGrid` components — **deferred** (wide-table modules land with Phase 7b)
+- [ ] `YearlyIndicatorTable` / `EventList` / `TrendChartCard` / `DataEntryGrid` components — **deferred (Phase 7b)**
 - [ ] `PrintDocument` layout for annex/OPCR — **deferred (Phase 7b)**
 - [ ] `ModuleCalculations` service for relapse-rate style computed indicators — **deferred (Phase 7b)**
 
@@ -34,14 +34,14 @@
 - [ ] Sector detail tables: training pct/tot personnel+events, resilience adverse events/notes/gvr, revenue hospital/ntr, collab rr_*/qli_*, research outputs, client satisfaction, engagement, impact scorecard, technology turnaround — via the YearlyIndicatorTable pattern
 - [ ] Annexes B/D/E/H/J/K + OPCR print documents (Blade print layout + A4 CSS)
 - [ ] Strategy content pages (about_*, pgs_core_team, governance pages, survey)
-- [ ] Playwright screenshot parity per module (needs Playwright infra — Phase 8e)
+- [ ] Manual parity check per module: compare new UI vs legacy side-by-side with a focal user (no Playwright infra on LAN deployment)
 
 ---
 
 ## 3. Definition of Done / acceptance criteria
 
-- [ ] All 7 sector modules + annexes + survey functional in new app
-- [ ] Playwright screenshot parity within visual tolerance per module
+- [ ] All 7 sector modules + annexes + survey functional in the new app
+- [ ] Manual screenshot comparison per module (side-by-side, focal sign-off)
 - [ ] Generic module tests pass for every configured module (no per-module special-casing)
 - [ ] Print output verified A4 for annex/OPCR documents
 - [ ] No legacy page remains linked from the new shell
@@ -53,7 +53,7 @@
 | Risk | Mitigation |
 |---|---|
 | Wide tables (year-columns) make config ugly | Column config arrays shared between DB accessor and TS types — single source |
-| Screenshot parity fights CSS differences | Baseline tolerance; prioritize data equivalence over pixel equality |
+| Manual parity is subjective | Focal sign-off checklist per module; data equivalence over pixel equality |
 | Module-specific quirks (relapse-rate calcs) | Port calculations into a `ModuleCalculations` service with unit tests ported from spreadsheet values |
 
 ---

@@ -28,7 +28,7 @@ Versioning, release choreography, and change management for PGS. Keeps deploys b
 5. [ ] Backup + restore drill passed
 6. [ ] CHANGELOG generated from conventional commits (auto via CI); docs touched if behavior changed
 7. [ ] Tag `vX.Y.Z` → deploy pipeline (manual approval in prod)
-8. [ ] Post-deploy: `/up`, smoke script (login ×3, one upload, one export), Sentry release tag
+8. [ ] Post-deploy: `/up`, smoke script (login ×3, one upload, one export), log check
 9. [ ] Announce (channel): what changed, what to watch for, rollback contact
 
 ## 4. Change management

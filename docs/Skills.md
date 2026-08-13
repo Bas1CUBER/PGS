@@ -13,11 +13,11 @@ The capability matrix required to build and maintain the new stack — for hirin
 | React 19 + TypeScript (strict) | Strong | All frontend work |
 | Inertia.js 2 | Medium | Data bridging, shared props, useForm |
 | Tailwind CSS v4 + shadcn/ui | Medium | Component and token work |
-| Testing (Pest/PHPUnit, Vitest, Playwright) | Strong | Every PR — CI-gated |
+| Testing (Pest/PHPUnit, Vitest) | Strong | Every PR — CI-gated |
 | Git + GitHub Actions | Medium | Branching, CI pipelines, releases |
 | Docker | Medium | Local env parity, deploys |
 | Security fundamentals | Medium | Auth, CSP, uploads, OWASP reviews |
-| Observability (Sentry, logs) | Low–medium | Error triage, alerts |
+| Observability (logs) | Low–medium | Error triage, log review |
 
 **Current gap assessment (August 2026)**: strong legacy PHP (procedural), weak on: React/TS ecosystem, Laravel conventions, CI-first workflow. Plan: pair Phases 1–4 with focused learning (Laracasts Laravel + React paths; shadcn/tailwind-v4 docs), or bring in one consultant for Phase 1–4 period.
 

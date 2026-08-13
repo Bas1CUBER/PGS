@@ -1,95 +1,115 @@
 # Data Model
 
-Canonical schema documentation for the PGS application. **Source of truth is `database/migrations/` + this file** — the legacy `planning.sql` and inline `CREATE/ALTER` statements are being replaced (Phase 2). Regenerate this file's inventory tables whenever migrations change.
+Canonical schema documentation for the PGS application. **Source of truth is `database/migrations/`** — the legacy `planning.sql` and inline `CREATE/ALTER` statements in page code are banned (Phase 2 complete: all 74 tables reproduced as migrations, verified 1:1 against the live `planning` schema).
 
 ---
 
-## 1. Conventions
+## 1. Schema pipeline (how migrations were created)
 
-- Tables: plural snake_case; PK `id` (bigint auto); timestamps `created_at`/`updated_at`; soft-deletes where noted.
-- All text `utf8mb4`; all money `decimal(12,2)`; years stored as smallint columns or as rows with `year` column (normalized; see §5).
-- FKs named `<table>_<column>_foreign`; indexes on every FK, sort column, and filter column.
-- Enums as PHP enums + `string` columns (NOT MySQL ENUM) with a CHECK constraint where supported — statuses are code-driven, not schema-driven.
+1. Snapshot live schema: `mysqldump --no-data planning > docs/migrations/planning_schema.sql`
+2. Generate migrations: `php database/legacy/generate_migrations.php` → one migration per legacy table, DDL verbatim, topologically sorted (FK parents first)
+3. Framework-owned tables (`users`, `cache`, `jobs`, `sessions`, `password_reset_tokens`…) handled by Laravel migrations; `users` merged with legacy columns
+4. Regenerate when the live schema changes; verify parity (§6)
+
+**Parity baseline (2026-08-13)**: 74 tables · 33 foreign keys · column counts identical · row counts identical after data import (users imported via mapped insert).
 
 ---
 
-## 2. Core tables (users & access)
+## 2. Conventions
 
-| Table | Purpose | Key columns | Notes |
-|---|---|---|---|
-| `users` | Staff accounts | `name, office, email, password, role(enum), is_active, last_login_at` | Role: `admin|focal|employee`; soft-delete |
-| `user_page_access` | Per-user module matrix | `user_id, roadmaps, scorecard, performance_assessment, cascading, governance` (bool) | Defaults per role; admin bypass |
-| `password_reset_tokens` | Reset flows | `email, token, created_at` | Laravel default |
-| `sessions` | DB session fallback | — | Redis primary; table for safety |
-| `audit_logs` | Append-only action record | `user_id, action, resource_type, resource_id, before(json), after(json), ip, user_agent` | Index `(resource_type, resource_id)`, `(user_id, created_at)` |
+- Tables: legacy snake_case preserved 1:1 for dual-run compatibility (Phases 5–8).
+- All text `utf8mb4_general_ci`; PKs `int(11)` signed (must stay signed — legacy FKs reference them).
+- Statuses remain legacy MySQL `ENUM` until the module port replaces them with PHP enums (documented per module in `docs/Workflows.md`).
+- Redesign backlog (wide year tables → rows) tracked in §5 — executed module-by-module in Phases 6–7.
 
-## 3. Core tables (content & workflow)
+## 3. Table inventory (74 legacy tables + framework)
 
-| Table | Purpose | Key columns | Notes |
-|---|---|---|---|
-| `notifications` | In-app events | `user_id, type(enum), title, message, related_id, related_type, read_at` | Index `(user_id, read_at)`; type: upload/approved/returned/edit/default |
-| `roadmap_titles` | Roadmap sections | `title, sort_order` | |
-| `roadmap_items` | Items under titles | `title_id(fk), content, sort_order` | |
-| `roadmap_page_blocks` | Item detail blocks | `item_id(fk), block_type, sort_order, content(json)` | block_type: text/table/stat/chart…; TS-typed JSON |
-| `deadline_controls` | Submission windows | `role(enum), enabled, end_time, message` | Cached 60s |
-| `notices` | Announcements | `title, body, author_id(fk), pinned, published_at` | |
-| `resources` + `resource_uploads` | Shared files | `title, filename, original_name, size, mime_type, uploaded_by, uploaded_at` | |
-| `gallery_albums` + `gallery_photos` | Photo galleries | `album_id, caption, storage_key, sort_order` | Exif-stripped |
-
-## 4. Module tables
-
-| Module | Tables | Status workflow |
+### Core (users & access)
+| Table | Rows | Notes |
 |---|---|---|
-| Deliverables | `p_deliverables` (+ uploads child) | uploaded→approved/returned |
-| Communication plan | `communication_plan_roadmap`, `communication_plan_uploads` | Not Accomplished→Ongoing→Completed + status_updated_at |
-| Reviews | `strategy_review_forms`, `strategy_review_submissions`, `strategy_refresh_uploads`, `operations_review_uploads` | draft→submitted→approved/returned |
-| Impact scorecard | `impact_scorecard_measures`, `impact_scorecard_years`, `impact_scorecard_values` | value rows (measure_id, year_id, value, bl) |
-| Cascading | `cascading_activities` (+ uploads) | list + upload |
-| Sector modules (7) | per-module indicator tables, e.g. `resilience_adverse_events/notes`, `training_pct_personnel/events`, `revenue_hospital_main/details`, `client_satisfaction_values`, `engagement_questions/values`, `rr_*` (relapse), `qli_*` (quality of life), `research_outputs`, `gvr` (green viability) | year-based data entry |
+| `users` | 4 | merged with Laravel: + `email_verified_at`, `remember_token`, `updated_at`; `role` string, `is_active`, `reset_token` |
+| `user_page_access` | 2 | per-user module flags: roadmaps, scorecard, performance_assessment, cascading, governance |
+| `user_management_history` | 1 | legacy audit trail (admin actions) |
+| `deadline_controls` | 2 | role, enabled, end_time, message |
 
-> **Phase 2 redesign**: wide tables with `y2024..y2028` columns (e.g. `training_pct_personnel`, `resilience_adverse_notes`) become `(entity_id, year, value)` rows, with cached summary views for reports.
+### Roadmaps & content
+| Table | Rows | Notes |
+|---|---|---|
+| `roadmap_titles` | 7 | sections |
+| `roadmap_items` | 13 | items under titles |
+| `roadmap_page_blocks` | 0 | JSON content per item (text/table/stat/chart) |
+| `notices` | 0 | announcements |
+| `gallery_albums` / `gallery_photos` | 1 / 6 | photos with captions |
+| `resources_uploads` | 5 | shared files |
+| `cascading_activities` | 0 | uploads list |
+| `progress_pending_changes` | 1 | legacy pending-change journal |
 
-## 5. Normalization targets (Phase 2)
+### Deliverables & reviews
+| Table | Rows | Notes |
+|---|---|---|
+| `p_deliverables` | 8 | deliverables (uploaded→approved/returned) |
+| `deliverables` | 0 | **legacy duplicate of p_deliverables — drop candidate** |
+| `strategy_review_forms` | 1 | form definitions |
+| `strategy_review_uploads` / `strategy_refresh_uploads` / `operations_review_uploads` | 3 / 1 / 2 | review attachments |
+| `operations_review` | 4 | review records |
+| `performance_targets` | 21 | OPCR targets |
+| `communication_plans` / `communication_plan_roadmap` / `communication_plan_rows` / `communication_plan_uploads` | 0 / 2 / 0 / 0 | comm plan + template rows |
+
+### Impact scorecard
+| Table | Rows |
+|---|---|
+| `impact_scorecard` | 4 |
+| `impact_scorecard_measures` | 4 |
+| `impact_scorecard_years` | 4 |
+| `impact_scorecard_values` | 16 |
+
+### Governance
+| Table | Rows |
+|---|---|
+| `governance_culture_uploads` | 2 |
+| `governance_sharing_uploads` | 1 |
+
+### Surveys
+| Table | Rows |
+|---|---|
+| `surveys` / `surveys_done` | 0 / 0 |
+
+### Sector modules (7 pillars)
+| Pillar | Tables (rows) |
+|---|---|
+| culture | `culture` (14), `culture_progress` (0), `client_satisfaction` (4), `client_satisfaction_values` (40), `engagement_questions` (0), `engagement_values` (67) |
+| collab | `collab` (20), `collab_progress` (0), `collab_schedule` (0), `rr_summary_yearly` (5), `rr_graduates` (3), `rr_relapse_list` (3), `rr_relapse_rate` (3), `roadmap_quality_life_lock` (1), `qli_employment_rows` (0), `qli_health_rows` (0) |
+| training | `training` (17), `training_progress` (0), `training_pct_personnel` (39), `training_pct_events` (0), `training_tot_personnel` (39), `training_tot_events` (5) |
+| technology | `technology` (11), `technology_progress` (0), `patient_records_retrieval` (2), `employee_records_retrieval` (1) |
+| research | `research` (10), `research_progress` (0), `research_schedule` (0), `research_outputs` (1) |
+| revenue | `revenue` (9), `revenue_progress` (0), `revenue_hospital_main` (1), `revenue_hospital_details` (11), `revenue_non_traditional` (5) |
+| resilience | `resilience` (20), `resilience_progress` (0), `resilience_adverse_events` (9), `resilience_adverse_notes` (2), `resilience_gvr` (10) |
+
+## 4. Indexes & hot queries
+
+Legacy indexes preserved verbatim (migrations). Additions happen per module port; review with `EXPLAIN` when porting (docs/Optimization.md §3).
+
+## 5. Redesign backlog (Phase 6–7, per module port)
 
 | Legacy pattern | Target |
 |---|---|
-| `y2024`…`y2028` columns | `year` row + index `(entity_id, year)` |
-| Per-module duplicate `*_uploads` | shared `file_uploads` polymorphic table (or per-module upload child with shared service) |
-| `ENUM` columns | string + PHP enum + CHECK |
-| Missing FKs (many legacy joins are by convention only) | explicit FKs + cascade rules tested |
-| JSON blobs (roadmap blocks, review forms) | JSON column + boundary schema validation (TS + PHP rules) |
+| Wide year columns (`training_pct_personnel.y2024…y2028`, `resilience_adverse_notes.y2024…`) | `(entity_id, year, value)` rows + cached summary views |
+| MySQL `ENUM` statuses | PHP enums + string columns (docs/Workflows.md) |
+| `deliverables` vs `p_deliverables` duplication | single table, one migration + data merge |
+| Per-module `*_uploads` duplication | shared uploads service (docs/Uploads.md), tables stay per-module for BC |
+| Missing FKs (some legacy joins by convention) | add FKs/indexes during port |
 
-## 6. Index plan (hot queries)
+## 6. Parity verification (run after any schema change)
 
-| Query | Index |
-|---|---|
-| User list + role filter | `users(role, is_active)`, `users(name)` |
-| Notifications per user | `notifications(user_id, read_at)` |
-| Deliverable list by target date | `p_deliverables(target_date)` |
-| Roadmap items by title | `roadmap_items(title_id, sort_order)` |
-| Blocks by item | `roadmap_page_blocks(item_id, sort_order)` |
-| Values by year | `impact_scorecard_values(year_id, measure_id)` |
-| Audit by resource | `audit_logs(resource_type, resource_id)` |
-
-Verify every hot query with `EXPLAIN` during Phase 2; slow-log review weekly (Optimization §3).
-
-## 7. ERD (core)
-
+```sql
+-- tables & FKs
+SELECT table_name FROM information_schema.tables WHERE table_schema='planning'
+  EXCEPT SELECT table_name FROM information_schema.tables WHERE table_schema='pgs_app';
+SELECT COUNT(*) FROM information_schema.table_constraints WHERE constraint_schema='planning' AND constraint_type='FOREIGN KEY';
+-- columns per table
+SELECT t.table_name,
+  (SELECT COUNT(*) FROM information_schema.columns c WHERE c.table_schema='planning' AND c.table_name=t.table_name),
+  (SELECT COUNT(*) FROM information_schema.columns c WHERE c.table_schema='pgs_app' AND c.table_name=t.table_name)
+FROM information_schema.tables t WHERE t.table_schema='planning' AND t.table_name <> 'users';
+-- rows per table (compare COUNT(*) both DBs)
 ```
-users 1──∞ user_page_access
-users 1──∞ notifications
-users 1──∞ audit_logs
-users 1──∞ notices(author)
-users 1──∞ p_deliverables(uploaded_by)
-
-roadmap_titles 1──∞ roadmap_items 1──∞ roadmap_page_blocks
-users ∞──∞ roadmap access (user_page_access flags)
-
-p_deliverables ∞──1 deadline_controls(role enforcement, runtime)
-notifications ∞──1 related object (related_type + related_id, polymorphic)
-```
-
-## 8. Maintenance
-
-- Run `php artisan db:show`/`schema:dump` periodically and update §2–§4 inventories.
-- Any new table must appear in this file in the same migration PR.

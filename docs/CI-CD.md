@@ -1,6 +1,6 @@
 # CI/CD
 
-Continuous integration and delivery for PGS: pipelines, gates, deploy, rollback. Everything here is **enforced in CI — an unenforced standard is a suggestion** (Consistency §1).
+Continuous integration and delivery for PGS: pipelines, gates, deploy, rollback. Everything here is **enforced in CI — an unenforced standard is a suggestion** (Consistency §1). Deployment target: the **XAMPP LAN host** (no Docker, no Redis).
 
 ---
 
@@ -33,37 +33,35 @@ main ────────────────●────────
 
 **Job: security & assets**
 - Gitleaks secrets scan
-- `docker scout` / Trivy scan on built image (if image builds in this phase)
-- Screenshot parity (when Phase 6+ modules touched)
+- Grep-gate (mysqli / raw SQL / DDL-in-code / CDN / debug output)
 
 **Gate: merge blocked** until all jobs green + review approval + "rules we broke" log entry if any gate was loosened.
 
-## 3. Deploy pipeline
+## 3. Deploy pipeline (LAN host)
 
-Trigger: push to `main` / release tag.
+Trigger: push to `main` / release tag. Performed on the XAMPP host (runbook in [Operations.md](./Operations.md)):
 
 ```
-1. Build artifact: composer install --no-dev --optimize-autoloader
-                    npm ci && npm run build
-                    php artisan config:cache / route:cache / view:cache
-2. Run tests once more on artifact (quick smoke, not full suite)
-3. Migrations: php artisan migrate --force  (pre-check migrate:status)
-4. Asset sync: public/build to server(s)
-5. Restart PHP-FPM + Horizon workers (php artisan horizon:terminate)
-6. Health check: GET /up (DB, Redis, storage, queue reachable)
-7. Notify: Slack/email; Sentry release tag; audit log entry
+1. git pull on the host (or copy artifact)
+2. composer install --no-dev --optimize-autoloader
+3. npm ci && npm run build
+4. php artisan config:cache / route:cache / view:cache
+5. php artisan migrate --force  (pre-check migrate:status)
+6. Restart queue worker scheduled task (php artisan queue:restart)
+7. Health check: GET /up (DB reachable)
+8. Notify: audit log entry; log to storage
 ```
 
-- **Environment**: staging auto-deploy on every merge; production manual approval (environment protection rule).
-- **Rollback**: redeploy previous artifact (migrations must be backward-compatible; if a destructive migration exists, it ships with a two-step plan — see §5).
+- Staging = the same host with `APP_ENV=local` before cutover; production = `APP_ENV=production` after Phase 9.
+- **Rollback**: `git checkout` previous tag + rerun steps 2–7; migrations must be backward-compatible (see §5).
 
 ## 4. Scheduled pipelines
 
 | Schedule | Job |
 |---|---|
-| Nightly | Full Playwright + axe scans; k6 smoke load |
-| Weekly | OWASP ZAP baseline; screenshot parity; Dependabot PR review |
-| Monthly | Backup restore drill (staging); dependency drift report |
+| Nightly | Full Pest suite + log review (no Playwright/k6 on the LAN deployment) |
+| Weekly | Dependabot PR review; slow-query log review |
+| Monthly | Backup restore drill (host); dependency drift report |
 
 ## 5. Migration safety in deploys
 
@@ -78,17 +76,14 @@ Trigger: push to `main` / release tag.
 
 | Env | DB | Data | Deploys | Notes |
 |---|---|---|---|---|
-| Local | Docker MySQL | seeded dev | — | `docker compose up` |
-| Staging | MySQL + Redis | masked production copy (Phase 2 parity) | every merge | E2E/parity target |
-| Production | MySQL + Redis | real | manual approval | cutover target (Phase 9) |
-
-See [Env.md](./Env.md) for config reference.
+| Local | XAMPP MySQL | seeded dev | — | same machine, before cutover |
+| Testing (CI) | MySQL service | fresh migrated | per PR | GitHub Actions |
+| Production (LAN) | MySQL (XAMPP) | real | manual on host | cutover target (Phase 9) |
 
 ## 7. Infrastructure as code
 
-- Docker Compose (dev) + Dockerfiles versioned in repo.
-- Server provisioning runbook in [Operations.md](./Operations.md) (or Terraform/Ansible when the team grows — ADR needed).
-- No config drift: app settings from `.env` + config files, never hand-edited on servers.
+- No Docker on this machine; host setup documented in [LocalDev.md](./LocalDev.md) + [Env.md](./Env.md) (vhost config in `httpd-vhosts.conf`, scheduled tasks for the queue worker).
+- No config drift: app settings from `.env` + config files, never hand-edited beyond `.env`.
 
 ## 8. Incident gates
 
