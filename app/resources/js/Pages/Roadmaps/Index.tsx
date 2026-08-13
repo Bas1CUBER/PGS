@@ -18,7 +18,7 @@ interface RoadmapItem {
     id: number;
     content: string | null;
     sort_order: number;
-    blocks: { id: number; block_type: string; content: Record<string, unknown> }[];
+    blocks?: { id: number; block_type: string; content: Record<string, unknown> }[];
 }
 
 interface RoadmapTitleRow {
@@ -124,7 +124,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                             </p>
                                             <p className="text-muted-foreground text-xs">
                                                 <FileText className="mr-1 inline size-3" />
-                                                {item.blocks.length} block(s)
+                                                {(item.blocks ?? []).length} block(s)
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 gap-1">

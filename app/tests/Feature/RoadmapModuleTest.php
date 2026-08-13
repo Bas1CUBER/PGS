@@ -19,7 +19,8 @@ it('lists roadmaps with titles and items', function (): void {
         ->assertInertia(fn ($page) => $page
             ->component('Roadmaps/Index')
             ->has('titles', 1)
-            ->where('titles.0.items.0.sub_label', 'Item A'));
+            ->where('titles.0.items.0.sub_label', 'Item A')
+            ->has('titles.0.items.0.blocks'));
 });
 
 it('enforces the page access matrix on roadmaps', function (): void {

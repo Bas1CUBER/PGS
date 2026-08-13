@@ -53,10 +53,10 @@ export default function Authenticated({
     const user = auth.user;
 
     useEffect(() => {
-        if (flash?.success) toast.success(flash.success);
-        if (flash?.error) toast.error(flash.error);
-        if (flash?.warning) toast.warning(flash.warning);
-        if (flash?.info) toast.info(flash.info);
+        if (flash.success) toast.success(flash.success);
+        if (flash.error) toast.error(flash.error);
+        if (flash.warning) toast.warning(flash.warning);
+        if (flash.info) toast.info(flash.info);
     }, [flash]);
 
     const deadlineInfo = useMemo(() => deadlineState(deadline), [deadline]);

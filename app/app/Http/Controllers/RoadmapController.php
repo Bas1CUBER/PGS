@@ -27,7 +27,7 @@ final class RoadmapController extends Controller
     public function index(): Response
     {
         $titles = RoadmapTitle::query()
-            ->with('items')
+            ->with('items.blocks')
             ->orderBy('sort_order')
             ->get();
 
