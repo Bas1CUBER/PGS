@@ -1,14 +1,13 @@
 <?php
 global $pdo;
-$dashboardLink = BASE_URL . '/employee_dashboard.php';
-if (isset($_SESSION['role'])) {
-    if ($_SESSION['role'] === 'admin') {
-        $dashboardLink = BASE_URL . '/admin_dashboard.php';
-    } elseif ($_SESSION['role'] === 'focal') {
-        $dashboardLink = BASE_URL . '/focal_dashboard.php';
-    }
-}
-// Load page access for current user (non-admin)
+$role = session_get('role') ?? 'guest';
+$userId = (int)(session_get('user_id') ?? 0);
+
+// Dashboard link (clean URLs)
+$dashboardLinks = ['admin' => 'admin_dashboard', 'focal' => 'focal_dashboard', 'employee' => 'employee_dashboard'];
+$dashboardLink = BASE_URL . '/' . ($dashboardLinks[$role] ?? 'employee_dashboard');
+
+// Page access for non-admin (session-cached 60s)
 $pageAccess = [
   'roadmaps' => 1,
   'scorecard' => 1,
@@ -16,208 +15,141 @@ $pageAccess = [
   'cascading' => 1,
   'governance' => 1,
 ];
-if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] !== 'admin') {
-    try {
-        $stmt = $pdo->prepare('SELECT roadmaps, scorecard, performance_assessment, cascading, governance FROM user_page_access WHERE user_id = :id');
-        $stmt->execute([':id' => (int)$_SESSION['user_id']]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($row) {
-            $pageAccess = array_map(function ($v) {
-                return (int)$v;
-            }, $row);
+if ($role !== 'admin' && $userId > 0) {
+    $accessCache = 'pgs_access_' . $userId;
+    if (!isset($_SESSION[$accessCache]) || $_SESSION[$accessCache]['t'] < time() - 60) {
+        try {
+            $stmt = $pdo->prepare('SELECT roadmaps, scorecard, performance_assessment, cascading, governance FROM user_page_access WHERE user_id = :id');
+            $stmt->execute([':id' => $userId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $pageAccess = array_map('intval', $row);
+            }
+            $_SESSION[$accessCache] = ['t' => time(), 'data' => $pageAccess];
+        } catch (Throwable $e) {
         }
-    } catch (Throwable $e) {
+    } else {
+        $pageAccess = $_SESSION[$accessCache]['data'];
     }
 }
-// Deadline banner context (for non-admin roles)
+
+// Deadline banner context (non-admin roles, session-cached 60s)
 $deadline = null;
-if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal'], true)) {
-    try {
-        $stmt = $pdo->prepare('SELECT enabled, end_time, message FROM deadline_controls WHERE role = :r');
-        $stmt->execute([':r' => $_SESSION['role']]);
-        $deadline = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
-    } catch (Throwable $e) {
+if (in_array($role, ['employee', 'focal'], true)) {
+    $deadlineCache = 'pgs_deadline_' . $role;
+    if (!isset($_SESSION[$deadlineCache]) || $_SESSION[$deadlineCache]['t'] < time() - 60) {
+        try {
+            $stmt = $pdo->prepare('SELECT enabled, end_time, message FROM deadline_controls WHERE role = :r');
+            $stmt->execute([':r' => $role]);
+            $deadline = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            $_SESSION[$deadlineCache] = ['t' => time(), 'data' => $deadline];
+        } catch (Throwable $e) {
+        }
+    } else {
+        $deadline = $_SESSION[$deadlineCache]['data'];
     }
+}
+
+// Current page (for aria-current)
+$currentPage = basename((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
+
+// Navigation config — single source of truth for every role
+$menus = [
+  ['key' => 'roadmaps', 'label' => 'Roadmaps', 'gated' => true, 'items' => [
+      ['label' => 'Collaborative Healthcare Management', 'url' => 'collab/collab'],
+      ['label' => 'Research', 'url' => 'research/research'],
+      ['label' => 'Training', 'url' => 'training/training'],
+      ['label' => 'Culture of Organization', 'url' => 'culture/culture'],
+      ['label' => 'Resilience', 'url' => 'resilience/resilience'],
+      ['label' => 'Technology', 'url' => 'technology/technology'],
+      ['label' => 'Revenue', 'url' => 'revenue/revenue'],
+  ]],
+  ['key' => 'scorecard', 'label' => 'Scorecard', 'gated' => true, 'items' => [
+      ['label' => 'Roadmap', 'url' => 'roadmap'],
+      ['label' => 'Impact Indicator', 'url' => 'impact_indicator'],
+  ]],
+  ['key' => 'performance_assessment', 'label' => 'Performance Assessment', 'gated' => true, 'items' => [
+      ['label' => 'Operations Review', 'url' => 'operations_review'],
+      ['label' => 'Strategy Review', 'url' => 'strategy_review'],
+      ['label' => 'Strategy Refresh', 'url' => 'strategy_refresh'],
+  ]],
+  ['key' => 'cascading', 'label' => 'Cascading', 'gated' => true, 'items' => [
+      ['label' => 'Communication Plan', 'url' => 'communication_plan'],
+      ['label' => 'Cascading Activities', 'url' => 'cascading_activities'],
+      ['label' => 'Resources', 'url' => 'resources'],
+      ['label' => 'Gallery', 'url' => 'gallery'],
+  ]],
+  ['key' => 'governance', 'label' => 'Governance', 'gated' => true, 'items' => [
+      ['label' => 'Governance Culture', 'url' => 'governance_culture'],
+      ['label' => 'Governance Sharing', 'url' => 'governance_sharing'],
+  ]],
+  ['key' => 'organization', 'label' => 'Organization', 'gated' => false, 'items' => [
+      ['label' => 'Office for Strategy Management', 'url' => 'office_for_strategy_management'],
+      ['label' => 'PGS Core Team', 'url' => 'pgs_core_team'],
+      ['label' => 'Multi-Sector Governance System', 'url' => 'multi_sector_governance_system'],
+  ]],
+  ['key' => 'about', 'label' => 'About', 'gated' => false, 'items' => [
+      ['label' => 'Charter Statements', 'url' => 'about_charter_statements'],
+      ['label' => 'Strategic Position', 'url' => 'about_strategic_position'],
+      ['label' => 'Strategy Map', 'url' => 'about_strategy_map'],
+      ['label' => 'PGS Pathway', 'url' => 'about_pgs_pathway'],
+      ['label' => 'User Access', 'url' => 'about_user_access'],
+  ]],
+];
+if ($role === 'admin') {
+    $menus[] = ['key' => 'others', 'label' => 'Others', 'gated' => false, 'items' => [
+        ['label' => 'Deadline Controls', 'url' => 'admin_deadline'],
+        ['label' => 'Notice', 'url' => 'notice'],
+        ['label' => 'User Management', 'url' => 'user_management'],
+        ['label' => 'Backup and Restore', 'url' => 'admin_backup_restore'],
+        ['label' => 'Survey', 'url' => 'survey'],
+    ]];
 }
 ?>
 
-<!-- Updated Navbar HTML with Example Nested Submenu -->
 <nav class="navbar navbar-expand-xl navbar-dark sticky-top bg-primary px-4 py-2">
   <div class="container-fluid">
-    <!-- Logo and Brand -->
-    <a class="navbar-brand d-flex align-items-center me-4" href="<?php echo h($dashboardLink); ?>">
-      <img src="<?= BASE_URL ?>/img/final_logo1.png" alt="TRC DOH Logo">
+    <a class="navbar-brand d-flex align-items-center me-4" href="<?= h($dashboardLink) ?>">
+      <img src="<?= BASE_URL ?>/img/final_logo1.png" alt="TRC DOH Logo" width="189" height="56">
     </a>
 
-    <!-- Mobile Toggle Button -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
       aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <!-- Navigation Menu -->
     <div class="collapse navbar-collapse" id="navbarNavDropdown">
-      <!-- Left-aligned Links -->
       <ul class="navbar-nav d-flex align-items-center gap-3 mb-0">
+        <?php foreach ($menus as $menu):
+            if ($menu['gated'] && ($pageAccess[$menu['key']] ?? 0) !== 1) {
+                continue;
+            } ?>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" data-allowed="<?= (int)$pageAccess['roadmaps'] ?>">Roadmaps</a>
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?= h($menu['label']) ?></a>
           <ul class="dropdown-menu">
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/collab/collab">Collaborative Healthcare Management</a>
+            <?php foreach ($menu['items'] as $item):
+                $itemPage = basename($item['url']);
+                $isCurrent = ($currentPage === $itemPage); ?>
+            <li>
+              <a class="dropdown-item" href="<?= BASE_URL ?>/<?= h($item['url']) ?>"<?= $isCurrent ? ' aria-current="page"' : '' ?>><?= h($item['label']) ?></a>
             </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/research/research">Research</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/training/training">Training</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/culture/culture">Culture of Organization</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/resilience/resilience">Resilience</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/technology/technology">Technology</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/revenue/revenue">Revenue</a>
-            </li>
+            <?php endforeach; ?>
           </ul>
         </li>
+        <?php endforeach; ?>
 
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" data-allowed="<?= (int)$pageAccess['scorecard'] ?>">Scorecard</a>
-          <ul class="dropdown-menu">
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/roadmap">Roadmap</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/impact_indicator">Impact Indicator</a>
-            </li>
-          </ul>
-        </li>
-
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" data-allowed="<?= (int)$pageAccess['performance_assessment'] ?>">Performance Assessment</a>
-          <ul class="dropdown-menu">
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/operations_review">Operations Review</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/strategy_review">Strategy Review</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/strategy_refresh">Strategy Refresh</a>
-            </li>
-          </ul>
-        </li>
-
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" data-allowed="<?= (int)$pageAccess['cascading'] ?>">Cascading</a>
-          <ul class="dropdown-menu">
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/communication_plan">Communication Plan</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/cascading_activities">Cascading Activities</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/resources">Resources</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/gallery">Gallery</a>
-            </li>
-          </ul>
-        </li>
-
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" data-allowed="<?= (int)$pageAccess['governance'] ?>">Governance</a>
-          <ul class="dropdown-menu">
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/governance_culture">Governance Culture</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/governance_sharing">Governance Sharing</a>
-            </li>
-          </ul>
-        </li>
-
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Organization</a>
-          <ul class="dropdown-menu">
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/office_for_strategy_management">Office for Strategy Management</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/pgs_core_team">PGS Core Team</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/multi_sector_governance_system">Multi-Sector Governance System</a>
-            </li>
-          </ul>
-        </li>
-
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">About</a>
-          <ul class="dropdown-menu">
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/about_charter_statements">Charter Statements</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/about_strategic_position">Strategic Position</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/about_strategy_map">Strategy Map</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/about_pgs_pathway">PGS Pathway</a>
-            </li>
-            <li class="dropdown-submenu">
-              <a class="dropdown-item" href="<?= BASE_URL ?>/about_user_access">User Access</a>
-            </li>
-          </ul>
-        </li>
-
-        <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal'], true)): ?>
+        <?php if (in_array($role, ['employee', 'focal'], true)): ?>
         <li class="nav-item">
-          <a class="nav-link" href="<?= BASE_URL ?>/survey">Survey</a>
+          <a class="nav-link" href="<?= BASE_URL ?>/survey"<?= $currentPage === 'survey' ? ' aria-current="page"' : '' ?>>Survey</a>
         </li>
         <?php endif; ?>
-
-        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Others</a>
-            <ul class="dropdown-menu">
-              <li class="dropdown-submenu">
-                <a class="dropdown-item" href="<?= BASE_URL ?>/admin_deadline">Deadline Controls</a>
-              </li>
-              <li class="dropdown-submenu">
-                <a class="dropdown-item" href="<?= BASE_URL ?>/notice">Notice</a>
-              </li>
-              <li class="dropdown-submenu">
-                <a class="dropdown-item" href="<?= BASE_URL ?>/user_management">User Management</a>
-              </li>
-              <li class="dropdown-submenu">
-                <a class="dropdown-item" href="<?= BASE_URL ?>/admin_backup_restore">Backup and Restore</a>
-              </li>
-              <li class="dropdown-submenu">
-                <a class="dropdown-item" href="<?= BASE_URL ?>/survey">Survey</a>
-              </li>
-            </ul>
-          </li>
-        <?php endif; ?>
-
       </ul>
 
-      <!-- Right-aligned Notifications and Logout -->
       <ul class="navbar-nav ms-auto d-flex align-items-center gap-3 mb-0">
         <li class="nav-item dropdown" id="notificationDropdown">
-          <a class="nav-link text-white position-relative bell-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <a class="nav-link text-white position-relative bell-link" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Notifications">
             <span class="bell-icon-wrap"><i data-lucide="bell"></i></span>
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" style="display: none;">
-              0
-            </span>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" style="display: none;">0</span>
           </a>
           <div class="dropdown-menu dropdown-menu-end notification-dropdown">
             <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light sticky-top">
@@ -239,7 +171,7 @@ if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal']
           <span class="vr text-white-50"></span>
         </li>
         <li class="nav-item">
-          <a class="nav-link text-white" href="<?= BASE_URL ?>/logout"><i class="bi bi-box-arrow-right"></i> Logout</a>
+          <a class="nav-link text-white" href="<?= BASE_URL ?>/logout"><?= ui_icon('log-out', 16, 'me-1') ?> Logout</a>
         </li>
       </ul>
     </div>

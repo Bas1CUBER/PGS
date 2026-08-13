@@ -16,67 +16,7 @@
 
   // ---------- Navbar submenu behavior ----------
   function initSubmenus() {
-    document.querySelectorAll('.dropdown-submenu').forEach(function (submenu) {
-      var dropdownItem = submenu.querySelector('.dropdown-item');
-      var dropdownMenu = submenu.querySelector('.dropdown-menu');
-
-      if (dropdownItem && dropdownMenu) {
-        dropdownItem.addEventListener('click', function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-
-          dropdownMenu.classList.toggle('show');
-
-          submenu.parentElement.querySelectorAll('.dropdown-menu.show').forEach(function (openMenu) {
-            if (openMenu !== dropdownMenu) {
-              openMenu.classList.remove('show');
-            }
-          });
-        });
-      }
-    });
-
-    // Gate top-level dropdowns by access
-    document.querySelectorAll('.nav-item.dropdown > .nav-link.dropdown-toggle').forEach(function (link) {
-      link.addEventListener('click', function (e) {
-        if (this.getAttribute('data-allowed') === '0') {
-          e.preventDefault();
-          e.stopPropagation();
-          alert("You don't have access to this site. Contact administrator.");
-        }
-      });
-    });
-
-    // Block submenu item navigation when parent category is disallowed
-    document.querySelectorAll('.nav-item.dropdown .dropdown-menu a.dropdown-item[href]').forEach(function (a) {
-      a.addEventListener('click', function (e) {
-        var topItem = this.closest('.nav-item.dropdown');
-        if (!topItem) return;
-        var toggle = topItem.querySelector(':scope > .nav-link.dropdown-toggle');
-        if (!toggle) return;
-        if (toggle.getAttribute('data-allowed') === '0') {
-          e.preventDefault();
-          e.stopPropagation();
-          alert("You don't have access to this site. Contact administrator.");
-        }
-      });
-    });
-
-    // Close all submenus when clicking outside
-    document.addEventListener('click', function (e) {
-      if (!e.target.closest('.dropdown-submenu') && !e.target.closest('.dropdown-toggle')) {
-        document.querySelectorAll('.dropdown-submenu .dropdown-menu.show').forEach(function (menu) {
-          menu.classList.remove('show');
-        });
-      }
-    });
-
-    // Ensure Bootstrap dropdowns close properly
-    document.querySelectorAll('.dropdown-menu').forEach(function (menu) {
-      menu.addEventListener('click', function (e) {
-        e.stopPropagation();
-      });
-    });
+    // (Bootstrap 5 handles dropdowns natively; placeholder kept for future nested menus)
   }
 
   // ---------- Notification system ----------
@@ -123,7 +63,7 @@
       var html = '';
       notifications.forEach(function (n) {
         var unreadClass = n.is_read ? '' : 'unread';
-        html += '<div class="notification-item ' + unreadClass + '" data-id="' + n.id + '">' +
+        html += '<div class="notification-item ' + unreadClass + '" data-id="' + n.id + '" role="button" tabindex="0" aria-label="' + (n.title || 'Notification') + '">' +
           '<div class="d-flex align-items-start">' +
           '<div class="notification-type-icon ' + n.type + ' me-3">' + getTypeIcon(n.type) + '</div>' +
           '<div class="flex-grow-1">' +
@@ -137,10 +77,17 @@
       notifList.innerHTML = html;
 
       notifList.querySelectorAll('.notification-item').forEach(function (item) {
-        item.addEventListener('click', function () {
-          var id = this.dataset.id;
+        function mark() {
+          var id = item.dataset.id;
           markAsRead(id);
-          this.classList.remove('unread');
+          item.classList.remove('unread');
+        }
+        item.addEventListener('click', mark);
+        item.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            mark();
+          }
         });
       });
     }
