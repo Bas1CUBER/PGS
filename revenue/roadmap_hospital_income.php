@@ -232,7 +232,7 @@ $d2027[] = (float)($incMain['y2027'] ?? 0);
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Governance Scorecard: Hospital Income'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/revenue_roadmap_hospital_income.css') . '">';
+<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/revenue_roadmap_hospital_income.css') . '">';
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body class="d-flex flex-column min-vh-100">

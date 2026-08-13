@@ -5,7 +5,7 @@ require_page_access('scorecard');
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Employee Engagement Rating (Research)'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/research_roadmap_employee_engagement.css') . '">';
+<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/research_roadmap_employee_engagement.css') . '">';
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>

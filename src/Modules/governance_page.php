@@ -187,7 +187,7 @@ foreach ($uploads as $u) {
 }
 
 $pageTitle = $gov['title'];
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/' . $gov['css']) . '">';
+$pageStyles = page_css('css/pages/' . $gov['css']);
 ?>
 <!DOCTYPE html>
 <html lang="en">

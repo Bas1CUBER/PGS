@@ -53,7 +53,7 @@ foreach (['jpg','jpeg','png','webp'] as $ext) {
   }
 }
 
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/about_strategic_position.css') . '">';
+$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/about_strategic_position.css') . '">';
 
 $pageScripts = '<script src="' . asset('js/pages/') . '"></script>
 ';

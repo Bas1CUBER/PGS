@@ -336,7 +336,7 @@ $chartTrendTargetData = array_values(array_map(fn($y) => $trendTargetMap[$y], $t
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Governance Scorecard: Client Satisfaction Rating'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/culture_roadmap_client_satisfaction.css') . '">';
+<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/culture_roadmap_client_satisfaction.css') . '">';
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>

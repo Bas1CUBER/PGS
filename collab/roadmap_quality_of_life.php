@@ -277,7 +277,7 @@ foreach ($employmentRows as $r) {
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Quality of Life Index'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/collab_roadmap_quality_of_life.css') . '">';
+<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/collab_roadmap_quality_of_life.css') . '">';
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>

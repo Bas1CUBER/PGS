@@ -423,3 +423,9 @@ vendor/bin/phpunit
 - ui_page_header(title, backUrl) — page header with back button
 - ui_alert(message, type) — dismissible flash alert
 - Config-driven pages: governance_culture/sharing share src/Modules/governance_page.php (+governance_config.php); all 7 *_view.php pages share src/Modules/upload_view_page.php (+upload_view_config.php)
+
+### CSS build step (single production file)
+- Source files stay organized: assets/css/app.css + assets/css/pages/*.css (MDN practice: global + scoped files)
+- php build_css.php concatenates + minifies all into ONE file: assets/css/all.css
+- PGS_CSS_MODE in config.php: 'dev' (per-page files, default) or 'prod' (single all.css)
+- Helpers: app_css_link(), page_css(), page_or_bundle_css() in src/helpers.php

@@ -53,7 +53,7 @@ $webDir = $view['upload_dir'];
 
 if (strpos($mime, 'pdf') !== false) {
     $pageTitle = 'View Document';
-    $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/view.css') . '">';
+    $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/view.css') . '">';
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -85,7 +85,7 @@ if (strpos($mime, 'pdf') !== false) {
 }
 if (strpos($mime, 'image') !== false) {
     $pageTitle = 'View Document';
-    $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/view.css') . '">';
+    $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/view.css') . '">';
     ?>
 <!DOCTYPE html>
 <html lang="en">

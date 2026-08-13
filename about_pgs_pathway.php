@@ -119,7 +119,7 @@ function panel_image_url($p) {
   return 'img/'.rawurlencode($p['image']).'?v='.filemtime($path);
 }
 
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/about_pgs_pathway.css') . '">';
+$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/about_pgs_pathway.css') . '">';
 
 ?>
 <!DOCTYPE html>

@@ -135,7 +135,7 @@ $avgMinutes = $count > 0 ? round($total / $count, 2) : null;
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Governance Scorecard: Decreased Turnaround Time for Employee Records Retrieval'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/technology_roadmap_employee_records_turnaround.css') . '">';
+<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/technology_roadmap_employee_records_turnaround.css') . '">';
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body class="d-flex flex-column min-vh-100">

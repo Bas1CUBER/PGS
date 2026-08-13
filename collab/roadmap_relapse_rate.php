@@ -351,7 +351,7 @@ foreach ($summaryYears as $y) {
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'GOVERNANCE SCORECARD: <5 RELAPSE RATE'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/collab_roadmap_relapse_rate.css') . '">';
+<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/collab_roadmap_relapse_rate.css') . '">';
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>

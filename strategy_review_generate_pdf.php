@@ -92,7 +92,7 @@ function generatePDFHTML($data) {
     <head>
         <meta charset="UTF-8">
         <title>TRC-LU Strategy Review</title>
-        <link rel="stylesheet" href="' . asset('css/pages/strategy_review_generate_pdf.css') . '">
+        <link rel="stylesheet" href="' . page_or_bundle_css('css/pages/strategy_review_generate_pdf.css') . '">
     </head>
     <body>
         <div class="page">

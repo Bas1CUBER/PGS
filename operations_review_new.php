@@ -175,7 +175,7 @@ try {
 
 $pageTitle = 'Operations Review';
 
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/operations_review_new.css') . '">';
+$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/operations_review_new.css') . '">';
 
 ?>
 <!DOCTYPE html>

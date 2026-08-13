@@ -203,7 +203,7 @@ if (isset($_GET['export'])) {
 
 $pageTitle = 'Admin Dashboard - TRC Modern';
 
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/OPCR.css') . '">';
+$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/OPCR.css') . '">';
 
 ?>
 <!DOCTYPE html>

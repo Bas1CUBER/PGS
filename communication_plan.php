@@ -199,7 +199,7 @@ if (in_array($role, ['admin','focal'], true) && $_SERVER['REQUEST_METHOD'] === '
 
 $pageTitle = 'Communication Plan';
 
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/communication_plan.css') . '">';
+$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/communication_plan.css') . '">';
 
 ?>
 <!DOCTYPE html>

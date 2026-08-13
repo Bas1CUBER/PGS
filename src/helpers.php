@@ -68,3 +68,34 @@ function asset(string $path): string
     $v = is_file($full) ? (string)filemtime($full) : '1';
     return BASE_URL . '/assets/' . $path . '?v=' . $v;
 }
+
+// CSS delivery mode: 'dev' (per-page files) or 'prod' (single built all.css)
+function css_mode(): string
+{
+    return defined('PGS_CSS_MODE') ? PGS_CSS_MODE : 'dev';
+}
+
+// Global stylesheet <link> (single built file in prod, app.css in dev)
+function app_css_link(): string
+{
+    $path = css_mode() === 'prod' ? 'css/all.css' : 'css/app.css';
+    return '<link rel="stylesheet" href="' . asset($path) . '">';
+}
+
+// Page-scoped stylesheet <link> — empty in prod mode (already bundled in all.css)
+function page_css(string $pageCss): string
+{
+    if (css_mode() === 'prod') {
+        return '';
+    }
+    return '<link rel="stylesheet" href="' . asset($pageCss) . '">';
+}
+
+// For pages with raw <head> (no head.php): page css in dev, the built bundle in prod
+function page_or_bundle_css(string $pageCss): string
+{
+    if (css_mode() === 'prod') {
+        return app_css_link();
+    }
+    return '<link rel="stylesheet" href="' . asset($pageCss) . '">';
+}

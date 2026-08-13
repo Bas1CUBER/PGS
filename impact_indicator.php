@@ -49,7 +49,7 @@ if ($tablesOk) {
     }
 }
 
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/impact_indicator.css') . '">';
+$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/impact_indicator.css') . '">';
 
 ?>
 <!DOCTYPE html>

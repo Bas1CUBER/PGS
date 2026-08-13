@@ -21,7 +21,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'empl
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-    <link rel="stylesheet" href="<?= asset('css/pages/annex_jk.css') ?>">
+    <?= page_or_bundle_css('css/pages/annex_jk.css') ?>
 </head>
 
 <body>

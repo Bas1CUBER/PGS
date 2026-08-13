@@ -33,7 +33,7 @@ $formData = [
 <head>
     <meta charset="utf-8">
     <title>Operations Review Template</title>
-    <link rel="stylesheet" href="<?= asset('css/pages/print.css') ?>">
+    <?= page_or_bundle_css('css/pages/print.css') ?>
 </head>
 <body>
     <div class="header">

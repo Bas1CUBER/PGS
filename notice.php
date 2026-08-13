@@ -23,7 +23,7 @@ if ($result && $result->num_rows > 0) {
 }
 $conn->close();
 
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/notice.css') . '">';
+$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/notice.css') . '">';
 
 $pageScripts = '<script src="' . asset('js/pages/') . '"></script>
 ';

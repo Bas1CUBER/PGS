@@ -47,7 +47,7 @@ if ($tableExists) {
 
 $pageTitle = 'Strategy Review Form';
 
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/strategy_review_form.css') . '">';
+$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/strategy_review_form.css') . '">';
 
 ?>
 <!DOCTYPE html>

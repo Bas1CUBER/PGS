@@ -153,7 +153,7 @@ while ($q && ($r = $q->fetch_assoc())) {
 
 $pageTitle = 'Cascading Activities';
 
-$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/cascading_activities.css') . '">';
+$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/cascading_activities.css') . '">';
 
 ?>
 <!DOCTYPE html>
