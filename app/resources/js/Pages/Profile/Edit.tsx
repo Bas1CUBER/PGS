@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps } from '@/types';
 import { Head } from '@inertiajs/react';
+import { Card, CardContent } from '@/components/ui/card';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
@@ -11,28 +12,31 @@ export default function Edit({
 }: PageProps<{ mustVerifyEmail: boolean; status?: string }>) {
     return (
         <AuthenticatedLayout
-            header={<h2 className="text-xl leading-tight font-semibold text-gray-800">Profile</h2>}
+            header={<h2 className="text-xl leading-tight font-semibold">Profile</h2>}
         >
             <Head title="Profile" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+            <div className="mx-auto max-w-2xl space-y-6">
+                <Card>
+                    <CardContent className="pt-6">
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
-                            className="max-w-xl"
                         />
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdatePasswordForm className="max-w-xl" />
-                    </div>
+                <Card>
+                    <CardContent className="pt-6">
+                        <UpdatePasswordForm />
+                    </CardContent>
+                </Card>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <DeleteUserForm className="max-w-xl" />
-                    </div>
-                </div>
+                <Card>
+                    <CardContent className="pt-6">
+                        <DeleteUserForm />
+                    </CardContent>
+                </Card>
             </div>
         </AuthenticatedLayout>
     );
