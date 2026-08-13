@@ -2,7 +2,9 @@
 
 use App\Http\Middleware\CanAccessPageMiddleware;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LegacyRedirectMiddleware;
 use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,12 +22,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 require __DIR__.'/../routes/users.php';
                 require __DIR__.'/../routes/admin.php';
                 require __DIR__.'/../routes/modules.php';
+                require __DIR__.'/../routes/sectors.php';
             });
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            LegacyRedirectMiddleware::class,
             HandleInertiaRequests::class,
+            SecurityHeadersMiddleware::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 

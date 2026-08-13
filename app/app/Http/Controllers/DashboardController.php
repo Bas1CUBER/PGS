@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Services\DashboardService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,8 +25,14 @@ final class DashboardController extends Controller
             throw new AuthenticationException;
         }
 
+        $payload = Cache::remember(
+            "pgs_dashboard_{$user->role->value}_{$user->id}",
+            60,
+            fn (): array => $this->dashboard->for($user),
+        );
+
         return Inertia::render('Dashboard', [
-            'dashboard' => $this->dashboard->for($user),
+            'dashboard' => $payload,
         ]);
     }
 }

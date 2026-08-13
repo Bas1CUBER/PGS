@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Middleware\LegacyRedirectMiddleware;
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -37,5 +39,16 @@ if (app()->environment(['local', 'testing'])) {
         }
     });
 }
+
+// Legacy URL redirects for unmatched paths (bookmarks from the old app).
+Route::fallback(function (Request $request) {
+    $target = LegacyRedirectMiddleware::targetFor('/'.ltrim($request->path(), '/'));
+
+    if ($target !== null) {
+        return redirect($target, 301);
+    }
+
+    abort(404);
+});
 
 require __DIR__.'/auth.php';

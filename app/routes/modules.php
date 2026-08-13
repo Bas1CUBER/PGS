@@ -11,7 +11,8 @@ Route::middleware('web')->group(function (): void {
     Route::middleware('auth')->group(function (): void {
         Route::get('/deliverables', [DeliverableController::class, 'index'])->name('deliverables.index');
         Route::get('/deliverables/create', [DeliverableController::class, 'create'])->name('deliverables.create');
-        Route::post('/deliverables', [DeliverableController::class, 'store'])->name('deliverables.store');
+        Route::post('/deliverables', [DeliverableController::class, 'store'])
+            ->middleware('throttle:submissions')->name('deliverables.store');
         Route::get('/deliverables/{deliverable}/edit', [DeliverableController::class, 'edit'])->name('deliverables.edit');
         Route::put('/deliverables/{deliverable}', [DeliverableController::class, 'update'])->name('deliverables.update');
         Route::delete('/deliverables/{deliverable}', [DeliverableController::class, 'destroy'])->name('deliverables.destroy');

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>404 - Not found</title>
+    <style>
+        :root { --primary: #0b4aa2; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 420px;
+            text-align: center;
+        }
+        h1 { font-size: 2.5rem; color: var(--primary); margin-bottom: 8px; }
+        p { color: #64748b; margin-bottom: 20px; }
+        a {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        a:hover { opacity: .9; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>404</h1>
+        <p>The page you're looking for doesn't exist or has moved.</p>
+        <a href="{{ url('/dashboard') }}">Back to Dashboard</a>
+    </div>
+</body>
+</html>

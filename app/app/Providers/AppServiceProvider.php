@@ -50,6 +50,11 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by((string) $request->input('email').'|'.$request->ip());
         });
 
+        // Upload/create throttling: 30 submissions per minute per user.
+        RateLimiter::for('submissions', function (Request $request): Limit {
+            return Limit::perMinute(30)->by((string) ($request->user()?->id ?? $request->ip()));
+        });
+
         // Deliverable progress workflow (docs/Workflows.md §2).
         $this->app->when(DeliverableController::class)
             ->needs(TransitionsWorkflowService::class)

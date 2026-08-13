@@ -21,18 +21,20 @@
 
 ## 2. Task checklist
 
-1. **Pattern library first** (don't port 12 nearly-identical pages): build shared components:
-   - `YearlyIndicatorTable` (config: columns, year axis, editable/read-only)
-   - `EventList` + `NotesPanel` (resilience/training/collab style lists)
-   - `TrendChartCard` (Recharts wrapper)
-   - `DataEntryGrid` (wide tables like `revenue_non_traditional`)
-   - `PrintDocument` layout for annex/OPCR PDF-style output
-2. Each module = one config + one controller + typed TS config, not one bespoke page.
-3. Preserve **every column/field** the legacy UI exposes; freeze any behavior change for Phase 8.
-4. `impact_indicator` scorecards: keep current-year semantics, port sort_order logic.
-5. Print CSS pass: annexes/OPCR must print A4-clean (no sidebar, no interactivity) — [Design.md](./Design.md) print rules.
-6. Parity: screenshot diff (Playwright) legacy vs new per module; row counts verified.
-7. Tests: config-driven modules share one generic feature-test suite parameterized per module.
+### 2.1 Pattern library (done for the shared sector shape)
+- [x] `SectorModuleRegistry` — config-driven pillars (verified against live schema: all 7 main tables are `id, category, year, description`; progress `+month, status, remarks, updated_by`; collab/research have schedules)
+- [x] `SectorModuleController` — index + show (indicators paginated, progress, schedule) + row/progress updates with audit
+- [x] `Sectors/Index` + `Sectors/Show` pages (shadcn) + nav entry
+- [x] Generic feature tests parameterized over the pattern (5 tests: list, show, unknown slug, row update, progress update)
+- [ ] `YearlyIndicatorTable` / `EventList` / `TrendChartCard` / `DataEntryGrid` components — **deferred** (wide-table modules land with Phase 7b)
+- [ ] `PrintDocument` layout for annex/OPCR — **deferred (Phase 7b)**
+- [ ] `ModuleCalculations` service for relapse-rate style computed indicators — **deferred (Phase 7b)**
+
+### 2.2 Ports still to run (Phase 7b — next work package)
+- [ ] Sector detail tables: training pct/tot personnel+events, resilience adverse events/notes/gvr, revenue hospital/ntr, collab rr_*/qli_*, research outputs, client satisfaction, engagement, impact scorecard, technology turnaround — via the YearlyIndicatorTable pattern
+- [ ] Annexes B/D/E/H/J/K + OPCR print documents (Blade print layout + A4 CSS)
+- [ ] Strategy content pages (about_*, pgs_core_team, governance pages, survey)
+- [ ] Playwright screenshot parity per module (needs Playwright infra — Phase 8e)
 
 ---
 
