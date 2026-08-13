@@ -460,12 +460,10 @@ $pageStyles = 'html, body {
                           <i data-lucide="list-checks" class="me-2 text-primary"></i>
                           <?php echo h($item['deliverable']); ?>
                         </td>
-                        <td><?php echo $item['time'] ? h(date('Y-m-d H:i:s', strtotime($item['time']))) : 'â€”'; ?></td>
+                        <td><?php echo $item['time'] ? h(date('Y-m-d H:i:s', strtotime($item['time']))) : 'Ã¢â‚¬â€'; ?></td>
                         <td><span class="badge bg-secondary"><?php echo h($item['user']); ?></span></td>
                         <td>
-                          <a class="btn btn-sm btn-outline-primary" href="<?php echo h($item['link']); ?>">
-                            <i data-lucide="arrow-right" class="me-1"></i> Go To Page
-                          </a>
+                          <?= ui_btn('Go To Page', ['href' => $item['link'], 'icon' => 'arrow-right', 'variant' => 'outline-primary', 'size' => 'sm']) ?>
                         </td>
                       </tr>
                     <?php endforeach; endif; ?>
@@ -494,12 +492,10 @@ $pageStyles = 'html, body {
                           <i data-lucide="file-check" class="me-2 text-primary"></i>
                           <?php echo h($item['page']); ?>
                         </td>
-                        <td><?php echo $item['time'] ? h(date('Y-m-d H:i:s', strtotime($item['time']))) : 'â€”'; ?></td>
+                        <td><?php echo $item['time'] ? h(date('Y-m-d H:i:s', strtotime($item['time']))) : 'Ã¢â‚¬â€'; ?></td>
                         <td><span class="badge bg-secondary"><?php echo h($item['user']); ?></span></td>
                         <td>
-                          <a class="btn btn-sm btn-outline-primary" href="<?php echo h($item['link']); ?>">
-                            <i data-lucide="arrow-right" class="me-1"></i> Go To Page
-                          </a>
+                          <?= ui_btn('Go To Page', ['href' => $item['link'], 'icon' => 'arrow-right', 'variant' => 'outline-primary', 'size' => 'sm']) ?>
                         </td>
                       </tr>
                     <?php endforeach; endif; ?>

@@ -29,6 +29,7 @@ require_once PGS_ROOT . '/vendor/autoload.php';
 // App configuration + shared helpers
 require_once PGS_SRC . '/Config/config.php';
 require_once PGS_SRC . '/helpers.php';
+require_once PGS_SRC . '/components.php';
 require_once PGS_SRC . '/Database/db.php';
 require_once PGS_SRC . '/Auth/access_guard.php';
 require_once PGS_SRC . '/Notification/notification_helper.php';

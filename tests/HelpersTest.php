@@ -68,4 +68,30 @@ class HelpersTest extends TestCase
         $this->assertSame('Saved!', flash('success'));
         $this->assertSame('', flash('success'), 'flash must be consumed once');
     }
+
+    public function testUiBadgeMapsStatusToColor(): void
+    {
+        $this->assertStringContainsString('bg-warning', ui_badge('Pending'));
+        $this->assertStringContainsString('bg-success', ui_badge('Approved'));
+        $this->assertStringContainsString('bg-danger', ui_badge('Returned'));
+        $this->assertStringContainsString('>Pending</span>', ui_badge('Pending'));
+        $this->assertStringContainsString('&lt;script&gt;', ui_badge('<script>'), 'badge label must be escaped');
+    }
+
+    public function testUiBtnRendersAnchor(): void
+    {
+        $html = ui_btn('Download', ['href' => 'uploads/x.pdf', 'icon' => 'download', 'variant' => 'outline-success', 'size' => 'sm', 'download' => true]);
+        $this->assertStringContainsString('<a href="uploads/x.pdf"', $html);
+        $this->assertStringContainsString('btn btn-outline-success btn-sm', $html);
+        $this->assertStringContainsString('data-lucide="download"', $html);
+        $this->assertStringContainsString(' download', $html);
+    }
+
+    public function testUiPageHeaderIncludesBackButton(): void
+    {
+        $html = ui_page_header('Governance Culture', 'http://localhost:8080/PGS/governance_culture');
+        $this->assertStringContainsString('Governance Culture', $html);
+        $this->assertStringContainsString('arrow-left', $html);
+        $this->assertStringContainsString('header-wrap', $html);
+    }
 }

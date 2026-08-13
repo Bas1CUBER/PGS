@@ -415,3 +415,11 @@ vendor/bin/phpunit
 - All 13 POST-only endpoints (user CRUD, impact indicator, insert, employee upload) verify CSRF; all forms emit hidden tokens, AJAX calls append _token from the window.PGS.csrf bootstrap
 - deadline_controls DDL removed from per-request paths (navbar/access_guard); schema lives in planning.sql
 - Runtime schema migrations (status_updated_at, status columns) appended to planning.sql so fresh installs are complete
+
+### Reusable UI components (src/components.php)
+- ui_badge(status) — status pills (Pending/Approved/Returned/...)
+- ui_btn(label, opts) — buttons/links with icon, variant, size, confirm
+- ui_icon(name) — lucide icons
+- ui_page_header(title, backUrl) — page header with back button
+- ui_alert(message, type) — dismissible flash alert
+- Config-driven pages: governance_culture/sharing share src/Modules/governance_page.php (+governance_config.php); all 7 *_view.php pages share src/Modules/upload_view_page.php (+upload_view_config.php)
