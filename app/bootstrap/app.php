@@ -13,7 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         then: function (): void {
-            require __DIR__.'/../routes/notifications.php';
+            // Route files loaded here must opt into the web middleware group
+            // (session, CSRF, SubstituteBindings) explicitly.
+            Route::middleware('web')->group(function (): void {
+                require __DIR__.'/../routes/notifications.php';
+                require __DIR__.'/../routes/users.php';
+                require __DIR__.'/../routes/admin.php';
+            });
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

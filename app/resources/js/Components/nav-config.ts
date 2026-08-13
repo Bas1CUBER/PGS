@@ -1,5 +1,15 @@
 import type { LucideIcon } from 'lucide-react';
-import { Bell, FileText, Home, LayoutDashboard, LogIn, Users } from 'lucide-react';
+import {
+    Bell,
+    Database,
+    FileText,
+    Home,
+    LayoutDashboard,
+    LogIn,
+    ScrollText,
+    Timer,
+    Users,
+} from 'lucide-react';
 import type { User } from '@/types';
 
 export interface NavItem {
@@ -33,7 +43,12 @@ export function navigationFor(user: User): NavSection[] {
     if (user.role === 'admin') {
         sections.push({
             title: 'Administration',
-            items: [{ title: 'User Management', href: '/users', icon: Users }],
+            items: [
+                { title: 'User Management', href: '/users', icon: Users },
+                { title: 'Deadlines', href: '/deadlines', icon: Timer },
+                { title: 'Backups', href: '/backups', icon: Database },
+                { title: 'Audit Log', href: '/audit-logs', icon: ScrollText },
+            ],
         });
     }
 
