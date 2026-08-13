@@ -1,14 +1,19 @@
 import type { LucideIcon } from 'lucide-react';
 import {
     Bell,
+    Camera,
+    ClipboardList,
     Database,
     FileText,
+    FolderOpen,
     Home,
     LayoutDashboard,
     LayoutList,
     LogIn,
     Megaphone,
     ScrollText,
+    Share2,
+    Target,
     Timer,
     Users,
 } from 'lucide-react';
@@ -44,6 +49,12 @@ export function navigationFor(user: User): NavSection[] {
             items: [
                 { title: 'Deliverables', href: '/deliverables', icon: FileText },
                 { title: 'Roadmaps', href: '/roadmaps', icon: LayoutList },
+                { title: 'Sector Roadmaps', href: '/sectors', icon: LayoutList },
+                { title: 'Uploads', href: '/uploads', icon: FolderOpen },
+                { title: 'Communication Plan', href: '/communication-plan', icon: Share2 },
+                { title: 'Gallery', href: '/gallery', icon: Camera },
+                { title: 'Impact Scorecard', href: '/impact-scorecard', icon: Target },
+                { title: 'Surveys', href: '/surveys', icon: ClipboardList },
                 { title: 'Notices', href: '/notices', icon: Megaphone },
             ],
         },
@@ -64,6 +75,15 @@ export function navigationFor(user: User): NavSection[] {
             ],
         });
     }
+
+    sections.push({
+        title: 'Content',
+        items: [
+            { title: 'Strategy Map', href: '/content/about-strategy-map', icon: Home },
+            { title: 'PGS Core Team', href: '/content/pgs-core-team', icon: Users },
+            { title: 'About PGS', href: '/content/about-pgs-pathway', icon: LayoutList },
+        ],
+    });
 
     return sections;
 }

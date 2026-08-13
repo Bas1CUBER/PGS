@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 require __DIR__.'/../routes/admin.php';
                 require __DIR__.'/../routes/modules.php';
                 require __DIR__.'/../routes/sectors.php';
+                require __DIR__.'/../routes/content_modules.php';
             });
         },
     )

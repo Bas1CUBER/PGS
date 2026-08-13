@@ -8,7 +8,9 @@ use App\Enums\RoadmapBlockType;
 use App\Models\RoadmapBlock;
 use App\Models\RoadmapItem;
 use App\Models\RoadmapTitle;
+use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\DeadlineService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -98,6 +100,8 @@ final class RoadmapController extends Controller
 
     public function storeItem(Request $request, RoadmapTitle $title): RedirectResponse
     {
+        app(DeadlineService::class)->enforce($this->userOrFail($request));
+
         Validator::make($request->all(), [
             'sub_label' => ['required', 'string', 'max:500'],
         ])->validate();
@@ -264,14 +268,22 @@ final class RoadmapController extends Controller
     /**
      * @throws AuthenticationException
      */
-    private function userId(Request $request): int
+    private function userOrFail(Request $request): User
     {
         $user = $request->user();
 
-        if ($user === null) {
+        if (! $user instanceof User) {
             throw new AuthenticationException;
         }
 
-        return $user->id;
+        return $user;
+    }
+
+    /**
+     * @throws AuthenticationException
+     */
+    private function userId(Request $request): int
+    {
+        return $this->userOrFail($request)->id;
     }
 }

@@ -8,6 +8,7 @@ use App\Enums\DeliverableStatus;
 use App\Models\Deliverable;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\DeadlineService;
 use App\Services\TransitionsWorkflowService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
@@ -67,6 +68,8 @@ final class DeliverableController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $this->authorize('create', Deliverable::class);
+
+        app(DeadlineService::class)->enforce($this->userOrFail($request));
 
         Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],

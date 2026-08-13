@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Modules\SectorDetailRegistry;
 use App\Modules\SectorModuleRegistry;
 use App\Services\AuditLogService;
 use Illuminate\Auth\AuthenticationException;
@@ -60,11 +61,23 @@ final class SectorModuleController extends Controller
                 ->get()
             : null;
 
+        $details = array_values(array_filter(
+            array_map(
+                static fn (string $detailSlug, array $d): ?array => $d['pillar'] === $module['slug']
+                    ? ['slug' => $detailSlug, 'label' => $d['label']]
+                    : null,
+                array_keys(SectorDetailRegistry::modules()),
+                SectorDetailRegistry::modules(),
+            ),
+            static fn (?array $d): bool => $d !== null,
+        ));
+
         return Inertia::render('Sectors/Show', [
             'module' => $module,
             'rows' => $rows,
             'progress' => $progress,
             'schedule' => $schedule,
+            'details' => $details,
         ]);
     }
 

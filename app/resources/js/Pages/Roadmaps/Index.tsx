@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, FileText, LayoutList, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, FileText, LayoutList, Plus, Save, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,11 +14,19 @@ import {
 } from '@/components/ui/dialog';
 import type { PageProps } from '@/types';
 
+interface RoadmapBlock {
+    id: number;
+    block_type: string;
+    content: Record<string, unknown>;
+}
+
 interface RoadmapItem {
     id: number;
-    content: string | null;
+    sub_label: string;
+    sub_letter: string;
+    page_slug: string;
     sort_order: number;
-    blocks?: { id: number; block_type: string; content: Record<string, unknown> }[];
+    blocks?: RoadmapBlock[];
 }
 
 interface RoadmapTitleRow {
@@ -32,10 +40,15 @@ interface RoadmapsPageProps extends PageProps {
     titles: RoadmapTitleRow[];
 }
 
+const blockTypes = ['heading', 'paragraph', 'table', 'dashboard_stat'];
+
 export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
     const [newTitle, setNewTitle] = useState('');
     const [itemDrafts, setItemDrafts] = useState<Record<number, string>>({});
     const [deleteTarget, setDeleteTarget] = useState<RoadmapTitleRow | null>(null);
+    const [builderItem, setBuilderItem] = useState<RoadmapItem | null>(null);
+    const [blockType, setBlockType] = useState(blockTypes[0] ?? 'paragraph');
+    const [blockContent, setBlockContent] = useState('{}');
 
     function addTitle(e: { preventDefault(): void }): void {
         e.preventDefault();
@@ -49,10 +62,53 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
         if (content === '') return;
         router.post(
             `/roadmaps/titles/${String(titleId)}/items`,
-            { content },
+            { sub_label: content },
             { preserveScroll: true },
         );
         setItemDrafts((prev) => ({ ...prev, [titleId]: '' }));
+    }
+
+    function openBuilder(item: RoadmapItem): void {
+        setBuilderItem(item);
+        setBlockType(blockTypes[0] ?? 'paragraph');
+        setBlockContent('{}');
+    }
+
+    function addBlock(): void {
+        if (builderItem === null) return;
+
+        try {
+            const parsed = JSON.parse(blockContent) as Record<string, string>;
+
+            router.post(
+                `/roadmaps/items/${String(builderItem.id)}/blocks`,
+                { block_type: blockType, content: parsed },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setBlockContent('{}');
+                    },
+                },
+            );
+        } catch {
+            return;
+        }
+    }
+
+    function updateBlock(block: RoadmapBlock): void {
+        const raw = window.prompt('Block content (JSON):', JSON.stringify(block.content));
+        if (raw === null) return;
+
+        try {
+            const parsed = JSON.parse(raw) as Record<string, string>;
+            router.put(
+                `/roadmaps/blocks/${String(block.id)}`,
+                { content: parsed },
+                { preserveScroll: true },
+            );
+        } catch {
+            // Invalid JSON: do nothing.
+        }
     }
 
     return (
@@ -73,7 +129,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                 onChange={(e) => {
                                     setNewTitle(e.target.value);
                                 }}
-                                placeholder="New section titleÃ¢â‚¬Â¦"
+                                placeholder="New section titleÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦"
                                 aria-label="New roadmap section"
                             />
                             <Button type="submit" size="sm">
@@ -88,7 +144,8 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                     <Card>
                         <CardContent className="text-muted-foreground py-10 text-center">
                             <LayoutList className="mx-auto mb-2 size-8" />
-                            No roadmap sections yet Ã¢â‚¬â€ add the first one above.
+                            No roadmap sections yet ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â add the
+                            first one above.
                         </CardContent>
                     </Card>
                 )}
@@ -97,19 +154,17 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                     <Card key={title.id}>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>{title.title}</CardTitle>
-                            <div className="flex gap-1">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-destructive hover:text-destructive"
-                                    onClick={() => {
-                                        setDeleteTarget(title);
-                                    }}
-                                >
-                                    <Trash2 className="size-4" />
-                                    Delete
-                                </Button>
-                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => {
+                                    setDeleteTarget(title);
+                                }}
+                            >
+                                <Trash2 className="size-4" />
+                                Delete
+                            </Button>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <ul className="space-y-2">
@@ -120,7 +175,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                     >
                                         <div className="min-w-0 flex-1">
                                             <p className="text-sm font-medium">
-                                                {item.content ?? 'Untitled item'}
+                                                {item.sub_letter}. {item.sub_label}
                                             </p>
                                             <p className="text-muted-foreground text-xs">
                                                 <FileText className="mr-1 inline size-3" />
@@ -128,6 +183,15 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    openBuilder(item);
+                                                }}
+                                            >
+                                                Blocks
+                                            </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -188,7 +252,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                             [title.id]: e.target.value,
                                         }));
                                     }}
-                                    placeholder="New item under this sectionÃ¢â‚¬Â¦"
+                                    placeholder="New item under this sectionÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦"
                                     aria-label={`New item for ${title.title}`}
                                 />
                                 <Button
@@ -241,6 +305,101 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                             Delete
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={builderItem !== null}
+                onOpenChange={(open) => {
+                    if (!open) setBuilderItem(null);
+                }}
+            >
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>
+                            Page builder ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â{' '}
+                            {builderItem?.sub_label ?? ''}
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        <ul className="space-y-2">
+                            {(builderItem?.blocks ?? []).map((block) => (
+                                <li
+                                    key={block.id}
+                                    className="flex items-center justify-between gap-2 rounded-md border p-3"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium">{block.block_type}</p>
+                                        <p className="text-muted-foreground truncate font-mono text-xs">
+                                            {JSON.stringify(block.content)}
+                                        </p>
+                                    </div>
+                                    <div className="flex shrink-0 gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                updateBlock(block);
+                                            }}
+                                        >
+                                            <Save className="size-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-destructive hover:text-destructive"
+                                            onClick={() => {
+                                                router.delete(
+                                                    `/roadmaps/blocks/${String(block.id)}`,
+                                                );
+                                            }}
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </Button>
+                                    </div>
+                                </li>
+                            ))}
+                            {(builderItem?.blocks ?? []).length === 0 && (
+                                <li className="text-muted-foreground py-2 text-sm">
+                                    No blocks yet.
+                                </li>
+                            )}
+                        </ul>
+
+                        <div className="space-y-3 rounded-md border p-3">
+                            <p className="text-sm font-medium">Add block</p>
+                            <div className="flex flex-col gap-3 sm:flex-row">
+                                <select
+                                    value={blockType}
+                                    onChange={(e) => {
+                                        setBlockType(e.target.value);
+                                    }}
+                                    className="border-input bg-background h-10 rounded-md border px-3 text-sm"
+                                    aria-label="Block type"
+                                >
+                                    {blockTypes.map((type) => (
+                                        <option key={type} value={type}>
+                                            {type}
+                                        </option>
+                                    ))}
+                                </select>
+                                <Input
+                                    value={blockContent}
+                                    onChange={(e) => {
+                                        setBlockContent(e.target.value);
+                                    }}
+                                    placeholder='{"label":"...", "value":"..."}'
+                                    className="font-mono"
+                                    aria-label="Block content JSON"
+                                />
+                            </div>
+                            <Button size="sm" onClick={addBlock}>
+                                <Plus className="size-4" />
+                                Add block
+                            </Button>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </AuthenticatedLayout>

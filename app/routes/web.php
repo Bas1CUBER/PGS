@@ -3,7 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Middleware\LegacyRedirectMiddleware;
-use Illuminate\Foundation\Application;
+use App\Models\Notice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -12,8 +12,10 @@ Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
+        'notices' => Notice::query()
+            ->orderByDesc('created_at')
+            ->limit(6)
+            ->get(['notice_id', 'title', 'description', 'created_at']),
     ]);
 });
 

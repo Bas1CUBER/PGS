@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { ArrowLeft, CalendarClock, ListChecks } from 'lucide-react';
+import { ArrowLeft, CalendarClock, ListChecks, Table2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,11 @@ interface SectorProgress {
     description: string | null;
 }
 
+interface SectorDetailLink {
+    slug: string;
+    label: string;
+}
+
 interface SectorShowPageProps extends PageProps {
     module: {
         slug: string;
@@ -56,6 +61,7 @@ interface SectorShowPageProps extends PageProps {
               description: string;
           }[]
         | null;
+    details: SectorDetailLink[];
 }
 
 const statusStyles: Record<string, string> = {
@@ -64,7 +70,13 @@ const statusStyles: Record<string, string> = {
     Pending: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
 };
 
-export default function SectorShow({ module, rows, progress, schedule }: SectorShowPageProps) {
+export default function SectorShow({
+    module,
+    rows,
+    progress,
+    schedule,
+    details: detailModules,
+}: SectorShowPageProps) {
     const [editTarget, setEditTarget] = useState<SectorRow | null>(null);
     const [editCategory, setEditCategory] = useState('');
     const [editYear, setEditYear] = useState('');
@@ -101,6 +113,32 @@ export default function SectorShow({ module, rows, progress, schedule }: SectorS
                         All sectors
                     </Link>
                 </Button>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Table2 className="size-4" />
+                            Detail roadmaps
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {detailModules.length === 0 ? (
+                            <p className="text-muted-foreground text-sm">
+                                No detail roadmaps for this pillar yet.
+                            </p>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {detailModules.map((detail) => (
+                                    <Button key={detail.slug} asChild variant="outline" size="sm">
+                                        <Link href={`/sector-details/${detail.slug}`}>
+                                            {detail.label}
+                                        </Link>
+                                    </Button>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <CardHeader>
