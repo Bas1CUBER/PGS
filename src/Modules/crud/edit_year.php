@@ -1,15 +1,17 @@
 <?php
 
+global $conn;
+
 $moduleKey = $_GET['module'] ?? '';
 $modules = require PGS_SRC . '/Modules/module_config.php';
 if (!isset($modules[$moduleKey])) {
-    echo "Invalid module";
+    echo 'Invalid module';
     exit;
 }
 $table = $modules[$moduleKey]['table'];
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo "User not authorized.";
+    echo 'User not authorized.';
     exit();
 }
 
@@ -22,7 +24,7 @@ $year = isset($_POST['year']) ? intval($_POST['year']) : null;
 $categories = isset($_POST['categories']) ? $_POST['categories'] : null;
 
 if (!$year || empty($categories)) {
-    echo "Error: Missing year or categories.";
+    echo 'Error: Missing year or categories.';
     exit();
 }
 
@@ -30,9 +32,9 @@ $conn->begin_transaction();
 try {
     $stmt = $conn->prepare("DELETE FROM {$table} WHERE year = ?");
     if (!$stmt) {
-        throw new Exception("Prepare failed: " . $conn->error);
+        throw new Exception('Prepare failed: ' . $conn->error);
     }
-    $stmt->bind_param("i", $year);
+    $stmt->bind_param('i', $year);
     if (!$stmt->execute()) {
         throw new Exception("Failed to delete existing data for year $year: " . $stmt->error);
     }
@@ -51,9 +53,9 @@ try {
             }
             $stmt = $conn->prepare("INSERT INTO {$table} (year, category, description) VALUES (?, ?, ?)");
             if (!$stmt) {
-                throw new Exception("Prepare failed: " . $conn->error);
+                throw new Exception('Prepare failed: ' . $conn->error);
             }
-            $stmt->bind_param("iss", $year, $categoryName, $description);
+            $stmt->bind_param('iss', $year, $categoryName, $description);
             if (!$stmt->execute()) {
                 throw new Exception("Insert failed for category '$categoryName': " . $stmt->error);
             }
@@ -61,9 +63,9 @@ try {
         }
     }
     $conn->commit();
-    echo "Year updated successfully";
+    echo 'Year updated successfully';
 } catch (Exception $e) {
     $conn->rollback();
-    echo "Error: " . h($e->getMessage());
+    echo 'Error: ' . h($e->getMessage());
 }
 $conn->close();

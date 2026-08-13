@@ -23,55 +23,17 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'empl
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-    <style>
-        html,
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background-color: #ffffff;
-            color: #2c3e50;
-            height: 100%;
-            margin: 0;
-            padding-top: 20px;
-        }
-
-        .page-wrapper {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        main {
-            flex: 1;
-        }
-
-        .iframe-container {
-            position: relative;
-            width: 100%;
-            padding-bottom: 56.25%;
-            height: 0;
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-
-        .iframe-container iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-    </style>
+    <link rel="stylesheet" href="<?= asset('css/pages/annex_h.css') ?>">
 
 </head>
 
 <body>
-<?php include 'navbar.php'; ?>
+<?php include PGS_TEMPLATES . '/navbar.php'; ?>
 
 <div class="page-wrapper container my-5 d-flex flex-column align-items-center text-center">
 
     <!-- Responsive iframe -->
-    <div class="mb-3 text-center text-secondary fst-italic" style="font-weight: 500;">
+    <div class="mb-3 text-center text-secondary fst-italic" fw-500>
         <i data-lucide="alert-circle" class="me-2"></i>This table is read-only
     </div>
 
@@ -82,8 +44,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'empl
     <!-- Download Button (MOVED BELOW THE FORM) -->
     <a href="/PGS/forms/Annex H.xlsx"
        download
-       class="btn btn-success btn-sm d-inline-flex align-items-center gap-2 my-3"
-       style="width: fit-content;">
+       class="btn btn-success btn-sm d-inline-flex align-items-center gap-2 my-3" w-fit>
         <i data-lucide="file-spreadsheet"></i>
         <i data-lucide="download"></i>
         <span>Download Annex H</span>
@@ -91,7 +52,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'empl
 
 </div>
 
-<?php include 'footer.php'; ?>
+<?php include PGS_TEMPLATES . '/footer.php'; ?>
 
 <!-- Bootstrap Bundle JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

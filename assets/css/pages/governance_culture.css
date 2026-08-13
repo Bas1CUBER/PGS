@@ -1,0 +1,9 @@
+.page-container { padding-top: 110px; }
+    .stat-card { border: none; border-radius: 1rem; background: #fff; box-shadow: 0 0 0 2px rgba(25,106,107,.15), 0 10px 24px rgba(25,106,107,.18); transition: transform .15s ease, box-shadow .15s ease; cursor: pointer; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 0 0 3px rgba(25,106,107,.25), 0 16px 32px rgba(25,106,107,.22); }
+    .stat-card.active { transform: translateY(-2px); box-shadow: 0 0 0 3px rgba(25,106,107,.35), 0 18px 36px rgba(25,106,107,.28); }
+    .stat-card .card-body { padding: 1rem; }
+    .stat-title { font-size: .85rem; color: #6c757d; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; color: #196a6b; }
+    .stat-icon { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(135deg,#196a6b,#2fa5a6); box-shadow: 0 0 12px rgba(47,165,166,.45); }
+

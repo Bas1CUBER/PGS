@@ -654,3 +654,54 @@ a:hover {
   margin: 0 10px;
   font-size: 1.2rem;
 }
+/* ---------- Shared UI (navbar/footer) ---------- */
+.deadline-banner {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1040;
+  background: rgba(245,158,11,.85);
+  color: #111827;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: 0 -2px 6px rgba(0,0,0,.08);
+  pointer-events: none;
+  font-size: .95rem;
+}
+.deadline-banner.deadline-expired {
+  background: rgba(185,28,28,.85);
+  color: #fff;
+}
+.flash-toast {
+  position: fixed;
+  z-index: 1051;
+}
+.notification-dropdown {
+  width: 360px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+.navbar .vr {
+  height: 1.4em;
+}
+
+/* ---------- Utility classes (converted from inline styles) ---------- */
+.pt-110 { padding-top: 110px; }
+.pt-70 { padding-top: 70px; }
+.h-34 { height: 34px; }
+.h-40 { height: 40px; }
+.w-fit { width: fit-content; }
+.w-120 { width: 120px; }
+.w-20 { width: 20%; }
+.w-30 { width: 30%; }
+.w-33 { width: 33.33%; }
+.w-35 { width: 35%; }
+.w-0 { width: 0%; }
+.fw-500 { font-weight: 500; }
+.fs-09 { font-size: 0.9rem; }
+.mt-3px { margin-top: 3px; }
+.fit-viewport { max-width: 100%; max-height: 100vh; }
+.table-fixed { table-layout: fixed; }
+.header-green { background-color: #196a6b; color: #fff; border: none; }
+.header-cyan { background: #00A3D9; color: #000; font-weight: 700; }
+.header-cyan-w25 { background: #00A3D9; color: #000; font-weight: 700; width: 25%; }

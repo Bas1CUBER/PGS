@@ -47,7 +47,7 @@ PGS is a web-based **performance and strategy management platform** built for th
    define('BASE_URL', 'http://localhost/PGS');
    ```
 
-5. **Install dependencies** (optional, for development)
+5. **Install dependencies** — `composer install` is **required**, not optional. The `vendor/` directory is gitignored, so a fresh clone has no `vendor/autoload.php`; without it every page fails to load (`src/bootstrap.php` requires it). This also installs the PHPUnit / PHPStan binaries used by the test suite (`vendor/bin/phpunit`):
    ```bash
    composer install
    ```
@@ -246,21 +246,29 @@ The MySQL database is named `planning`. Key tables:
 PGS/
 ├── index.php                     # Entry point → redirects to login
 ├── config.php                    # BASE_URL, DB credentials, upload path
-├── db.php                        # Legacy DB connection (PDO + mysqli)
+├── db.php                        # Single DB connection (PDO + mysqli, guarded)
 ├── login.php                     # Login page
 ├── logout.php                    # Logout handler
-├── navbar.php                    # Navigation bar
-├── footer.php                    # Footer
+├── navbar.php                    # Navigation bar (legacy copy; pages use templates/navbar.php)
+├── footer.php                    # Footer (legacy copy; pages use templates/footer.php)
 ├── change_password.php           # Password reset
-├── access_guard.php              # Page access enforcement
+├── access_guard.php              # Page access enforcement + deadline freeze
 │
-├── src/                          # Modern OOP code
-│   ├── bootstrap.php             # App bootstrap, session, helpers
-│   ├── Auth/                     # Authentication & access control
-│   ├── Config/                   # Configuration constants
-│   ├── Database/                 # DB connection (PDO singleton)
-│   ├── Notification/             # Notification system
-│   └── Modules/                  # Module config & renderer
+├── src/                          # App core (loaded by bootstrap)
+│   ├── bootstrap.php             # App bootstrap: session, config, helpers, DB, guards
+│   ├── helpers.php               # Global helpers: h(), CSRF, flash, session_get()
+│   ├── Config/config.php         # Configuration constants (gitignored)
+│   ├── Database/db.php           # Wrapper → root db.php (single connection)
+│   ├── Auth/access_guard.php     # Wrapper → root access_guard.php
+│   ├── Notification/notification_helper.php  # Wrapper → root notification_helper.php
+│   └── Modules/                  # Module config, shared page renderer + CRUD endpoints
+│
+├── templates/
+│   ├── head.php                  # Shared <head> (favicon, Bootstrap, app.css, $pageStyles hook)
+│   ├── head_module.php           # Module <head> (adds FontAwesome, Chart.js, SweetAlert2)
+│   ├── navbar.php                # Shared navigation bar
+│   ├── footer.php                # Shared footer + scripts
+│   └── layout.php                # Master layout (kept for legacy render_page)
 │
 ├── admin_dashboard.php           # Admin landing page
 ├── employee_dashboard.php        # Employee landing page
@@ -310,8 +318,13 @@ PGS/
 ├── pgs_core_team.php
 ├── multi_sector_governance_system.php
 │
-├── templates/                    # Layout & partial templates
+├── templates/                    # Layout & partial templates (head, head_module, navbar, footer)
 ├── assets/                       # CSS, JS files
+│   ├── css/app.css               # Site-wide styles + utility classes
+│   ├── css/pages/                # One CSS file per page/scope (view.css, print.css, login.css, module_*.css ...)
+│   ├── js/app.js                 # Shared JS: submenus, notifications, deadline countdown, flash toasts
+│   ├── js/module.js              # Module (roadmap) pages JS
+│   └── img/
 ├── img/                          # Images
 ├── uploads/                      # Uploaded files
 ├── gallery_uploads/              # Gallery photos
@@ -362,6 +375,36 @@ PGS/
 ### Chart.js Dashboards
 - Roadmap modules show pie charts of progress distribution
 - Visual overview of accomplishments vs ongoing vs not started
+
+---
+
+## 9. Development Tooling
+
+```bash
+# Lint check (all PHP files)
+php -l <file.php>
+
+# Static analysis (PHPStan level 5)
+vendor/bin/phpstan analyse
+
+# Code style (PSR-12, applies to src/, templates/, tests/, modules/)
+vendor/bin/php-cs-fixer fix
+
+# Tests
+vendor/bin/phpunit
+```
+
+## 10. Performance Notes
+
+- Single database connection per request (PDO + mysqli, guarded against duplicates in `db.php`)
+- Shared `<head>` templates (`templates/head.php`, `templates/head_module.php`) — change site-wide styles in one place
+- All CSS is external: `assets/css/app.css` + `assets/css/pages/*.css` (one per page/scope; identical blocks merged, e.g. all 7 `*_view.php` pages share `view.css`)
+- All shared JS lives in `assets/js/app.js` (notifications polling, deadline countdown, submenus, flash toasts); page-specific JS stays inline and reads server data via `window.PGS` bootstrap + `data-*` attributes
+- `.htaccess` sets browser cache headers for static assets (1 month CSS/JS, 1 year images)
+- Cache-busting via the `asset()` helper (`src/helpers.php`) — `?v=` = filemtime, no stale assets after deploys
+- OPcache enabled in `php.ini`
+- DB indexes added for hot queries (notices.created_at, p_deliverables status/target_date/uploaded_by, uploads.uploaded_at) — included in `planning.sql`
+- Note: `mod_deflate` is configured but was blocked by antivirus on the dev machine (`VirtualProtect() failed` in Apache error log); it will work on a clean server
 
 ---
 

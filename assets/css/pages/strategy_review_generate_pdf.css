@@ -1,0 +1,15 @@
+@page { size: A4; margin: 30px 30px; }
+            body { font-family: Arial, sans-serif; font-size: 11px; color: #000; margin: 0; padding: 0; }
+            .page { padding: 0; }
+            .title { text-align: center; font-weight: 700; margin-top: 10px; }
+            .subtitle { text-align: center; font-weight: 700; margin-top: 2px; }
+            .dateLine { text-align: center; font-weight: 700; margin-top: 2px; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            th, td { border: 1px solid #000; padding: 6px; vertical-align: top; }
+            th { background: ' . $headerBlue . '; color: #000; text-align: center; font-weight: 700; }
+            .spacer { height: 14px; }
+            .label { font-weight: 700; margin-top: 18px; }
+            .sigline { display: inline-block; width: 60%; border-bottom: 1px solid #000; height: 14px; vertical-align: bottom; }
+            .sigtext { margin-top: 34px; }
+            .small { font-size: 10px; }
+

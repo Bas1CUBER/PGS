@@ -1,5 +1,7 @@
 <?php
 
+global $conn;
+
 $moduleKey = $_GET['module'] ?? '';
 $modules = require PGS_SRC . '/Modules/module_config.php';
 if (!isset($modules[$moduleKey])) {
@@ -19,7 +21,7 @@ if (isset($_GET['year'])) {
     $year = (int)$_GET['year'];
     $sql = "SELECT category, description FROM {$table} WHERE year = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $year);
+    $stmt->bind_param('i', $year);
     $stmt->execute();
     $result = $stmt->get_result();
     $categories = [];

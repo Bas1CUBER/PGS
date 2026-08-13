@@ -117,95 +117,17 @@ if ($tableExists) {
 
 $pageTitle = 'Strategy Refresh';
 
-$pageStyles = <<<'STYLES'
-<style>
-    html, body {
-        background-color: #f5f7fa;
-        color: #2c3e50;
-        height: 100%;
-        margin: 0;
-        padding-top: 20px;
-    }
-    .page-wrapper {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-    }
-    main {
-        flex: 1;
-    }
-    .card {
-        border: none;
-        border-radius: 1rem;
-        background-color: #ffffff;
-    }
-    .card-body {
-        padding: 2rem;
-    }
-    .section-title {
-        background: #0b4aa2;
-        color: #fff;
-        text-align: center;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        padding: 14px 16px;
-        border-radius: 1rem 1rem 0 0;
-    }
-    .btn-primary-custom {
-        background-color: #0b4aa2;
-        border-color: #0b4aa2;
-        color: #fff;
-    }
-    .btn-primary-custom:hover {
-        background-color: #083a7f;
-        border-color: #083a7f;
-        color: #fff;
-    }
-    .table th {
-        background-color: #f0f2f5;
-        color: #34495e;
-        font-weight: 600;
-        border-color: #e9ecef;
-    }
-    .upload-btn {
-        background: linear-gradient(135deg, #0b4aa2, #083a7f);
-        border: none;
-        color: white;
-        padding: 12px 30px;
-        font-size: 16px;
-        font-weight: 600;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(11, 74, 162, 0.3);
-        transition: all 0.3s ease;
-    }
-    .upload-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(11, 74, 162, 0.4);
-        background: linear-gradient(135deg, #083a7f, #0b4aa2);
-    }
-</style>
-STYLES;
+$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/strategy_refresh.css') . '">';
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
 
-<div class="page-wrapper container my-5" style="padding-top: 70px;">
+<div class="page-wrapper container my-5" pt-70>
     <div class="card shadow-sm mb-5">
         <div class="section-title">STRATEGY REFRESH - OSM</div>
         <div class="card-body">
@@ -281,7 +203,7 @@ STYLES;
                                         <td><?= h($u['uploader_email']) ?></td>
                                         <td><?= number_format($u['file_size'] / 1024, 2) ?> KB</td>
                                         <td>
-                                            <a href="strategy_refresh_view.php?id=<?=  h($u['id']) ?>" 
+                                            <a href="strategy_refresh_view?id=<?=  h($u['id']) ?>" 
                                                class="btn btn-sm btn-outline-primary me-2" target="_blank">
                                                 <i data-lucide="eye" class="me-1"></i> View
                                             </a>
@@ -323,7 +245,7 @@ STYLES;
                                         <td><?= h($u['title']) ?></td>
                                         <td><?= h(date('Y-m-d H:i:s', strtotime($u['uploaded_at']))) ?></td>
                                         <td>
-                                            <a href="strategy_refresh_view.php?id=<?=  h($u['id']) ?>" 
+                                            <a href="strategy_refresh_view?id=<?=  h($u['id']) ?>" 
                                                class="btn btn-sm btn-outline-primary me-2" target="_blank">
                                                 <i data-lucide="eye" class="me-1"></i> View
                                             </a>
@@ -367,7 +289,7 @@ STYLES;
                     </div>
                     <div id="uploadProgress" style="display: none;">
                         <div class="progress">
-                            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            <div class="progress-bar" role="progressbar" class="w-0"></div>
                         </div>
                     </div>
                 </div>

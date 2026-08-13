@@ -404,18 +404,7 @@ $pageStyles = 'html, body {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
@@ -456,9 +445,9 @@ $pageStyles = 'html, body {
                 <table class="table table-hover table-bordered align-middle approvals-table">
                   <thead>
                     <tr>
-                      <th style="width: 30%;">Deliverables</th>
-                      <th style="width: 30%;">Date/Time</th>
-                      <th style="width: 25%;">User</th>
+                      <th class="w-30">Deliverables</th>
+                      <th class="w-30">Date/Time</th>
+                      <th class="w-25">User</th>
                       <th style="width: 15%;">Action</th>
                     </tr>
                   </thead>
@@ -490,9 +479,9 @@ $pageStyles = 'html, body {
                 <table class="table table-hover table-bordered align-middle approvals-table">
                   <thead>
                     <tr>
-                      <th style="width: 30%;">Deliverables</th>
-                      <th style="width: 30%;">Date/Time</th>
-                      <th style="width: 25%;">User</th>
+                      <th class="w-30">Deliverables</th>
+                      <th class="w-30">Date/Time</th>
+                      <th class="w-25">User</th>
                       <th style="width: 15%;">Action</th>
                     </tr>
                   </thead>
@@ -589,7 +578,7 @@ $pageStyles = 'html, body {
         <div class="modal-body p-4" id="modalBody"></div>
         <div class="modal-footer">
           <!-- Back button added -->
-          <button type="button" class="btn btn-primary" onclick="window.location.href='admin_dashboard.php'">
+          <button type="button" class="btn btn-primary" onclick="window.location.href='admin_dashboard'">
             <i data-lucide="arrow-left" class="me-1"></i> Back to Dashboard
           </button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

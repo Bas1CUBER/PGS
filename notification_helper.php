@@ -128,5 +128,5 @@ function formatUserIdentifier($user) {
     // Extract employee ID from email (e.g., EMP0001 from EMP0001@example.com)
     $email = $user['email'] ?? '';
     $parts = explode('@', $email);
-    return strtoupper($parts[0] ?? 'User');
+    return strtoupper($parts[0]);
 }

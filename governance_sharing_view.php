@@ -28,11 +28,7 @@ $mime = finfo_file($finfo, $filePath);
 finfo_close($finfo);
 if (strpos($mime, 'pdf') !== false) {
     $pageTitle = 'View Document';
-    $pageStyles = '<style>
-        body { margin: 0; padding: 0; font-family: \'Inter\', \'Segoe UI\', sans-serif; }
-        .header { background: #196a6b; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .pdf-viewer { height: calc(100vh - 70px); width: 100%; border: none; }
-    </style>';
+    $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/view.css') . '">';
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -79,13 +75,7 @@ if (strpos($mime, 'pdf') !== false) {
 }
 if (strpos($mime, 'image') !== false) {
     $pageTitle = 'View Document';
-    $pageStyles = '<style>
-        body { margin: 0; padding: 20px; font-family: \'Inter\', \'Segoe UI\', sans-serif; background-color: #f5f7fa; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .image-container { background: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .image-container img { max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-    </style>';
+    $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/view.css') . '">';
     ?>
 <!DOCTYPE html>
 <html lang="en">

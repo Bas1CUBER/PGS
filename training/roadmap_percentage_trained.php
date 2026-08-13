@@ -333,37 +333,13 @@ foreach ($years as $y) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Governance Scorecard: Percentage of SFLU TRC Personnel with direct patient care are trained by Certified Trainers</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  =2'>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    body { background-color: #f5f7fa; color: #2c3e50; }
-    .card { border: none; border-radius: 1rem; background-color: #ffffff; box-shadow:0 10px 24px rgba(11,74,162,.12); }
-    .card-header { background: #0b4aa2; color: #fff; border-radius: 1rem 1rem 0 0; font-weight: 700; letter-spacing: .04em; text-align: center; padding: 14px 16px; }
-    .header-wrap { display:flex; align-items:center; gap:1rem; margin: 16px 0; }
-    .header-logo { width:80px; height:80px; object-fit:contain; border-radius:8px; border:2px solid #0b4aa2; background:#fff; }
-    .header-title h4 { margin:0; font-weight:700; }
-    .muted { color:#4a5568; }
-    .table thead th { background:#0b4aa2; color:#fff; white-space:nowrap; }
-    .section-title { font-weight:700; }
-    .chart-card .card-body { padding: 10px 10px 8px; }
-    #chartB { max-height: 180px; }
-    .small-text { font-size:.9rem; color:#4a5568; }
-    .btn-pill { border-radius: 999px; }
-    .input-sm { max-width: 6rem; }
-    .table thead .slim { padding-top:.5rem; padding-bottom:.5rem; }
-    .name-cell { font-size:.78rem; line-height:1.25; white-space: pre-wrap; word-break: break-word; overflow-wrap:anywhere; }
-    .wrap-cell { white-space: normal; word-break: break-word; }
-  </style>
-</head>
+<?php $pageTitle = 'Governance Scorecard: Percentage of SFLU TRC Personnel with direct patient care are trained by Certified Trainers'; ?>
+<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/training_roadmap_percentage_trained.css') . '">';
+?>
+<?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>
 <?php include PGS_TEMPLATES . '/navbar.php'; ?>
-<div class="container" style="padding-top:110px;">
+<div class="container" pt-110>
   <div class="header-wrap">
     <img src="/PGS/img/training_logo.png" alt="Training" class="header-logo" onerror="this.src='/PGS/assets/img/logo.png'">
     <div class="header-title">

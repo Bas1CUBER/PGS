@@ -175,36 +175,12 @@ try {
 
 $pageTitle = 'Operations Review';
 
-$pageStyles = <<<'STYLES'
-<style>
-    html, body { background-color: #f5f7fa; color: #2c3e50; }
-    .page-wrapper { min-height: 100vh; padding-top: 70px; }
-    .section-title { background:#0b4aa2; color:#fff; text-align:center; font-weight:700; letter-spacing:.04em; padding:14px 16px; border-radius:1rem 1rem 0 0; }
-    .card { border:none; border-radius:1rem; background:#fff; }
-    .pdf-preview { border:1px solid #ddd; border-radius:8px; overflow:auto; background:#fff; }
-    .btn-primary-custom { background:#0b4aa2; border-color:#0b4aa2; color:#fff; }
-    .btn-primary-custom:hover { background:#083a7f; border-color:#083a7f; color:#fff; }
-    .upload-area { border:2px dashed #0b4aa2; border-radius:10px; padding:32px; text-align:center; background:#f8f9fa; cursor:pointer; }
-    .upload-area:hover { background:#e9ecef; }
-    .table th { background:#f0f2f5; color:#34495e; }
-</style>
-STYLES;
+$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/operations_review_new.css') . '">';
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
@@ -342,7 +318,7 @@ STYLES;
                   </td>
                   <td><?= !empty($u['status_updated_at']) ? h(date('M d, Y g:i A', strtotime($u['status_updated_at']))) : '<span class="text-muted">â€”</span>' ?></td>
                   <td>
-                    <a href="operations_review_view.php?id=<?= (int)$u['id'] ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                    <a href="operations_review_view?id=<?= (int)$u['id'] ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank">
                       <i data-lucide="eye" class="me-1"></i> View
                     </a>
                     <a href="uploads/operations_review/<?= h($u['filename']) ?>" class="btn btn-sm btn-outline-success" download>
@@ -389,7 +365,7 @@ STYLES;
                   </td>
                   <td><?= !empty($u['status_updated_at']) ? h(date('M d, Y g:i A', strtotime($u['status_updated_at']))) : '<span class="text-muted">â€”</span>' ?></td>
                   <td>
-                    <a href="operations_review_view.php?id=<?= (int)$u['id'] ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                    <a href="operations_review_view?id=<?= (int)$u['id'] ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank">
                       <i data-lucide="eye" class="me-1"></i> View
                     </a>
                     <a href="uploads/operations_review/<?= h($u['filename']) ?>" class="btn btn-sm btn-outline-success" download>

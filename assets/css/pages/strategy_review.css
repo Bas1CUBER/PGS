@@ -1,0 +1,90 @@
+html, body {
+        background-color: #f5f7fa;
+        color: #2c3e50;
+        height: 100%;
+        margin: 0;
+        padding-top: 20px;
+    }
+    .page-wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+    main {
+        flex: 1;
+    }
+    .card {
+        border: none;
+        border-radius: 1rem;
+        background-color: #ffffff;
+    }
+    .card-body {
+        padding: 2rem;
+    }
+    .section-title {
+        background: #0b4aa2;
+        color: #fff;
+        text-align: center;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 14px 16px;
+        border-radius: 1rem 1rem 0 0;
+    }
+    .btn-primary-custom {
+        background-color: #0b4aa2;
+        border-color: #0b4aa2;
+        color: #fff;
+    }
+    .btn-primary-custom:hover {
+        background-color: #083a7f;
+        border-color: #083a7f;
+        color: #fff;
+    }
+    .download-btn {
+        background: linear-gradient(135deg, #0b4aa2, #083a7f);
+        border: none;
+        color: white;
+        padding: 20px 40px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(11, 74, 162, 0.3);
+        transition: all 0.3s ease;
+        margin: 20px 0;
+    }
+    .download-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(11, 74, 162, 0.4);
+        background: linear-gradient(135deg, #083a7f, #0b4aa2);
+    }
+    .pdf-preview {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        max-height: 600px;
+        overflow: auto;
+        background: #fff;
+    }
+    .upload-area {
+        border: 2px dashed #0b4aa2;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .upload-area:hover {
+        background: #e9ecef;
+        border-color: #083a7f;
+    }
+    .upload-area.dragover {
+        background: #d4edda;
+        border-color: #28a745;
+    }
+    .table th {
+        background-color: #f0f2f5;
+        color: #34495e;
+        font-weight: 600;
+        border-color: #e9ecef;
+    }
+

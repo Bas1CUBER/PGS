@@ -1,0 +1,11 @@
+html, body { background-color: #f5f7fa; color: #2c3e50; }
+    .page-wrapper { min-height: 100vh; padding-top: 70px; }
+    .section-title { background:#0b4aa2; color:#fff; text-align:center; font-weight:700; letter-spacing:.04em; padding:14px 16px; border-radius:1rem 1rem 0 0; }
+    .card { border:none; border-radius:1rem; background:#fff; }
+    .pdf-preview { border:1px solid #ddd; border-radius:8px; overflow:auto; background:#fff; }
+    .btn-primary-custom { background:#0b4aa2; border-color:#0b4aa2; color:#fff; }
+    .btn-primary-custom:hover { background:#083a7f; border-color:#083a7f; color:#fff; }
+    .upload-area { border:2px dashed #0b4aa2; border-radius:10px; padding:32px; text-align:center; background:#f8f9fa; cursor:pointer; }
+    .upload-area:hover { background:#e9ecef; }
+    .table th { background:#f0f2f5; color:#34495e; }
+

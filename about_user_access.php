@@ -124,20 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $role === 'admin') {
 
 $matrix = read_matrix($jsonFile);
 
-$pageStyles = '<style>
-    body { background-color:#f5f7fa; color:#2c3e50; }
-    .page-wrapper { min-height:100vh; padding-top:100px; }
-    .section-title { background:#0b4aa2; color:#fff; text-align:center; font-weight:700; letter-spacing:.04em; padding:14px 16px; border-radius:1rem 1rem 0 0; }
-    .card { border:none; border-radius:1rem; background:#fff; }
-    table.user-access { border:1px solid #e5e7eb; }
-    table.user-access th { background:#0b4aa2; color:#fff; white-space:nowrap; }
-    table.user-access td, table.user-access th { border:1px solid #e5e7eb; vertical-align:middle; }
-    .section-row td { background:#e6f0ff; font-weight:700; color:#0b4aa2; }
-    .toolbar { display:flex; gap:.5rem; }
-    .toolbar .btn { min-width: 120px; }
-    td[contenteditable="true"] { outline: 2px dashed transparent; }
-    td[contenteditable="true"]:focus { outline-color: #9dbbff; background:#f0f7ff; }
-</style>';
+$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/about_user_access.css') . '">';
 
 $pageScripts = '';
 if ($role === 'admin') {
@@ -199,18 +186,7 @@ EOSCRIPT;
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">

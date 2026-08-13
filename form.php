@@ -23,18 +23,13 @@ if (in_array($_SESSION['role'] ?? null, ['employee','focal'], true)) {
                 text: "YOU DON\'T HAVE ACCESS TO THIS PAGE",
                 confirmButtonColor: "#d33"
             }).then(() => {
-                window.location.href = "employee_dashboard.php"; // or any fallback page
+                window.location.href = "<?= BASE_URL ?>/employee_dashboard";
             });
         </script>
     </body>
     </html>
     ';
     exit();
-}
-
-$conn = new mysqli("localhost", "root", "", "planning");
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
 }
 
 // Ensure uploaded_by column exists for tracking uploads
@@ -67,151 +62,7 @@ $result = $conn->query($sql);
 $pageTitle = 'Deliverables Dashboard';
 
 $pageStyles = '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<style>
-html,
-body {
-    background-color: #f5f7fa;
-    color: #2c3e50;
-    height: 100%;
-    margin: 0;
-    padding-top: 30px;
-}
-
-main {
-    flex: 1;
-}
-
-.navbar {
-    background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.table-header {
-    background: #edf2f7;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #718096;
-}
-
-.table-row {
-    transition: background 0.2s ease;
-}
-
-.table-row:hover {
-    background: #f7fafc;
-}
-
-.modal-content {
-    border-radius: 1rem;
-    border: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    background: #ffffff;
-}
-
-.form-select,
-.form-control {
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    background: #ffffff;
-    transition: all 0.3s ease;
-}
-
-.form-select:focus,
-.form-control:focus {
-    border-color: #5a67d8;
-    box-shadow: 0 0 0 4px rgba(90, 103, 216, 0.1);
-    outline: none;
-}
-
-.btn-primary {
-    background: #5a67d8;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    font-size: 0.875rem;
-    color: #ffffff;
-    transition: background 0.3s ease, transform 0.2s ease;
-}
-
-.btn-primary:hover {
-    background: #4c51bf;
-    transform: translateY(-1px);
-}
-
-.btn-secondary {
-    background: #edf2f7;
-    color: #4a5568;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    font-size: 0.875rem;
-    transition: background 0.3s ease, transform 0.2s ease;
-}
-
-.btn-secondary:hover {
-    background: #e2e8f0;
-    transform: translateY(-1px);
-}
-
-.container {
-    max-width: 1400px;
-}
-
-.card {
-    background: #ffffff;
-    border-radius: 1rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-}
-
-.modal-header {
-    border-bottom: 1px solid #e2e8f0;
-    padding: 1.5rem;
-}
-
-.modal-footer {
-    border-top: 1px solid #e2e8f0;
-    padding: 1.5rem;
-}
-
-.modal-body {
-    padding: 2rem;
-}
-
-.text-accent {
-    color: #5a67d8;
-}
-
-.table-cell {
-    padding: 1.25rem 1.5rem;
-    font-size: 0.875rem;
-    color: #2d3748;
-}
-
-.col-uploaded-by {
-    min-width: 220px;
-    max-width: 260px;
-    white-space: nowrap;
-}
-
-.col-action-sticky {
-    position: sticky;
-    right: 0;
-    background: #ffffff;
-    z-index: 3;
-}
-
-thead .col-action-sticky {
-    background: #edf2f7;
-    z-index: 4;
-}
-</style>';
+<link rel="stylesheet" href="' . asset('css/pages/form.css') . '">';
 
 ?>
 <!DOCTYPE html>
@@ -260,7 +111,7 @@ thead .col-action-sticky {
         </form>
 
         <div class="d-flex gap-2">
-            <a href="form.php" class="btn btn-secondary btn-sm">
+            <a href="form" class="btn btn-secondary btn-sm">
                 Clear Filter
             </a>
             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addFormModal">

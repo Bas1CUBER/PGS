@@ -1,0 +1,14 @@
+html, body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: #f5f7fa; }
+    .page-container { padding-top: 110px; }
+    .header-wrap { display:flex; align-items:center; gap:1rem; margin-bottom:1rem; }
+    .header-logo { width:80px; height:80px; object-fit:contain; border-radius:8px; border:2px solid #0b4aa2; background:#fff; }
+    .header-title h4 { margin:0; font-weight:700; }
+    .header-title small { display:block; color:#4a5568; }
+    .card { border:none; border-radius:1rem; box-shadow:0 10px 24px rgba(11,74,162,.15); }
+    .section-title { font-weight:600; color:#0b4aa2; }
+    .table thead th { background:#0b4aa2; color:#fff; }
+    .group-header { background:#edf2f7; font-weight:600; color:#2d3748; }
+    .metric { background:#fff; border-radius:1rem; box-shadow:0 10px 24px rgba(11,74,162,.12); padding:12px; text-align:center; }
+    .metric .value { font-size:2.3rem; font-weight:800; color:#1a1a1a; }
+    .metric .label { font-weight:600; color:#0b4aa2; letter-spacing:.02em; }
+

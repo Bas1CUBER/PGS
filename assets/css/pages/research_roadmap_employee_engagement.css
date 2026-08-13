@@ -1,0 +1,4 @@
+body { background-color: #f5f7fa; color: #2c3e50; }
+        .card { border: none; border-radius: 1rem; background-color: #ffffff; }
+        .card-header { background: #0b4aa2; color: #fff; border-radius: 1rem 1rem 0 0; font-weight: 700; letter-spacing: .04em; text-align: center; padding: 14px 16px; }
+

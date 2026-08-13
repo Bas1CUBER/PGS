@@ -1,0 +1,13 @@
+body { background-color:#f5f7fa; color:#2c3e50; }
+    .page-wrapper { min-height:100vh; padding-top:100px; }
+    .section-title { background:#0b4aa2; color:#fff; text-align:center; font-weight:700; letter-spacing:.04em; padding:14px 16px; border-radius:1rem 1rem 0 0; }
+    .card { border:none; border-radius:1rem; background:#fff; }
+    table.user-access { border:1px solid #e5e7eb; }
+    table.user-access th { background:#0b4aa2; color:#fff; white-space:nowrap; }
+    table.user-access td, table.user-access th { border:1px solid #e5e7eb; vertical-align:middle; }
+    .section-row td { background:#e6f0ff; font-weight:700; color:#0b4aa2; }
+    .toolbar { display:flex; gap:.5rem; }
+    .toolbar .btn { min-width: 120px; }
+    td[contenteditable="true"] { outline: 2px dashed transparent; }
+    td[contenteditable="true"]:focus { outline-color: #9dbbff; background:#f0f7ff; }
+

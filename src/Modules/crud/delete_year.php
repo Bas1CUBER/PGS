@@ -1,5 +1,7 @@
 <?php
 
+global $conn;
+
 $moduleKey = $_GET['module'] ?? '';
 $modules = require PGS_SRC . '/Modules/module_config.php';
 if (!isset($modules[$moduleKey])) {
@@ -23,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verify_csrf()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['year'])) {
     $year = intval($_POST['year']);
     $stmt = $conn->prepare("DELETE FROM {$table} WHERE year = ?");
-    $stmt->bind_param("i", $year);
+    $stmt->bind_param('i', $year);
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success']);
     } else {

@@ -92,22 +92,7 @@ function generatePDFHTML($data) {
     <head>
         <meta charset="UTF-8">
         <title>TRC-LU Strategy Review</title>
-        <style>
-            @page { size: A4; margin: 30px 30px; }
-            body { font-family: Arial, sans-serif; font-size: 11px; color: #000; margin: 0; padding: 0; }
-            .page { padding: 0; }
-            .title { text-align: center; font-weight: 700; margin-top: 10px; }
-            .subtitle { text-align: center; font-weight: 700; margin-top: 2px; }
-            .dateLine { text-align: center; font-weight: 700; margin-top: 2px; }
-            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            th, td { border: 1px solid #000; padding: 6px; vertical-align: top; }
-            th { background: ' . $headerBlue . '; color: #000; text-align: center; font-weight: 700; }
-            .spacer { height: 14px; }
-            .label { font-weight: 700; margin-top: 18px; }
-            .sigline { display: inline-block; width: 60%; border-bottom: 1px solid #000; height: 14px; vertical-align: bottom; }
-            .sigtext { margin-top: 34px; }
-            .small { font-size: 10px; }
-        </style>
+        <link rel="stylesheet" href="' . asset('css/pages/strategy_review_generate_pdf.css') . '">
     </head>
     <body>
         <div class="page">
@@ -134,18 +119,18 @@ function generatePDFHTML($data) {
             <table style="margin-top:-1px;">
                 <thead>
                     <tr>
-                        <th style="width:25%;">MEASURE</th>
-                        <th style="width:25%;">TARGET</th>
-                        <th style="width:25%;">ACTUAL TO DATE</th>
-                        <th style="width:25%;">STATUS</th>
+                        <th class="w-25">MEASURE</th>
+                        <th class="w-25">TARGET</th>
+                        <th class="w-25">ACTUAL TO DATE</th>
+                        <th class="w-25">STATUS</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="height:40px;">' . htmlspecialchars($data['measure'] ?? '') . '</td>
-                        <td style="height:40px;">' . htmlspecialchars($data['target'] ?? '') . '</td>
-                        <td style="height:40px;">' . htmlspecialchars($data['actual_to_date_measure'] ?? '') . '</td>
-                        <td style="height:40px;">' . htmlspecialchars($data['status_measure'] ?? '') . '</td>
+                        <td class="h-40">' . htmlspecialchars($data['measure'] ?? '') . '</td>
+                        <td class="h-40">' . htmlspecialchars($data['target'] ?? '') . '</td>
+                        <td class="h-40">' . htmlspecialchars($data['actual_to_date_measure'] ?? '') . '</td>
+                        <td class="h-40">' . htmlspecialchars($data['status_measure'] ?? '') . '</td>
                     </tr>
                 </tbody>
             </table>
@@ -153,30 +138,30 @@ function generatePDFHTML($data) {
             <table style="margin-top:18px;">
                 <thead>
                     <tr>
-                        <th style="width:25%;">KEY RESULTS AREA</th>
-                        <th style="width:25%;">DELIVERABLE</th>
-                        <th style="width:25%;">ACTUAL TO DATE</th>
-                        <th style="width:25%;">STATUS</th>
+                        <th class="w-25">KEY RESULTS AREA</th>
+                        <th class="w-25">DELIVERABLE</th>
+                        <th class="w-25">ACTUAL TO DATE</th>
+                        <th class="w-25">STATUS</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra1_key_results_area'] ?? '') . '</td>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra1_deliverable'] ?? '') . '</td>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra1_actual_to_date'] ?? '') . '</td>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra1_status'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra1_key_results_area'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra1_deliverable'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra1_actual_to_date'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra1_status'] ?? '') . '</td>
                     </tr>
                     <tr>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra2_key_results_area'] ?? '') . '</td>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra2_deliverable'] ?? '') . '</td>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra2_actual_to_date'] ?? '') . '</td>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra2_status'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra2_key_results_area'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra2_deliverable'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra2_actual_to_date'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra2_status'] ?? '') . '</td>
                     </tr>
                     <tr>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra3_key_results_area'] ?? '') . '</td>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra3_deliverable'] ?? '') . '</td>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra3_actual_to_date'] ?? '') . '</td>
-                        <td style="height:34px;">' . htmlspecialchars($data['kra3_status'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra3_key_results_area'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra3_deliverable'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra3_actual_to_date'] ?? '') . '</td>
+                        <td class="h-34">' . htmlspecialchars($data['kra3_status'] ?? '') . '</td>
                     </tr>
                 </tbody>
             </table>
@@ -184,16 +169,16 @@ function generatePDFHTML($data) {
             <table style="margin-top:18px;">
                 <thead>
                     <tr>
-                        <th style="width:33.33%;">CONTINUE</th>
-                        <th style="width:33.33%;">STOP</th>
-                        <th style="width:33.33%;">START</th>
+                        <th class="w-33">CONTINUE</th>
+                        <th class="w-33">STOP</th>
+                        <th class="w-33">START</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="height:40px;">' . nl2br(htmlspecialchars($data['continue'] ?? '')) . '</td>
-                        <td style="height:40px;">' . nl2br(htmlspecialchars($data['stop'] ?? '')) . '</td>
-                        <td style="height:40px;">' . nl2br(htmlspecialchars($data['start'] ?? '')) . '</td>
+                        <td class="h-40">' . nl2br(htmlspecialchars($data['continue'] ?? '')) . '</td>
+                        <td class="h-40">' . nl2br(htmlspecialchars($data['stop'] ?? '')) . '</td>
+                        <td class="h-40">' . nl2br(htmlspecialchars($data['start'] ?? '')) . '</td>
                     </tr>
                 </tbody>
             </table>

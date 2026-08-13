@@ -1,5 +1,5 @@
 <?php
-if (!defined('BASE_URL')) define('BASE_URL', 'http://localhost/PGS');
+if (!defined('BASE_URL')) define('BASE_URL', 'http://localhost:8080/PGS');
 if (!defined('DB_HOST')) define('DB_HOST', 'localhost');
 if (!defined('DB_NAME')) define('DB_NAME', 'planning');
 if (!defined('DB_USER')) define('DB_USER', 'root');

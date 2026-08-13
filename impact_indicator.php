@@ -49,85 +49,19 @@ if ($tablesOk) {
     }
 }
 
-$pageStyles = '<style>
-    html,
-    body {
-        font-family: \'Inter\', \'Segoe UI\', sans-serif;
-        background-color: #f5f7fa;
-        color: #2c3e50;
-        height: 100%;
-        margin: 0;
-        padding-top: 20px;
-    }
-
-    .page-wrapper {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-    }
-
-    main {
-        flex: 1;
-    }
-
-    .card {
-        border: none;
-        border-radius: 1rem;
-        background-color: #ffffff;
-    }
-
-    .card-body {
-        padding: 2rem;
-    }
-
-    .scorecard-title {
-        background: #0b4aa2;
-        color: #fff;
-        text-align: center;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        padding: 14px 16px;
-        border-radius: 1rem 1rem 0 0;
-    }
-
-    .scorecard-table thead th {
-        background-color: #f0f2f5;
-        color: #34495e;
-        font-weight: 600;
-    }
-
-    .scorecard-table td,
-    .scorecard-table th {
-        vertical-align: middle;
-        padding: 1rem;
-        border-color: #e9ecef;
-    }
-    .chart-box { height: 220px; }
-    .chart-box canvas { width: 100% !important; height: 100% !important; }
-</style>';
+$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/impact_indicator.css') . '">';
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<div class="container my-5" style="padding-top: 70px;">
+<div class="container my-5" pt-70>
     <?php if ($tablesOk): ?>
     <?php
         $yearIds = array_map(function($y){ return (int)$y['id']; }, $years);
@@ -375,7 +309,7 @@ $pageStyles = '<style>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn" style="background-color: #196a6b; color: #fff; border: none;">Save</button>
+                    <button type="submit" class="btn" header-green>Save</button>
                 </div>
             </form>
         </div>
@@ -407,7 +341,7 @@ $pageStyles = '<style>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn" style="background-color: #196a6b; color: #fff; border: none;">Save</button>
+                    <button type="submit" class="btn" header-green>Save</button>
                 </div>
             </form>
         </div>
@@ -506,7 +440,7 @@ $pageStyles = '<style>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn" style="background-color: #196a6b; color: #fff; border: none;">Save</button>
+                    <button type="submit" class="btn" header-green>Save</button>
                 </div>
             </form>
         </div>

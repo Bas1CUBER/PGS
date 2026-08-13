@@ -1,4 +1,5 @@
 <?php
+
 return [
   'collab' => [
     'title' => 'Collaborative Healthcare Management',

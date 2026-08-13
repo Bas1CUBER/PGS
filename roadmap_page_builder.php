@@ -224,55 +224,11 @@ try {
 
 $pageTitle    = h($item['sub_label']);
 $sectionTitle = h($item['title_label']);
-$pageStyles = '<style>
-    html, body { font-family: \'Inter\', \'Segoe UI\', sans-serif; background: #f5f7fa; }
-    .page-container { padding-top: 110px; padding-bottom: 3rem; }
-    .page-header { background: linear-gradient(135deg, #0b4aa2 0%, #1a6bbf 100%); color:#fff; border-radius:1rem; padding:1.5rem 2rem; margin-bottom:1.5rem; box-shadow:0 8px 24px rgba(11,74,162,.2); }
-    .page-header h4 { margin:0; font-weight:700; }
-    .page-header small { opacity:.8; }
-
-    .block-card { background:#fff; border-radius:.75rem; box-shadow:0 4px 16px rgba(0,0,0,.07); margin-bottom:1.25rem; position:relative; }
-    .block-card .block-body { padding:1.25rem 1.5rem; }
-    .block-toolbar { display:flex; gap:.3rem; position:absolute; top:.6rem; right:.75rem; }
-    .block-toolbar .btn { padding:2px 8px; font-size:.75rem; }
-
-    .stat-card { border-radius:.75rem; color:#fff; padding:1.25rem 1.5rem; display:flex; align-items:center; gap:1rem; box-shadow:0 6px 18px rgba(0,0,0,.12); }
-    .stat-card .stat-icon { font-size:2rem; opacity:.8; }
-    .stat-card .stat-val  { font-size:2rem; font-weight:700; line-height:1; }
-    .stat-card .stat-label{ font-size:.85rem; opacity:.85; }
-
-    .add-block-panel { background:#e8f0fe; border:2px dashed #0b4aa2; border-radius:.75rem; padding:1rem 1.5rem; margin-bottom:1.5rem; }
-    .add-block-panel h6 { color:#0b4aa2; font-weight:700; }
-    .add-block-btn { background:#0b4aa2; color:#fff; border:none; border-radius:.5rem; padding:.4rem 1rem; font-size:.85rem; cursor:pointer; transition:background .15s; }
-    .add-block-btn:hover { background:#062f66; }
-    .add-block-btn i { margin-right:.35rem; }
-
-    .block-table thead th { background:#0b4aa2; color:#fff; vertical-align:middle; }
-    .table-action-bar { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.75rem; }
-
-    .row-locked-bg { background:#f8f9fa !important; }
-    .lock-badge { font-size:.7rem; color:#dc3545; margin-left:.3rem; }
-
-    .readonly-banner { background:#fff3cd; border-left:4px solid #ffc107; border-radius:.5rem; padding:.6rem 1rem; margin-bottom:1rem; font-size:.88rem; color:#856404; }
-
-    .empty-state { text-align:center; padding:3rem 1rem; color:#94a3b8; }
-    .empty-state i { font-size:3rem; margin-bottom:.75rem; display:block; }
-</style>';
+$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/roadmap_page_builder.css') . '">';
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
@@ -286,7 +242,7 @@ $pageStyles = '<style>
                 <h4><?= $pageTitle ?></h4>
                 <small><i data-lucide="git-fork" class="me-1"></i><?= $sectionTitle ?></small>
             </div>
-            <a href="/PGS/roadmap.php" class="btn btn-sm btn-light ms-auto"><i data-lucide="arrow-left" class="me-1"></i>Back</a>
+            <a href="/PGS/roadmap" class="btn btn-sm btn-light ms-auto"><i data-lucide="arrow-left" class="me-1"></i>Back</a>
         </div>
     </div>
 

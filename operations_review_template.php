@@ -33,109 +33,7 @@ $formData = [
 <head>
     <meta charset="utf-8">
     <title>Operations Review Template</title>
-    <style>
-        @page { margin: 0.5in; }
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px;
-            font-size: 11px;
-            line-height: 1.2;
-        }
-        .header { 
-            text-align: center; 
-            margin-bottom: 20px; 
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-        }
-        .header h1 { 
-            font-size: 16px; 
-            font-weight: bold; 
-            margin: 0;
-            text-transform: uppercase;
-        }
-        .header .subtitle { 
-            font-size: 12px; 
-            margin: 5px 0;
-            font-weight: bold;
-        }
-        .two-column {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 15px;
-        }
-        .column {
-            flex: 1;
-        }
-        .section { 
-            margin-bottom: 20px; 
-        }
-        .section-title { 
-            font-weight: bold; 
-            font-size: 12px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            border-bottom: 1px solid #000;
-            padding-bottom: 2px;
-        }
-        .field { 
-            margin-bottom: 5px; 
-            font-size: 11px;
-        }
-        .label { 
-            font-weight: bold; 
-            display: inline-block; 
-            width: 120px;
-        }
-        .value { 
-            display: inline-block; 
-            border-bottom: 1px solid #000;
-            min-width: 150px;
-            padding: 2px;
-        }
-        .table-field { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-bottom: 10px;
-        }
-        .table-field th, .table-field td { 
-            border: 1px solid #000; 
-            padding: 4px; 
-            font-size: 10px;
-            text-align: left;
-        }
-        .table-field th { 
-            background-color: #f0f0f0; 
-            font-weight: bold;
-        }
-        .signature-area { 
-            margin-top: 30px; 
-            display: flex;
-            gap: 40px;
-        }
-        .signature-box {
-            flex: 1;
-        }
-        .signature-line { 
-            border-bottom: 1px solid #000; 
-            width: 100%; 
-            margin-bottom: 3px;
-            height: 20px;
-        }
-        .signature-label {
-            font-size: 10px;
-            text-align: center;
-        }
-        .strategic-box {
-            border: 1px solid #000;
-            padding: 8px;
-            margin-bottom: 10px;
-            min-height: 60px;
-        }
-        .fill-value {
-            background-color: #f9f9f9;
-        }
-    </style>
+    <link rel="stylesheet" href="<?= asset('css/pages/print.css') ?>">
 </head>
 <body>
     <div class="header">
@@ -181,8 +79,8 @@ $formData = [
         <table class="table-field">
             <tr>
                 <th style="width: 40%;">Deliverable</th>
-                <th style="width: 25%;">Deadline</th>
-                <th style="width: 35%;">Status</th>
+                <th class="w-25">Deadline</th>
+                <th class="w-35">Status</th>
             </tr>
             <tr>
                 <td class="fill-value"><?= htmlspecialchars($formData['deliverable']) ?></td>
@@ -208,10 +106,10 @@ $formData = [
         <div class="section-title">Action Points</div>
         <table class="table-field">
             <tr>
-                <th style="width: 35%;">Action Point</th>
-                <th style="width: 25%;">Responsible Person</th>
-                <th style="width: 20%;">Target Date</th>
-                <th style="width: 20%;">Status</th>
+                <th class="w-35">Action Point</th>
+                <th class="w-25">Responsible Person</th>
+                <th class="w-20">Target Date</th>
+                <th class="w-20">Status</th>
             </tr>
             <tr>
                 <td class="fill-value"><?= htmlspecialchars($formData['action_point']) ?></td>
@@ -226,11 +124,11 @@ $formData = [
         <div class="section-title">Recognition</div>
         <div class="field">
             <span class="label">How Wins Are Celebrated:</span>
-            <div style="margin-top: 3px;" class="fill-value"><?= nl2br(htmlspecialchars($formData['wins_celebrated'])) ?></div>
+            <div class="mt-3px" class="fill-value"><?= nl2br(htmlspecialchars($formData['wins_celebrated'])) ?></div>
         </div>
         <div class="field">
             <span class="label">How Best Performers Are Recognized:</span>
-            <div style="margin-top: 3px;" class="fill-value"><?= nl2br(htmlspecialchars($formData['best_performers_recognized'])) ?></div>
+            <div class="mt-3px" class="fill-value"><?= nl2br(htmlspecialchars($formData['best_performers_recognized'])) ?></div>
         </div>
         <div class="field">
             <span class="label">Frequency:</span>

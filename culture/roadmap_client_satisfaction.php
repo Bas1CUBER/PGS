@@ -335,69 +335,13 @@ $chartTrendTargetData = array_values(array_map(fn($y) => $trendTargetMap[$y], $t
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Governance Scorecard: Client Satisfaction Rating</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  =2'>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    html, body { height: 100%; }
-    body { background-color: #f5f7fa; color: #2c3e50; min-height: 100vh; display: flex; flex-direction: column; }
-    .page-container { flex: 1 0 auto; }
-    .card { border: none; border-radius: 1rem; background-color: #ffffff; box-shadow:0 10px 24px rgba(11,74,162,.12); }
-    .card-header { background: #0b4aa2; color: #fff; border-radius: 1rem 1rem 0 0; font-weight: 700; letter-spacing: .04em; padding: 14px 16px; }
-    .header-wrap { display:flex; align-items:center; gap:1rem; margin: 16px 0; }
-    .header-logo { width:80px; height:80px; object-fit:contain; border-radius:8px; border:2px solid #0b4aa2; background:#fff; }
-    .header-title h4 { margin:0; font-weight:700; }
-    .muted { color:#4a5568; }
-    .table thead th { background:#0b4aa2; color:#fff; white-space:nowrap; }
-    .section-title { font-weight:700; }
-    .card-header .section-title { color:#fff; }
-    .card-header select { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
-    .card-header select option { background: #0b4aa2; color: #fff; }
-    .glow-btn { box-shadow:0 0 0 rgba(11,74,162,.6); transition: box-shadow .2s; }
-    .glow-btn:hover { box-shadow:0 0 0.75rem rgba(11,74,162,.35); }
-    .cs-input { width: 6rem; min-width: 4.5rem; }
-    .cs-actions { white-space:nowrap; }
-    .badge-lock { font-size:.75rem; }
-    .chart-card .card-body { padding: 10px 10px 8px; }
-    .dashboard-charts .chart-card { height: 100%; width: 100%; }
-    .dashboard-charts .chart-card .card-body {
-      min-height: 260px;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .chart-canvas-wrap {
-      position: relative;
-      width: 100%;
-      height: 185px;
-    }
-    #chartA, #chartB {
-      width: 100% !important;
-      height: 100% !important;
-      max-height: none;
-    }
-    .chart-no-data {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 8px;
-      text-align: center;
-      margin: 0;
-    }
-    .highlight-row td { background-color: #edf2f7 !important; }
-    .highlight-pink td { background-color: #ffe6ef !important; }
-  </style>
-</head>
+<?php $pageTitle = 'Governance Scorecard: Client Satisfaction Rating'; ?>
+<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/culture_roadmap_client_satisfaction.css') . '">';
+?>
+<?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
-  <div class="container page-container" style="padding-top:110px;">
+  <div class="container page-container" pt-110>
     <div class="header-wrap">
       <img src="/PGS/img/clients_logo.png" alt="Client Satisfaction" class="header-logo" onerror="this.style.display='none'">
       <div class="header-title">

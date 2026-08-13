@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
@@ -90,10 +91,17 @@ class SmokeTest extends TestCase
         $this->assertTrue(function_exists('verify_csrf'), 'verify_csrf() must exist');
     }
 
-    public function testNamespaceClassesExist(): void
+    public function testSingleDatabaseConnection(): void
     {
-        $this->assertTrue(class_exists('PGS\Auth\Auth'), 'PGS\Auth\Auth must be autoloadable');
-        $this->assertTrue(class_exists('PGS\Database\Database'), 'PGS\Database\Database must be autoloadable');
-        $this->assertTrue(class_exists('PGS\Notification\Notifier'), 'PGS\Notification\Notifier must be autoloadable');
+        global $pdo, $conn;
+        $this->assertInstanceOf(PDO::class, $pdo, '$pdo must be a PDO instance');
+        $this->assertInstanceOf(mysqli::class, $conn, '$conn must be a mysqli instance');
+    }
+
+    public function testDeadOopLayerRemoved(): void
+    {
+        $this->assertFileDoesNotExist(dirname(__DIR__) . '/src/Auth/Auth.php');
+        $this->assertFileDoesNotExist(dirname(__DIR__) . '/src/Database/Database.php');
+        $this->assertFileDoesNotExist(dirname(__DIR__) . '/src/Notification/Notifier.php');
     }
 }

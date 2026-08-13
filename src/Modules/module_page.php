@@ -1,21 +1,23 @@
 <?php
+global $conn;
+require_once __DIR__ . '/../Auth/access_guard.php';
 if (!isset($moduleKey)) {
-    header("Location: " . BASE_URL . "/login");
+    header('Location: ' . BASE_URL . '/login');
     exit();
 }
 $modules = require PGS_SRC . '/Modules/module_config.php';
 if (!isset($modules[$moduleKey])) {
-    die("Invalid module");
+    die('Invalid module');
 }
 $mod = $modules[$moduleKey];
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? null, $mod['roles'], true)) {
-    header("Location: " . BASE_URL . "/login");
+    header('Location: ' . BASE_URL . '/login');
     exit();
 }
 require_page_access('roadmaps');
-$role = $_SESSION['role'] ?? '';
-$userId = (int)($_SESSION['user_id'] ?? 0);
+$role = session_get('role') ?? '';
+$userId = (int)(session_get('user_id') ?? 0);
 $table = $mod['table'];
 $progressTable = $mod['progress_table'];
 
@@ -72,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             $stmt = $conn->prepare("DELETE FROM {$table} WHERE category = ?");
-            $stmt->bind_param("s", $category);
+            $stmt->bind_param('s', $category);
             $ok = $stmt->execute();
             echo json_encode($ok ? ['status' => 'success'] : ['status' => 'error','message' => $conn->error]);
             exit;
@@ -94,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             $stmt = $conn->prepare("INSERT INTO progress_pending_changes (module, change_type, category, year, month, status, remarks, description, submitted_by) VALUES (?, 'save_progress', ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssiisssi", $moduleKey, $category, $year, $month, $status, $remarks, $description, $userId);
+            $stmt->bind_param('ssiisssi', $moduleKey, $category, $year, $month, $status, $remarks, $description, $userId);
             echo json_encode(['ok' => $stmt->execute()]);
             exit;
         }
@@ -103,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $data = [];
             if ($year) {
                 $stmt = $conn->prepare("SELECT category, month, status, remarks, description FROM {$progressTable} WHERE year = ?");
-                $stmt->bind_param("i", $year);
+                $stmt->bind_param('i', $year);
                 $stmt->execute();
                 $res = $stmt->get_result();
                 while ($row = $res->fetch_assoc()) {
@@ -131,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             $stmt = $conn->prepare("INSERT INTO progress_pending_changes (module, change_type, category, year, description, submitted_by) VALUES (?, 'add_row', ?, ?, ?, ?)");
-            $stmt->bind_param("ssisi", $moduleKey, $category, $year, $desc, $userId);
+            $stmt->bind_param('ssisi', $moduleKey, $category, $year, $desc, $userId);
             echo json_encode(['ok' => $stmt->execute()]);
             exit;
         }
@@ -148,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             $stmt = $conn->prepare("DELETE FROM {$progressTable} WHERE category = ? AND year = ? AND month = ?");
-            $stmt->bind_param("sii", $category, $year, $month);
+            $stmt->bind_param('sii', $category, $year, $month);
             echo json_encode(['ok' => $stmt->execute()]);
             exit;
         }
@@ -163,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             $stmt = $conn->prepare("SELECT * FROM progress_pending_changes WHERE id = ? AND module = ? AND decision = 'Pending'");
-            $stmt->bind_param("is", $pid, $moduleKey);
+            $stmt->bind_param('is', $pid, $moduleKey);
             $stmt->execute();
             $res = $stmt->get_result();
             $row = $res->fetch_assoc();
@@ -173,17 +175,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             if ($row['change_type'] === 'add_row') {
                 $ins = $conn->prepare("INSERT INTO {$table} (category, year, description) VALUES (?, ?, ?)");
-                $ins->bind_param("sis", $row['category'], $row['year'], $row['description']);
+                $ins->bind_param('sis', $row['category'], $row['year'], $row['description']);
                 $ok = $ins->execute();
             } else {
                 $updBy = (int)$row['submitted_by'];
                 $ins = $conn->prepare("INSERT INTO {$progressTable} (category,year,month,status,remarks,description,updated_by) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE status=VALUES(status), remarks=VALUES(remarks), description=IFNULL(VALUES(description), description), updated_by=VALUES(updated_by), updated_at=CURRENT_TIMESTAMP");
-                $ins->bind_param("siisssi", $row['category'], $row['year'], $row['month'], $row['status'], $row['remarks'], $row['description'], $updBy);
+                $ins->bind_param('siisssi', $row['category'], $row['year'], $row['month'], $row['status'], $row['remarks'], $row['description'], $updBy);
                 $ok = $ins->execute();
             }
             if ($ok) {
-                $del = $conn->prepare("DELETE FROM progress_pending_changes WHERE id = ?");
-                $del->bind_param("i", $pid);
+                $del = $conn->prepare('DELETE FROM progress_pending_changes WHERE id = ?');
+                $del->bind_param('i', $pid);
                 $del->execute();
             }
             echo json_encode(['ok' => $ok]);
@@ -199,8 +201,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 echo json_encode(['ok' => false,'msg' => 'Invalid']);
                 exit;
             }
-            $stmt = $conn->prepare("DELETE FROM progress_pending_changes WHERE id = ?");
-            $stmt->bind_param("i", $pid);
+            $stmt = $conn->prepare('DELETE FROM progress_pending_changes WHERE id = ?');
+            $stmt->bind_param('i', $pid);
             echo json_encode(['ok' => $stmt->execute()]);
             exit;
         }
@@ -227,7 +229,7 @@ $data = [];
 foreach ($categories as $cat) {
     $data[$cat] = array_fill_keys($years, []);
     $stmt = $conn->prepare("SELECT year, description FROM {$table} WHERE category = ?");
-    $stmt->bind_param("s", $cat);
+    $stmt->bind_param('s', $cat);
     $stmt->execute();
     $res = $stmt->get_result();
     while ($row = $res->fetch_assoc()) {
@@ -239,17 +241,8 @@ $baseUrl = BASE_URL;
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title><?= h($mod['title']) ?> - PGS</title>
-  <link rel="icon" href="<?= $baseUrl ?>/assets/img/logo.png" type="image/png">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/app.css?v=3">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-</head>
+<?php $pageTitle = $mod['title'] ?? 'PGS'; ?>
+<?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>
 <?php include PGS_TEMPLATES . '/navbar.php'; ?>
 <div class="page-wrapper container my-5">
@@ -405,7 +398,7 @@ $baseUrl = BASE_URL;
 <!-- Add Modal -->
 <div class="modal fade" id="addYearModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
-    <form method="POST" action="<?= $baseUrl ?>/modules/add_year.php?module=<?= h($moduleKey) ?>" id="addYearForm">
+    <form method="POST" action="<?= $baseUrl ?>/modules/add_year?module=<?= h($moduleKey) ?>" id="addYearForm">
       <?= csrf_field() ?>
       <div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Add Year and Key Area Descriptions</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -430,7 +423,7 @@ $baseUrl = BASE_URL;
 <!-- Edit Modal -->
 <div class="modal fade" id="editYearModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
-    <form method="POST" action="<?= $baseUrl ?>/modules/edit_year.php?module=<?= h($moduleKey) ?>" id="editYearForm">
+    <form method="POST" action="<?= $baseUrl ?>/modules/edit_year?module=<?= h($moduleKey) ?>" id="editYearForm">
       <?= csrf_field() ?>
       <div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Edit Year and Key Area Descriptions</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -454,7 +447,7 @@ $baseUrl = BASE_URL;
 <!-- Delete Year Modal -->
 <div class="modal fade" id="deleteYearModal" tabindex="-1">
   <div class="modal-dialog">
-    <form method="POST" action="<?= $baseUrl ?>/modules/delete_year.php?module=<?= h($moduleKey) ?>" id="deleteYearForm">
+    <form method="POST" action="<?= $baseUrl ?>/modules/delete_year?module=<?= h($moduleKey) ?>" id="deleteYearForm">
       <?= csrf_field() ?>
       <div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Delete Year</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>

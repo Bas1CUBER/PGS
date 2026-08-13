@@ -1,5 +1,7 @@
 <?php
 
+global $conn;
+
 $moduleKey = $_GET['module'] ?? '';
 $modules = require PGS_SRC . '/Modules/module_config.php';
 if (!isset($modules[$moduleKey])) {
@@ -9,7 +11,7 @@ if (!isset($modules[$moduleKey])) {
 $table = $modules[$moduleKey]['table'];
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: " . BASE_URL . "/login");
+    header('Location: ' . BASE_URL . '/login');
     exit();
 }
 
@@ -40,9 +42,9 @@ try {
                 continue;
             }
             $stmt = $conn->prepare("INSERT INTO {$table} (year, category, description) VALUES (?, ?, ?)");
-            $stmt->bind_param("sss", $year, $categoryName, $description);
+            $stmt->bind_param('sss', $year, $categoryName, $description);
             if (!$stmt->execute()) {
-                throw new Exception("Failed to add category: " . $stmt->error);
+                throw new Exception('Failed to add category: ' . $stmt->error);
             }
             $stmt->close();
         }

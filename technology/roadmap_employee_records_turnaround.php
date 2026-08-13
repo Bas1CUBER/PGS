@@ -134,30 +134,13 @@ $avgMinutes = $count > 0 ? round($total / $count, 2) : null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Governance Scorecard: Decreased Turnaround Time for Employee Records Retrieval</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  =2'>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    body { background-color: #f5f7fa; color: #2c3e50; }
-    .card { border: none; border-radius: 1rem; background-color: #ffffff; box-shadow:0 10px 24px rgba(11,74,162,.12); }
-    .card-header { background: #0b4aa2; color: #fff; border-radius: 1rem 1rem 0 0; font-weight: 700; letter-spacing: .04em; text-align: center; padding: 14px 16px; }
-    .header-wrap { display:flex; align-items:center; gap:1rem; margin: 16px 0; }
-    .header-logo { width:80px; height:80px; object-fit:contain; border-radius:8px; border:2px solid #0b4aa2; background:#fff; }
-    .header-title h4 { margin:0; font-weight:700; }
-    .muted { color:#4a5568; }
-    .table thead th { background:#0b4aa2; color:#fff; white-space:nowrap; }
-    .section-title { font-weight:700; }
-    .timer { font-size: 3rem; font-weight: 800; letter-spacing: .05em; text-align:center; color:#111; border: 6px solid #111; padding:.6rem 1rem; border-radius:.5rem; display:inline-block; min-width: 12ch; background:#fff; }
-    .target { font-weight:600; color:#2d3748; }
-  </style>
-  </head>
+<?php $pageTitle = 'Governance Scorecard: Decreased Turnaround Time for Employee Records Retrieval'; ?>
+<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/technology_roadmap_employee_records_turnaround.css') . '">';
+?>
+<?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body class="d-flex flex-column min-vh-100">
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
-  <main class="container flex-grow-1" style="padding-top:110px;">
+  <main class="container flex-grow-1" pt-110>
     <div class="header-wrap">
       <img src="/PGS/img/patientR_logo.png" alt="Employee Records" class="header-logo" onerror="this.src='/PGS/assets/img/logo.png'">
       <div class="header-title">

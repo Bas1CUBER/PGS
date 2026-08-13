@@ -199,192 +199,17 @@ if (in_array($role, ['admin','focal'], true) && $_SERVER['REQUEST_METHOD'] === '
 
 $pageTitle = 'Communication Plan';
 
-$pageStyles = <<<'STYLES'
-<style>
-    .card { border: none; border-radius: 1rem; background-color: #ffffff; }
-    .card-body { padding: 2rem; }
-    .section-title { background: #0b4aa2; color: #fff; text-align: center; font-weight: 700; letter-spacing: 0.04em; padding: 14px 16px; border-radius: 1rem 1rem 0 0; }
-    .table th { background-color: #f0f2f5; color: #34495e; font-weight: 600; border-color: #e9ecef; }
-    .btn-primary-custom { background-color: #0b4aa2; border-color: #0b4aa2; color: #fff; }
-    .btn-primary-custom:hover { background-color: #083a7f; border-color: #083a7f; color: #fff; }
-    .pdf-preview { border: 1px solid #ddd; border-radius: 8px; max-height: 600px; overflow: auto; background: #fff; }
-    .upload-area { border: 2px dashed #0b4aa2; border-radius: 10px; padding: 40px; text-align: center; background: #f8f9fa; transition: all 0.3s ease; cursor: pointer; }
-    .upload-area:hover { background: #e9ecef; border-color: #083a7f; }
-    .upload-area.dragover { background: #d4edda; border-color: #28a745; }
-    .roadmap-table {
-        min-width: 2100px;
-        table-layout: fixed;
-        border-collapse: separate;
-        border-spacing: 0;
-        border: 1px solid #cfd6df;
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    .roadmap-table thead th,
-    .roadmap-table tbody td {
-        border: 0;
-        border-right: 1px solid #cfd6df;
-        border-bottom: 1px solid #cfd6df;
-        padding: 18px 16px;
-        vertical-align: top;
-        white-space: normal;
-        word-break: break-word;
-        line-height: 1.55;
-    }
-    .roadmap-table thead th:last-child,
-    .roadmap-table tbody td:last-child {
-        border-right: 0;
-    }
-    .roadmap-table tbody tr:last-child td {
-        border-bottom: 0;
-    }
-    .roadmap-table thead th {
-        background: #d9dde2;
-        color: #24456b;
-        font-size: 1rem;
-        font-weight: 700;
-        vertical-align: middle;
-    }
-    .roadmap-table thead th:nth-child(1),
-    .roadmap-table tbody td:nth-child(1) {
-        width: 280px;
-        min-width: 280px;
-    }
-    .roadmap-table thead th:nth-child(2),
-    .roadmap-table tbody td:nth-child(2) {
-        width: 200px;
-        min-width: 200px;
-    }
-    .roadmap-table thead th:nth-child(3),
-    .roadmap-table tbody td:nth-child(3) {
-        width: 300px;
-        min-width: 300px;
-    }
-    .roadmap-table thead th:nth-child(4),
-    .roadmap-table tbody td:nth-child(4) {
-        width: 280px;
-        min-width: 280px;
-    }
-    .roadmap-table thead th:nth-child(5),
-    .roadmap-table tbody td:nth-child(5) {
-        width: 180px;
-        min-width: 180px;
-    }
-    .roadmap-table thead th:nth-child(6),
-    .roadmap-table tbody td:nth-child(6) {
-        width: 220px;
-        min-width: 220px;
-    }
-    .roadmap-table thead th:nth-child(7),
-    .roadmap-table tbody td:nth-child(7) {
-        width: 260px;
-        min-width: 260px;
-    }
-    .roadmap-table thead th:nth-child(8),
-    .roadmap-table tbody td:nth-child(8) {
-        width: 260px;
-        min-width: 260px;
-    }
-    .roadmap-table thead th:nth-child(9),
-    .roadmap-table tbody td:nth-child(9) {
-        width: 200px;
-        min-width: 200px;
-    }
-    .roadmap-table tbody td {
-        background: #f7f7f8;
-        font-size: 1rem;
-    }
-    .roadmap-table tbody td:first-child {
-        background: #f1f3f5;
-        font-weight: 700;
-        color: #172b4d;
-        width: 280px;
-    }
-    .roadmap-table tbody tr:hover td {
-        background: #f2f6fb;
-    }
-    .roadmap-actions { white-space: nowrap; }
-    .roadmap-table .align-left { text-align: left; }
-    .roadmap-table .align-center { text-align: center; }
-    .roadmap-table .align-right { text-align: right; }
-    .roadmap-table .th-left { text-align: left; }
-    .roadmap-table .th-center { text-align: center; }
-    .roadmap-table .th-right { text-align: right; }
-    .roadmap-table .text-cell {
-        text-align: left;
-    }
-    .roadmap-table .compact-cell {
-        text-align: center;
-        vertical-align: middle;
-    }
-    .roadmap-table .align-center .form-select {
-        text-align: center;
-        text-align-last: center;
-    }
-    .roadmap-table .form-select {
-        background-color: #fff;
-        border-color: #c8d1dc;
-        width: 100%;
-        min-width: 0;
-        max-width: 100%;
-        margin: 0;
-        font-size: 0.95rem;
-    }
-    .roadmap-table .status-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 150px;
-        padding: 8px 14px;
-        border-radius: 999px;
-        font-size: 0.92rem;
-        font-weight: 600;
-        background: #edf2f7;
-        color: #334155;
-    }
-    .roadmap-table .status-pill.status-completed {
-        background: #dcfce7;
-        color: #166534;
-    }
-    .roadmap-table .status-pill.status-ongoing {
-        background: #fef3c7;
-        color: #92400e;
-    }
-    .roadmap-table .status-pill.status-pending {
-        background: #e5e7eb;
-        color: #374151;
-    }
-    @media (max-width: 768px) {
-        .card-body { padding: 1rem; }
-        .roadmap-table thead th,
-        .roadmap-table tbody td {
-            padding: 14px 12px;
-            font-size: 0.95rem;
-        }
-    }
-</style>
-STYLES;
+$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/communication_plan.css') . '">';
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
 
-<div class="page-wrapper container my-5" style="padding-top: 70px;">
+<div class="page-wrapper container my-5" pt-70>
     <div class="card shadow-sm mb-5">
         <div class="section-title">COMMUNICATION PLAN</div>
         <div class="card-body">
@@ -460,7 +285,7 @@ STYLES;
                                         data-status="<?= h($roadmapStatus) ?>">
                                         <i data-lucide="pencil"></i> Edit
                                     </button>
-                                    <form method="POST" action="communication_plan.php" class="d-inline">
+                                    <form method="POST" action="communication_plan" class="d-inline">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="delete_entry">
                                         <input type="hidden" name="id" value="<?=  h($e['id']) ?>">
@@ -488,7 +313,7 @@ STYLES;
                     <div class="alert <?= stripos($tmp,'success')!==false ? 'alert-success' : 'alert-info' ?>"><?= h($tmp) ?></div>
                 <?php endif; ?>
                 <div class="pdf-preview mb-3">
-                    <iframe src="<?= h($tplPdfRel) ?>?v=<?= (int)$tplVersion ?>#view=FitH" width="100%" height="600px" style="border: none;">
+                    <iframe src="<?= h($tplPdfRel) ?>?v=<?= (int)$tplVersion ?>#view=FitH" width="100%" height="600px" class="border-0">
                         <p><a href="<?= h($tplPdfRel) ?>?v=<?= (int)$tplVersion ?>" download>Download the file</a></p>
                     </iframe>
                 </div>
@@ -529,7 +354,7 @@ STYLES;
             <div class="text-center mb-4">
                 <h4 class="mb-3">COMMUNICATION PLAN TEMPLATE</h4>
                 <div class="pdf-preview mb-3">
-                    <iframe src="<?= h($tplPdfRel) ?>?v=<?= (int)$tplVersion ?>#view=FitH" width="100%" height="600px" style="border: none;">
+                    <iframe src="<?= h($tplPdfRel) ?>?v=<?= (int)$tplVersion ?>#view=FitH" width="100%" height="600px" class="border-0">
                         <p><a href="<?= h($tplPdfRel) ?>?v=<?= (int)$tplVersion ?>" download>Download the file</a></p>
                     </iframe>
                 </div>
@@ -553,10 +378,10 @@ STYLES;
                 </div>
                 <div id="uploadProgress" class="mt-3" style="display: none;">
                     <div class="progress">
-                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                        <div class="progress-bar" role="progressbar" class="w-0"></div>
                     </div>
                 </div>
-                <p class="text-muted mt-3" style="font-size:0.9rem;">
+                <p class="text-muted mt-3" fs-09>
                     Please follow the file name format before uploading: <strong>Date-Section-Head/Focal</strong>. Example: <strong>120326-HIMS-LJTV</strong>.
                 </p>
             </div>
@@ -592,7 +417,7 @@ STYLES;
                                 </td>
                                 <td><?= !empty($u['status_updated_at']) ? h(date('M d, Y g:i A', strtotime($u['status_updated_at']))) : '<span class="text-muted">â€”</span>' ?></td>
                                 <td>
-                                    <a href="communication_plan_view.php?id=<?=  h($u['id']) ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                                    <a href="communication_plan_view?id=<?=  h($u['id']) ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank">
                                         <i data-lucide="eye" class="me-1"></i> View
                                     </a>
                                     <a href="uploads/communication_plan/<?= h($u['filename']) ?>" class="btn btn-sm btn-outline-success" download>
@@ -615,7 +440,7 @@ STYLES;
             <div class="text-center mb-4">
                 <h4 class="mb-3">COMMUNICATION PLAN TEMPLATE</h4>
                 <div class="pdf-preview mb-3">
-                    <iframe src="<?= h($tplPdfRel) ?>?v=<?= (int)$tplVersion ?>#view=FitH" width="100%" height="600px" style="border: none;">
+                    <iframe src="<?= h($tplPdfRel) ?>?v=<?= (int)$tplVersion ?>#view=FitH" width="100%" height="600px" class="border-0">
                         <p><a href="<?= h($tplPdfRel) ?>?v=<?= (int)$tplVersion ?>" download>Download the file</a></p>
                     </iframe>
                 </div>
@@ -675,14 +500,14 @@ STYLES;
                                 </td>
                                 <td><?= !empty($u['status_updated_at']) ? h(date('M d, Y g:i A', strtotime($u['status_updated_at']))) : '<span class="text-muted">â€”</span>' ?></td>
                                 <td>
-                                    <a href="communication_plan_view.php?id=<?=  h($u['id']) ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                                    <a href="communication_plan_view?id=<?=  h($u['id']) ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank">
                                         <i data-lucide="eye" class="me-1"></i> View
                                     </a>
                                     <a href="uploads/communication_plan/<?= h($u['filename']) ?>" class="btn btn-sm btn-outline-success" download>
                                         <i data-lucide="download" class="me-1"></i> Download
                                     </a>
                                     <?php if ($role === 'admin'): ?>
-                                        <form method="POST" action="communication_plan.php" class="d-inline upload-delete-form">
+                                        <form method="POST" action="communication_plan" class="d-inline upload-delete-form">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action" value="delete_upload">
                                             <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
@@ -706,7 +531,7 @@ STYLES;
 <?php if (in_array($role, ['admin','focal'], true)): ?>
 <div class="modal fade" id="addEntryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <form method="POST" action="communication_plan.php">
+        <form method="POST" action="communication_plan">
             <?= csrf_field() ?>
             <div class="modal-content">
                 <div class="modal-header">
@@ -764,7 +589,7 @@ STYLES;
 </div>
 <div class="modal fade" id="editEntryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <form method="POST" action="communication_plan.php">
+        <form method="POST" action="communication_plan">
             <?= csrf_field() ?>
             <div class="modal-content">
                 <div class="modal-header">
@@ -823,7 +648,7 @@ STYLES;
 </div>
 <div class="modal fade" id="deleteEntryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <form method="POST" action="communication_plan.php" id="deleteEntryTopForm">
+        <form method="POST" action="communication_plan" id="deleteEntryTopForm">
             <?= csrf_field() ?>
             <div class="modal-content">
                 <div class="modal-header">

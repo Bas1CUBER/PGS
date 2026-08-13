@@ -4,21 +4,13 @@ require_page_access('scorecard');
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Engagement Rating (Research)</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  =2'>
-    <style>
-        body { background-color: #f5f7fa; color: #2c3e50; }
-        .card { border: none; border-radius: 1rem; background-color: #ffffff; }
-        .card-header { background: #0b4aa2; color: #fff; border-radius: 1rem 1rem 0 0; font-weight: 700; letter-spacing: .04em; text-align: center; padding: 14px 16px; }
-    </style>
-    </head>
+<?php $pageTitle = 'Employee Engagement Rating (Research)'; ?>
+<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/research_roadmap_employee_engagement.css') . '">';
+?>
+<?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>
     <?php include PGS_TEMPLATES . '/navbar.php'; ?>
-    <div class="container" style="padding-top:110px;">
+    <div class="container" pt-110>
         <div class="card shadow-sm">
             <div class="card-header">Employee Engagement Rating</div>
             <div class="card-body">

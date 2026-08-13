@@ -164,33 +164,12 @@ foreach ($uploads as $u) {
 
 $pageTitle = 'Governance Sharing';
 
-$pageStyles = <<<'STYLES'
-<style>
-    .page-container { padding-top: 110px; }
-    .stat-card { border: none; border-radius: 1rem; background: #fff; box-shadow: 0 0 0 2px rgba(25,106,107,.15), 0 10px 24px rgba(25,106,107,.18); transition: transform .15s ease, box-shadow .15s ease; }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 0 0 3px rgba(25,106,107,.25), 0 16px 32px rgba(25,106,107,.22); }
-    .stat-card .card-body { padding: 1rem; }
-    .stat-title { font-size: .85rem; color: #6c757d; }
-    .stat-value { font-size: 1.6rem; font-weight: 700; color: #196a6b; }
-    .stat-icon { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(135deg,#196a6b,#2fa5a6); box-shadow: 0 0 12px rgba(47,165,166,.45); }
-</style>
-STYLES;
+$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/governance_sharing.css') . '">';
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
@@ -316,7 +295,7 @@ STYLES;
             </div>
             <div class="table-responsive">
                 <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['employee','focal'], true)): ?>
-                <p class="text-muted" style="font-size:0.9rem;">
+                <p class="text-muted" fs-09>
                     Please follow the file name format before uploading: <strong>Date-Section-Head/Focal</strong>. Example: <strong>120326-HIMS-LJTV</strong>.
                 </p>
                 <?php endif; ?>
@@ -368,7 +347,7 @@ STYLES;
                                 </td>
                                 <td><?= !empty($u['status_updated_at']) ? htmlspecialchars(date('M d, Y g:i A', strtotime($u['status_updated_at']))) : '<span class="text-muted">—</span>' ?></td>
                                 <td>
-                                    <a href="governance_sharing_view.php?id=<?= $u['id'] ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank"><i data-lucide="eye" class="me-1"></i> View</a>
+                                    <a href="governance_sharing_view?id=<?= $u['id'] ?>" class="btn btn-sm btn-outline-primary me-2" target="_blank"><i data-lucide="eye" class="me-1"></i> View</a>
                                     <a href="uploads/governance_sharing/<?= htmlspecialchars($u['filename']) ?>" class="btn btn-sm btn-outline-success" download><i data-lucide="download" class="me-1"></i> Download</a>
                                 </td>
                             </tr>

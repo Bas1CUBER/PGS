@@ -47,150 +47,12 @@ if ($tableExists) {
 
 $pageTitle = 'Strategy Review Form';
 
-$pageStyles = '<style>
-html, body {
-    background-color: #f5f7fa;
-    color: #2c3e50;
-    margin: 0;
-    padding: 0;
-}
-.card {
-    border: none;
-    border-radius: 1rem;
-    background-color: #ffffff;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-}
-.card-body {
-    padding: 2rem;
-}
-.section-title {
-    background: #196a6b;
-    color: #fff;
-    text-align: center;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    padding: 14px 16px;
-    border-radius: 1rem 1rem 0 0;
-}
-.form-container {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 30px;
-    margin: 20px 0;
-}
-.form-header {
-    text-align: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #196a6b;
-}
-.form-header h2 {
-    color: #196a6b;
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-.form-section {
-    margin-bottom: 25px;
-}
-.form-section h4 {
-    color: #196a6b;
-    font-weight: 600;
-    margin-bottom: 15px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #e9ecef;
-}
-.form-row {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-    align-items: flex-end;
-}
-.form-group {
-    flex: 1;
-}
-.form-group label {
-    font-weight: 500;
-    color: #495057;
-    margin-bottom: 5px;
-    display: block;
-}
-.form-control, .form-select {
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 14px;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-.form-control:focus, .form-select:focus {
-    border-color: #196a6b;
-    box-shadow: 0 0 0 0.2rem rgba(25, 106, 107, 0.25);
-}
-.btn-primary-custom {
-    background-color: #196a6b;
-    border-color: #196a6b;
-    color: #fff;
-    padding: 10px 25px;
-    font-weight: 500;
-    border-radius: 6px;
-}
-.btn-primary-custom:hover {
-    background-color: #145556;
-    border-color: #145556;
-    color: #fff;
-}
-.btn-secondary-custom {
-    background-color: #6c757d;
-    border-color: #6c757d;
-    color: #fff;
-    padding: 10px 25px;
-    font-weight: 500;
-    border-radius: 6px;
-}
-.table th {
-    background-color: #f0f2f5;
-    color: #34495e;
-    font-weight: 600;
-    border-color: #e9ecef;
-}
-.badge {
-    font-size: 0.8em;
-}
-.pdf-preview {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    max-height: 600px;
-    overflow: auto;
-    background: #fff;
-}
-#formContent {
-    line-height: 1.6;
-}
-.form-footer {
-    text-align: center;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #dee2e6;
-    font-size: 12px;
-    color: #6c757d;
-}
-</style>';
+$pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/strategy_review_form.css') . '">';
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
@@ -216,7 +78,7 @@ html, body {
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-bordered align-middle mb-4" style="table-layout: fixed;">
+                            <table class="table table-bordered align-middle mb-4" table-fixed>
                                 <thead>
                                     <tr>
                                         <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700; width:50%;">OBJECTIVE</th>
@@ -233,8 +95,8 @@ html, body {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700;">MEASURE</th>
-                                        <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700;">TARGET</th>
+                                        <th class="text-center" header-cyan>MEASURE</th>
+                                        <th class="text-center" header-cyan>TARGET</th>
                                     </tr>
                                     <tr>
                                         <td>
@@ -245,8 +107,8 @@ html, body {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700;">ACTUAL TO DATE</th>
-                                        <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700;">STATUS</th>
+                                        <th class="text-center" header-cyan>ACTUAL TO DATE</th>
+                                        <th class="text-center" header-cyan>STATUS</th>
                                     </tr>
                                     <tr>
                                         <td>
@@ -259,13 +121,13 @@ html, body {
                                 </tbody>
                             </table>
 
-                            <table class="table table-bordered align-middle mb-4" style="table-layout: fixed;">
+                            <table class="table table-bordered align-middle mb-4" table-fixed>
                                 <thead>
                                     <tr>
-                                        <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700; width:25%;">KEY RESULTS AREA</th>
-                                        <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700; width:25%;">DELIVERABLE</th>
-                                        <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700; width:25%;">ACTUAL TO DATE</th>
-                                        <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700; width:25%;">STATUS</th>
+                                        <th class="text-center" header-cyan-w25>KEY RESULTS AREA</th>
+                                        <th class="text-center" header-cyan-w25>DELIVERABLE</th>
+                                        <th class="text-center" header-cyan-w25>ACTUAL TO DATE</th>
+                                        <th class="text-center" header-cyan-w25>STATUS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -290,7 +152,7 @@ html, body {
                                 </tbody>
                             </table>
 
-                            <table class="table table-bordered align-middle mb-4" style="table-layout: fixed;">
+                            <table class="table table-bordered align-middle mb-4" table-fixed>
                                 <thead>
                                     <tr>
                                         <th class="text-center" style="background:#00A3D9; color:#000; font-weight:700; width:33.33%;">CONTINUE</th>

@@ -21,6 +21,7 @@
 # Database files
 /.freebuff/
 *.sql
+!planning.sql
 
 # PHPUnit / caching
 /.phpunit.cache/
@@ -36,3 +37,5 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+
+.php-cs-fixer.cache

@@ -19,10 +19,10 @@
     // Pages pass either raw CSS or already-wrapped <style>/<link> snippets.
     // Wrap raw CSS so the browser applies it instead of rendering it as text.
     $inlineStyles = trim((string)($pageStyles ?? ''));
-    if ($inlineStyles !== '' && !preg_match('/^<(style|link)\b/i', $inlineStyles)) {
-        $inlineStyles = "<style>\n" . $inlineStyles . "\n</style>";
-    }
-  ?>
+if ($inlineStyles !== '' && !preg_match('/^<(style|link)\b/i', $inlineStyles)) {
+    $inlineStyles = "<style>\n" . $inlineStyles . "\n</style>";
+}
+?>
   <?= $inlineStyles ?>
 </head>
 <body>

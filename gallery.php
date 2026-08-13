@@ -220,18 +220,7 @@ STYLES;
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
@@ -247,7 +236,7 @@ STYLES;
             
             <?php if ($selectedAlbum): ?>
                 <!-- Photo View -->
-                <button class="btn btn-outline-secondary back-btn" onclick="window.location.href='gallery.php'">
+                <button class="btn btn-outline-secondary back-btn" onclick="window.location.href='gallery'">
                     <i data-lucide="arrow-left" class="me-2"></i>Back to Albums
                 </button>
                 
@@ -337,7 +326,7 @@ STYLES;
                             $photoCount = $photoInfo['cnt'] ?? 0;
                             $coverImage = $photoInfo['filename'] ?? null;
                             ?>
-                            <div class="album-card" onclick="window.location.href='gallery.php?album_id=<?php echo h($album['id']); ?>'">
+                            <div class="album-card" onclick="window.location.href='gallery?album_id=<?php echo h($album['id']); ?>'">
                                 <div class="album-cover">
                                     <?php if ($coverImage && file_exists($uploadDir . '/' . $coverImage)): ?>
                                         <img src="gallery_uploads/<?php echo h($coverImage); ?>" alt="Cover">
@@ -496,7 +485,7 @@ $pageScripts .= '        });
 <?php if (in_array($role, ['admin', 'focal'])): ?>
 <div class="modal fade" id="addAlbumModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form method="POST" action="gallery.php" class="modal-content">
+    <form method="POST" action="gallery" class="modal-content">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="add_album">
       <div class="modal-header">
@@ -524,7 +513,7 @@ $pageScripts .= '        });
 <!-- Edit Album Modal -->
 <div class="modal fade" id="editAlbumModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form method="POST" action="gallery.php" class="modal-content">
+    <form method="POST" action="gallery" class="modal-content">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="update_album">
       <input type="hidden" name="album_id" id="editAlbumId">
@@ -555,7 +544,7 @@ $pageScripts .= '        });
 <?php if (in_array($role, ['admin', 'focal'])): ?>
 <div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
-    <form method="POST" action="gallery.php" enctype="multipart/form-data" class="modal-content">
+    <form method="POST" action="gallery" enctype="multipart/form-data" class="modal-content">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="upload_photos">
       <input type="hidden" name="album_id" value="<?= (int)$albumId ?>">
@@ -586,7 +575,7 @@ $pageScripts .= '        });
 <?php if (in_array($role, ['admin', 'focal'])): ?>
 <div class="modal fade" id="captionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form method="POST" action="gallery.php" class="modal-content">
+    <form method="POST" action="gallery" class="modal-content">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="update_caption">
       <input type="hidden" name="photo_id" id="captionPhotoId">
@@ -611,14 +600,14 @@ $pageScripts .= '        });
 
 <!-- Delete Album Form (hidden) -->
 <?php if ($role === 'admin'): ?>
-<form method="POST" action="gallery.php" id="deleteAlbumForm" class="d-none">
+<form method="POST" action="gallery" id="deleteAlbumForm" class="d-none">
   <?= csrf_field() ?>
   <input type="hidden" name="action" value="delete_album">
   <input type="hidden" name="album_id" id="deleteAlbumId">
 </form>
 
 <!-- Delete Photo Form (hidden) -->
-<form method="POST" action="gallery.php" id="deletePhotoForm" class="d-none">
+<form method="POST" action="gallery" id="deletePhotoForm" class="d-none">
   <?= csrf_field() ?>
   <input type="hidden" name="action" value="delete_photo">
   <input type="hidden" name="photo_id" id="deletePhotoId">

@@ -277,31 +277,13 @@ $chartTrendTargetData = array_values(array_map(fn($y) => $targetByYear[$y] ?? 0.
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Employee engagement rating</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  =2'>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    body { background-color: #f5f7fa; color: #2c3e50; }
-    .card { border: none; border-radius: 1rem; background-color: #ffffff; box-shadow:0 10px 24px rgba(11,74,162,.12); }
-    .card-header { background: #0b4aa2; color: #fff; border-radius: 1rem 1rem 0 0; font-weight: 700; letter-spacing: .04em; text-align: center; padding: 14px 16px; }
-    .header-wrap { display:flex; align-items:center; gap:1rem; margin: 16px 0; }
-    .header-logo { width:80px; height:80px; object-fit:contain; border-radius:8px; border:2px solid #0b4aa2; background:#fff; }
-    .header-title h4 { margin:0; font-weight:700; }
-    .muted { color:#4a5568; }
-    .table thead th { background:#0b4aa2; color:#fff; }
-    .section-row { background:#e9f2f2; font-weight:600; }
-    .btn-xs { padding:2px 8px; font-size:.8rem; }
-  </style>
-</head>
+<?php $pageTitle = 'Employee engagement rating'; ?>
+<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/culture_roadmap_employee_engagement.css') . '">';
+?>
+<?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
-  <div class="container" style="padding-top:110px;">
+  <div class="container" pt-110>
     <div class="header-wrap">
       <img src="/PGS/img/employee_logo.png" alt="Employee Engagement" class="header-logo" onerror="this.style.display='none'">
       <div class="header-title">
@@ -335,10 +317,10 @@ $chartTrendTargetData = array_values(array_map(fn($y) => $targetByYear[$y] ?? 0.
               <tr>
                 <th style="width:40px">#</th>
                 <th>Item</th>
-                <th style="width:120px" class="text-center">2025 (%)</th>
-                <th style="width:120px" class="text-center">2026 (%)</th>
-                <th style="width:120px" class="text-center">2027 (%)</th>
-                <th style="width:120px" class="text-center">2028 (%)</th>
+                <th class="w-120" class="text-center">2025 (%)</th>
+                <th class="w-120" class="text-center">2026 (%)</th>
+                <th class="w-120" class="text-center">2027 (%)</th>
+                <th class="w-120" class="text-center">2028 (%)</th>
                 <?php if ($role === 'admin'): ?><th style="width:200px" class="text-center">Actions</th><?php endif; ?>
               </tr>
             </thead>

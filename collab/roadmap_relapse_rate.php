@@ -350,30 +350,10 @@ foreach ($summaryYears as $y) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GOVERNANCE SCORECARD: &lt;5 RELAPSE RATE</title>
-  <link rel="icon" href="/PGS/assets/img/logo.png" type="image/png">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  =2'>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    html, body { font-family: 'Inter', 'Segoe UI', sans-serif; background-color: #f5f7fa; }
-    .page-container { padding-top: 110px; }
-    .header-wrap { display:flex; align-items:center; gap:1rem; margin-bottom:1rem; }
-    .header-logo { width:80px; height:80px; object-fit:contain; border-radius:8px; border:2px solid #0b4aa2; background:#fff; }
-    .header-title h4 { margin:0; font-weight:700; }
-    .header-title small { display:block; color:#4a5568; }
-    .card { border:none; border-radius:1rem; box-shadow:0 10px 24px rgba(11,74,162,.15); }
-    .section-title { font-weight:600; color:#0b4aa2; }
-    .table thead th { background:#0b4aa2; color:#fff; }
-    .group-header { background:#edf2f7; font-weight:600; color:#2d3748; }
-    .glow-btn { box-shadow:0 0 0 2px rgba(11,74,162,.2), 0 10px 24px rgba(11,74,162,.18); }
-  </style>
-</head>
+<?php $pageTitle = 'GOVERNANCE SCORECARD: <5 RELAPSE RATE'; ?>
+<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/collab_roadmap_relapse_rate.css') . '">';
+?>
+<?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <main class="page-container container">

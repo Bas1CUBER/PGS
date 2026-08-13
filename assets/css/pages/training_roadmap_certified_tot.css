@@ -1,0 +1,18 @@
+body { background-color: #f5f7fa; color: #2c3e50; }
+    .card { border: none; border-radius: 1rem; background-color: #ffffff; box-shadow:0 10px 24px rgba(11,74,162,.12); }
+    .card-header { background: #0b4aa2; color: #fff; border-radius: 1rem 1rem 0 0; font-weight: 700; letter-spacing: .04em; text-align: center; padding: 14px 16px; }
+    .header-wrap { display:flex; align-items:center; gap:1rem; margin: 16px 0; }
+    .header-logo { width:80px; height:80px; object-fit:contain; border-radius:8px; border:2px solid #0b4aa2; background:#fff; }
+    .header-title h4 { margin:0; font-weight:700; }
+    .muted { color:#4a5568; }
+    .table thead th { background:#0b4aa2; color:#fff; white-space:nowrap; }
+    .section-title { font-weight:700; }
+    .chart-card .card-body { padding: 10px 10px 8px; }
+    #chartA, #chartB { max-height: 180px; }
+    .small-text { font-size:.9rem; color:#4a5568; }
+    .btn-pill { border-radius: 999px; }
+    .input-sm { max-width: 6rem; }
+    .table thead .slim { padding-top:.5rem; padding-bottom:.5rem; }
+    .wrap-cell { white-space: normal; word-break: break-word; }
+    .name-cell { font-size:.78rem; line-height:1.25; white-space: pre-wrap; word-break: break-word; overflow-wrap:anywhere; }
+

@@ -149,32 +149,13 @@ $dataRows = array_values(array_filter($rows, fn($x)=> strtolower(trim($x['indica
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Governance Scorecard: Green Viability Rating</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  =2'>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    body { background-color: #f5f7fa; color: #2c3e50; }
-    .card { border: none; border-radius: 1rem; background-color: #ffffff; box-shadow:0 10px 24px rgba(11,74,162,.12); }
-    .card-header { background: #0b4aa2; color: #fff; border-radius: 1rem 1rem 0 0; font-weight: 700; letter-spacing: .04em; text-align: center; padding: 14px 16px; }
-    .header-wrap { display:flex; align-items:center; gap:1rem; margin: 16px 0; }
-    .header-logo { width:80px; height:80px; object-fit:contain; border-radius:8px; border:2px solid #0b4aa2; background:#fff; }
-    .header-title h4 { margin:0; font-weight:700; }
-    .muted { color:#4a5568; }
-    .table thead th { background:#0b4aa2; color:#fff; white-space:nowrap; }
-    .section-title { font-weight:700; }
-    .dash-card { text-align:center; padding: 14px; }
-    .stars { font-size: 2rem; line-height: 1; }
-    .star { color:#cbd5e1; }
-    .star.active { color:#22c55e; }
-  </style>
-</head>
+<?php $pageTitle = 'Governance Scorecard: Green Viability Rating'; ?>
+<?php $pageStyles = '<link rel="stylesheet" href="' . asset('css/pages/resilience_roadmap_green_viability.css') . '">';
+?>
+<?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body class="d-flex flex-column min-vh-100">
 <?php include PGS_TEMPLATES . '/navbar.php'; ?>
-<main class="container flex-grow-1" style="padding-top:110px;">
+<main class="container flex-grow-1" pt-110>
   <div class="header-wrap">
     <img src="/PGS/img/resilience_logo.png" alt="Resilience" class="header-logo" onerror="this.src='/PGS/assets/img/logo.png'">
     <div class="header-title">

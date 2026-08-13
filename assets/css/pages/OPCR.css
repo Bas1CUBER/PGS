@@ -1,0 +1,133 @@
+html,
+body {
+    background-color: #f5f7fa;
+    color: #2c3e50;
+    height: 100%;
+    margin: 0;
+    padding-top: 20px;
+}
+
+/* Previous styles with updated quarter column widths */
+.modern-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+    table-layout: auto;
+}
+
+.modern-table th,
+.modern-table td {
+    border: none;
+    padding: 12px 16px;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    color: #333;
+}
+
+/* Bottom borders for tbody cells (excluding section headers) */
+.modern-table tbody tr:not(.section-header) td {
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Vertical borders between tbody cells (excluding section headers and last column) */
+.modern-table tbody tr:not(.section-header) td:not(:last-child) {
+    border-right: 1px solid #e9ecef;
+}
+
+.modern-table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #555;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Make quarter columns wider */
+.modern-table th.quarter-column,
+.modern-table td.quarter-column {
+    min-width: 180px;
+    width: 120px;
+}
+
+.modern-table .subheader {
+    font-size: 0.75rem;
+    color: #6c757d;
+    display: block;
+    margin-top: 4px;
+}
+
+.modern-table .bold {
+    font-weight: 600;
+}
+
+.modern-table .left-align {
+    text-align: left;
+}
+
+.modern-table .annual-target div {
+    display: flex;
+    gap: 8px;
+}
+
+.modern-table input,
+.modern-table textarea {
+    border: 1px solid #e9ecef !important;
+    border-radius: 4px;
+    padding: 4px 8px;
+    transition: border-color 0.2s;
+    width: 100%;
+}
+
+.modern-table input:focus,
+.modern-table textarea:focus {
+    border-color: #007bff !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+}
+
+.modern-table textarea {
+    min-height: 10rem;
+}
+
+.modern-table .small-text {
+    font-size: 0.8125rem;
+}
+
+/* Section headers */
+.modern-table tbody tr.section-header td {
+    background-color: #e9ecef;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 16px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Center Average Rating rows */
+.modern-table tbody tr.average-rating td {
+    text-align: center !important;
+    border-bottom: 1px solid gray;
+}
+
+.btn-green {
+    background-color: #196a6b;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table-responsive {
+        border-radius: 8px;
+    }
+
+    .modern-table th.quarter-column,
+    .modern-table td.quarter-column {
+        min-width: 100px;
+        width: 100px;
+    }
+}
+

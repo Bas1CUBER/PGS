@@ -27,123 +27,12 @@ $result = $conn->query($sql);
 $pageTitle = 'Form Upload';
 
 $pageStyles = '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<style>
-html,
-body {
-    background-color: #f5f7fa;
-    color: #2c3e50;
-    height: 100%;
-    margin: 0;
-    padding-top: 30px;
-}
-
-.table-header {
-    background: #edf2f7;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #718096;
-}
-
-.table-row {
-    transition: background 0.2s ease;
-}
-
-.table-row:hover {
-    background: #f7fafc;
-}
-
-.form-select,
-.form-control {
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    background: #ffffff;
-    transition: all 0.3s ease;
-}
-
-.form-select:focus,
-.form-control:focus {
-    border-color: #5a67d8;
-    box-shadow: 0 0 0 4px rgba(90, 103, 216, 0.1);
-    outline: none;
-}
-
-.btn-primary {
-    background: #5a67d8;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    font-size: 0.875rem;
-    color: #ffffff;
-    transition: background 0.3s ease, transform 0.2s ease;
-}
-
-.btn-primary:hover {
-    background: #4c51bf;
-    transform: translateY(-1px);
-}
-
-.btn-secondary {
-    background: #edf2f7;
-    color: #4a5568;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    font-size: 0.875rem;
-    transition: background 0.3s ease, transform 0.2s ease;
-}
-
-.btn-secondary:hover {
-    background: #e2e8f0;
-    transform: translateY(-1px);
-}
-
-.container {
-    max-width: 1400px;
-}
-
-.modal-content {
-    border-radius: 1rem;
-    border: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    background: #ffffff;
-}
-
-.modal-header {
-    border-bottom: 1px solid #e2e8f0;
-    padding: 1.5rem;
-}
-
-.modal-footer {
-    border-top: 1px solid #e2e8f0;
-    padding: 1.5rem;
-}
-
-.modal-body {
-    padding: 2rem;
-}
-</style>';
+<link rel="stylesheet" href="' . asset('css/pages/employee_form.css') . '">';
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= h($pageTitle ?? 'PGS — TRC DOH') ?></title>
-  <link rel="icon" href="<?= BASE_URL ?>/assets/img/logo.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css?v=3">
-  <?php if (!empty($pageStyles)): ?><?php if (str_starts_with(trim($pageStyles), '<')): ?><?= $pageStyles ?><?php else: ?><style><?= $pageStyles ?></style><?php endif; ?><?php endif; ?>
-</head>
+<?php require PGS_TEMPLATES . '/head.php'; ?>
 <body>
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
@@ -176,7 +65,7 @@ body {
         </form>
 
         <div class="d-flex gap-2">
-            <a href="employee_form.php" class="btn btn-secondary btn-sm">Clear Filter</a>
+            <a href="employee_form" class="btn btn-secondary btn-sm">Clear Filter</a>
         </div>
     </div>
 </div>
