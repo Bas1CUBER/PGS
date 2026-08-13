@@ -67,18 +67,31 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
             <Head title="Dashboard" />
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">
-                            Welcome back, {user.name ?? user.email}
-                        </h1>
-                        <p className="text-muted-foreground">
-                            Performance Governance System - TRC DOH
-                        </p>
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#0b4aa2] via-[#0d5bd1] to-[#1e88e5] p-6 text-white shadow-lg sm:p-8">
+                    <div className="pointer-events-none absolute -top-20 -right-16 size-64 rounded-full bg-white/10 blur-2xl" />
+                    <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-blue-100">
+                                {new Date().toLocaleDateString(undefined, {
+                                    weekday: 'long',
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                })}
+                            </p>
+                            <h1 className="mt-1 text-2xl font-bold">
+                                Welcome back, {user.name ?? user.email}
+                            </h1>
+                            <p className="mt-1 text-sm text-blue-100">
+                                Performance Governance System — TRC DOH
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Badge className="bg-white/15 text-white capitalize ring-1 ring-white/30 backdrop-blur">
+                                {user.role}
+                            </Badge>
+                        </div>
                     </div>
-                    <Badge variant="outline" className="capitalize">
-                        {user.role}
-                    </Badge>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
