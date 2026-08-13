@@ -59,8 +59,8 @@ $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/im
   <?php include PGS_TEMPLATES . '/navbar.php'; ?>
   <div class="page-wrapper">
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <div class="container my-5" pt-70>
     <?php if ($tablesOk): ?>
     <?php
@@ -422,7 +422,7 @@ $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/im
     <?php endif; ?>
   </div>
   <?php include PGS_TEMPLATES . '/footer.php'; ?>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <?php if (!empty($pageScripts)): ?><?= $pageScripts ?><?php endif; ?>
 </body>
 </html>

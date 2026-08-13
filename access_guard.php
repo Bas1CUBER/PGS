@@ -79,6 +79,6 @@ function require_not_frozen_for_post() {
 }
 
 // Auto-enforce POST freeze for all pages that include this guard
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     require_not_frozen_for_post();
 }

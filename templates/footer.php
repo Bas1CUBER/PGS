@@ -1,4 +1,4 @@
-<script src="https://unpkg.com/lucide@latest"></script>
+<script defer src="https://unpkg.com/lucide@latest"></script>
 
 <footer class="footer">
   <div class="container">
