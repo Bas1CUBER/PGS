@@ -8,24 +8,6 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? null, ['admin
 $role = $_SESSION['role'] ?? null;
 $userId = (int)($_SESSION['user_id'] ?? 0);
 
-// Create notifications table if not exists
-$conn->query("
-    CREATE TABLE IF NOT EXISTS notifications (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        type VARCHAR(50) NOT NULL,
-        title VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        related_id INT DEFAULT NULL,
-        related_type VARCHAR(50) DEFAULT NULL,
-        is_read TINYINT(1) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        INDEX idx_user_read (user_id, is_read),
-        INDEX idx_user_created (user_id, created_at DESC)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-");
-
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // Get unread count
@@ -68,7 +50,13 @@ if ($action === 'get_notifications') {
             'time_ago' => timeAgo($row['created_at'])
         ];
     }
-    echo json_encode(['ok' => true, 'notifications' => $notifications]);
+    $unread = 0;
+    foreach ($notifications as $n) {
+        if (!$n['is_read']) {
+            $unread++;
+        }
+    }
+    echo json_encode(['ok' => true, 'notifications' => $notifications, 'unread_count' => $unread]);
     exit();
 }
 

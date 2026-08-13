@@ -174,18 +174,19 @@ if ($role === 'admin') {
             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" style="display: none;">0</span>
           </a>
           <div class="dropdown-menu dropdown-menu-end notification-dropdown">
-            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light sticky-top">
-              <h6 class="mb-0"><i data-lucide="bell" class="me-2"></i>Notifications</h6>
-              <button class="btn btn-sm btn-link text-decoration-none p-0" id="markAllReadBtn">Mark all as read</button>
-            </div>
-            <div id="notificationList" class="notification-list">
-              <div class="text-center text-muted py-4">
-                <i data-lucide="bell-off" width="2em" height="2em" class="mb-2"></i>
-                <p class="mb-0 small">No notifications yet</p>
+            <div class="notification-header">
+              <h6 class="notification-header-title"><i data-lucide="bell" class="me-2"></i>Notifications</h6>
+              <div class="notification-header-actions">
+                <span class="notification-unread-pill" id="unreadPill" style="display:none;">0 unread</span>
+                <button class="btn btn-sm btn-link text-decoration-none p-0" id="markAllReadBtn">Mark all as read</button>
               </div>
             </div>
-            <div class="px-3 py-2 border-top bg-light text-center small text-muted">
-              Showing 30 most recent notifications
+            <div id="notificationList" class="notification-list">
+              <div class="notification-empty">
+                <i data-lucide="bell-off" width="2em" height="2em" class="mb-2"></i>
+                <p class="notification-empty-title mb-1">You're all caught up</p>
+                <p class="notification-empty-sub mb-0">New notifications will show up here as they arrive.</p>
+              </div>
             </div>
           </div>
         </li>

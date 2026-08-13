@@ -54,41 +54,112 @@
       return div.innerHTML;
     }
 
+    function groupLabel(createdAt) {
+      if (!createdAt) return 'Earlier';
+      var d = new Date(createdAt.replace(' ', 'T'));
+      var now = new Date();
+      var startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var startYesterday = new Date(startToday);
+      startYesterday.setDate(startYesterday.getDate() - 1);
+      if (d >= startToday) return 'Today';
+      if (d >= startYesterday) return 'Yesterday';
+      return 'Earlier';
+    }
+
+    function renderSkeleton() {
+      var html = '';
+      for (var i = 0; i < 3; i++) {
+        html += '<div class="notification-skeleton"><span class="sk-avatar"></span>' +
+          '<span class="sk-lines"><span class="sk-line"></span><span class="sk-line short"></span></span></div>';
+      }
+      notifList.innerHTML = html;
+    }
+
+    function renderEmpty() {
+      notifList.innerHTML = '<div class="notification-empty">' +
+        '<i data-lucide="bell-off" width="2em" height="2em" class="mb-2"></i>' +
+        '<p class="notification-empty-title mb-1">You\'re all caught up</p>' +
+        '<p class="notification-empty-sub mb-0">New notifications will show up here as they arrive.</p></div>';
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function updateUnreadPill(count) {
+      var pill = document.getElementById('unreadPill');
+      if (!pill) return;
+      if (count > 0) {
+        pill.textContent = count === 1 ? '1 unread' : count + ' unread';
+        pill.style.display = 'inline-flex';
+      } else {
+        pill.style.display = 'none';
+      }
+    }
+
     function renderNotifications(notifications) {
       if (!notifications.length) {
-        notifList.innerHTML = '<div class="text-center text-muted py-4"><i data-lucide="bell-off" width="2em" height="2em" class="mb-2"></i><p class="mb-0 small">No notifications yet</p></div>';
+        renderEmpty();
+        updateUnreadPill(0);
         return;
       }
 
-      var html = '';
+      var groups = { 'Today': [], 'Yesterday': [], 'Earlier': [] };
       notifications.forEach(function (n) {
-        var unreadClass = n.is_read ? '' : 'unread';
-        html += '<div class="notification-item ' + unreadClass + '" data-id="' + n.id + '" role="button" tabindex="0" aria-label="' + (n.title || 'Notification') + '">' +
-          '<div class="d-flex align-items-start">' +
-          '<div class="notification-type-icon ' + n.type + ' me-3">' + getTypeIcon(n.type) + '</div>' +
-          '<div class="flex-grow-1">' +
-          '<div class="notification-title">' + escapeHtml(n.title) + '</div>' +
-          '<div class="notification-message">' + escapeHtml(n.message) + '</div>' +
-          '<div class="notification-time">' + n.time_ago + (n.related_type_display ? ' \u2022 ' + n.related_type_display : '') + '</div>' +
-          '</div>' +
-          '</div>' +
-          '</div>';
+        groups[groupLabel(n.created_at)].push(n);
+      });
+
+      var html = '';
+      ['Today', 'Yesterday', 'Earlier'].forEach(function (g) {
+        if (!groups[g].length) return;
+        html += '<div class="notification-group-label">' + g + '</div>';
+        groups[g].forEach(function (n) {
+          var unreadClass = n.is_read ? '' : 'unread';
+          html += '<div class="notification-item ' + unreadClass + '" data-id="' + n.id + '" role="button" tabindex="0" aria-label="' + (n.title || 'Notification') + '">' +
+            '<div class="notification-type-icon ' + n.type + ' me-3">' + getTypeIcon(n.type) + '</div>' +
+            '<div class="notification-content">' +
+            '<div class="notification-title">' + escapeHtml(n.title) + '</div>' +
+            '<div class="notification-message">' + escapeHtml(n.message) + '</div>' +
+            '<div class="notification-meta">' +
+            '<span class="notification-time">' + n.time_ago + '</span>' +
+            (n.related_type_display ? '<span class="notification-tag">' + escapeHtml(n.related_type_display) + '</span>' : '') +
+            '</div>' +
+            '</div>' +
+            '<span class="notification-unread-dot" aria-hidden="true"></span>' +
+            '<button type="button" class="notification-mark-read" data-id="' + n.id + '" title="Mark as read" aria-label="Mark as read"><i data-lucide="check"></i></button>' +
+            '</div>';
+        });
       });
       notifList.innerHTML = html;
+      if (window.lucide) lucide.createIcons();
+
+      var unreadCount = notifications.filter(function (n) { return !n.is_read; }).length;
+      updateBadge(unreadCount);
+      updateUnreadPill(unreadCount);
 
       notifList.querySelectorAll('.notification-item').forEach(function (item) {
         function mark() {
           var id = item.dataset.id;
           markAsRead(id);
           item.classList.remove('unread');
+          var remaining = notifList.querySelectorAll('.notification-item.unread').length;
+          updateBadge(remaining);
+          updateUnreadPill(remaining);
         }
-        item.addEventListener('click', mark);
+        item.addEventListener('click', function (e) {
+          if (e.target.closest('.notification-mark-read')) return;
+          mark();
+        });
         item.addEventListener('keydown', function (e) {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             mark();
           }
         });
+        var markBtn = item.querySelector('.notification-mark-read');
+        if (markBtn) {
+          markBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            mark();
+          });
+        }
       });
     }
 
@@ -102,16 +173,18 @@
     }
 
     function fetchNotifications() {
+      renderSkeleton();
       fetch(baseUrl + '/notifications_api?action=get_notifications')
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (data.ok) {
             renderNotifications(data.notifications);
-            var unreadCount = data.notifications.filter(function (n) { return !n.is_read; }).length;
-            updateBadge(unreadCount);
+            updateBadge(data.unread_count);
+          } else {
+            renderEmpty();
           }
         })
-        .catch(function () {});
+        .catch(function () { renderEmpty(); });
     }
 
     function markAsRead(id) {
