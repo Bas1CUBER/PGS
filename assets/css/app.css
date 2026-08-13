@@ -421,6 +421,7 @@ a:hover {
     height: 18px;
     line-height: 18px;
     padding: 0 4px;
+  }
   .notification-header {
     display: flex;
     align-items: center;

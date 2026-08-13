@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $role === 'admin') {
 
 $matrix = read_matrix($jsonFile);
 
-$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/about_user_access.css') . '">';
+$pageStyles = page_css('css/pages/about_user_access.css');
 
 $pageScripts = '';
 if ($role === 'admin') {

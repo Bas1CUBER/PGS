@@ -181,7 +181,7 @@ $d2027 = array_values(array_map(fn($r)=> (int)($r['y2027'] ?? 0), $rows));
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Governance Scorecard: Reduced Preventable Adverse Events'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/resilience_roadmap_reduced_adverse_events.css') . '">';
+<?php $pageStyles = page_css('css/pages/resilience_roadmap_reduced_adverse_events.css');
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body class="d-flex flex-column min-vh-100">

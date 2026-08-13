@@ -278,7 +278,7 @@ $chartTrendTargetData = array_values(array_map(fn($y) => $targetByYear[$y] ?? 0.
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Employee engagement rating'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/culture_roadmap_employee_engagement.css') . '">';
+<?php $pageStyles = page_css('css/pages/culture_roadmap_employee_engagement.css');
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>

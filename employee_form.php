@@ -27,7 +27,7 @@ $result = $conn->query($sql);
 $pageTitle = 'Form Upload';
 
 $pageStyles = '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/employee_form.css') . '">';
+<link rel="stylesheet" href="' . page_css_href('css/pages/employee_form.css') . '">';
 
 ?>
 <!DOCTYPE html>

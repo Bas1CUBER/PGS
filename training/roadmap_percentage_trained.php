@@ -334,7 +334,7 @@ foreach ($years as $y) {
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Governance Scorecard: Percentage of SFLU TRC Personnel with direct patient care are trained by Certified Trainers'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/training_roadmap_percentage_trained.css') . '">';
+<?php $pageStyles = page_css('css/pages/training_roadmap_percentage_trained.css');
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>

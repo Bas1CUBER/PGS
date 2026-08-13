@@ -49,7 +49,7 @@ if ($tablesOk) {
     }
 }
 
-$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/impact_indicator.css') . '">';
+$pageStyles = page_css('css/pages/impact_indicator.css');
 
 ?>
 <!DOCTYPE html>
@@ -146,7 +146,7 @@ $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/im
             </div>
         </div>
     </div>
-    <?php $pgsPage = ['yearLabels' => $yearLabels, 'avgSeries' => $avgSeries, 'selectedSeries' => $selectedSeries, 'sumSeries' => $sumSeries]; ?><script>window.PGS.page = <?= json_encode($pgsPage) ?>;</script><script src="<?= asset('js/pages/impact_indicator_1.js') ?>"></script>
+    <?php $pgsPage = ['yearLabels' => $yearLabels, 'avgSeries' => $avgSeries, 'selectedSeries' => $selectedSeries, 'sumSeries' => $sumSeries]; ?><script>window.PGS.page = <?= json_encode($pgsPage) ?>;</script><script defer src="<?= asset('js/pages/impact_indicator_1.js') ?>"></script>
     <?php endif; ?>
     <div class="card shadow-sm mb-5">
         <div class="scorecard-title">IMPACT SCORECARD</div>
@@ -418,7 +418,7 @@ $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/im
 <?php endif; ?>
 
     <?php if (($_SESSION['role'] ?? null) === 'admin'): ?>
-        <?php $pgsPage = ['years' => $years]; ?><script>window.PGS.page = <?= json_encode($pgsPage) ?>;</script><script src="<?= asset('js/pages/impact_indicator_2.js') ?>"></script>
+        <?php $pgsPage = ['years' => $years]; ?><script>window.PGS.page = <?= json_encode($pgsPage) ?>;</script><script defer src="<?= asset('js/pages/impact_indicator_2.js') ?>"></script>
     <?php endif; ?>
   </div>
   <?php include PGS_TEMPLATES . '/footer.php'; ?>

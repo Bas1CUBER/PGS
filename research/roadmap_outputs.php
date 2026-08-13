@@ -130,7 +130,7 @@ $years = array_keys($yearSet); sort($years);
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Research: No. of research outputs completed, published or presented'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/research_roadmap_outputs.css') . '">';
+<?php $pageStyles = page_css('css/pages/research_roadmap_outputs.css');
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>

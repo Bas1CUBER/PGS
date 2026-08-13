@@ -186,7 +186,7 @@ foreach ($years as $y) {
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Governance Scorecard: Decreased Turnaround Time for Patient Records Retrieval'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/technology_roadmap_patient_records_turnaround.css') . '">';
+<?php $pageStyles = page_css('css/pages/technology_roadmap_patient_records_turnaround.css');
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body class="d-flex flex-column min-vh-100">

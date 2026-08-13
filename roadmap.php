@@ -214,7 +214,7 @@ try {
 $titlesJson = json_encode($titles);
 $titlesForJs = json_encode(array_map(fn($t) => ['id' => $t['id'], 'title' => $t['title']], $titles));
 $pageTitle = 'Scorecard: Roadmaps';
-$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/roadmap.css') . '">';
+$pageStyles = page_css('css/pages/roadmap.css');
 ?>
 <!DOCTYPE html>
 <html lang="en">

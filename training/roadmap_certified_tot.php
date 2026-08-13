@@ -323,7 +323,7 @@ foreach ($years as $y) {
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Governance Scorecard: No. of Certified TOT on Key Intervention Frameworks'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/training_roadmap_certified_tot.css') . '">';
+<?php $pageStyles = page_css('css/pages/training_roadmap_certified_tot.css');
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body>

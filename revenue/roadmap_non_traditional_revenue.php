@@ -159,7 +159,7 @@ $c2027 = $d2027;
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Governance Scorecard: Amount of Non-Traditional Revenue'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/revenue_roadmap_non_traditional_revenue.css') . '">';
+<?php $pageStyles = page_css('css/pages/revenue_roadmap_non_traditional_revenue.css');
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body class="d-flex flex-column min-vh-100">

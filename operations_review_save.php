@@ -88,7 +88,7 @@ function generateBasicHtml($data) {
 <head>
     <meta charset="utf-8">
     <title>Operations Review</title>
-    <link rel="stylesheet" href="' . page_or_bundle_css('css/pages/print.css') . '">
+    <link rel="stylesheet" href="' . page_css_href('css/pages/print.css') . '">
 </head>
 <body>
     <div class="header">

@@ -117,7 +117,7 @@ if ($tableExists) {
 
 $pageTitle = 'Strategy Refresh';
 
-$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/strategy_refresh.css') . '">';
+$pageStyles = page_css('css/pages/strategy_refresh.css');
 
 ?>
 <!DOCTYPE html>

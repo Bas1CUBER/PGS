@@ -150,7 +150,7 @@ $dataRows = array_values(array_filter($rows, fn($x)=> strtolower(trim($x['indica
 <!DOCTYPE html>
 <html lang="en">
 <?php $pageTitle = 'Governance Scorecard: Green Viability Rating'; ?>
-<?php $pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/resilience_roadmap_green_viability.css') . '">';
+<?php $pageStyles = page_css('css/pages/resilience_roadmap_green_viability.css');
 ?>
 <?php require PGS_TEMPLATES . '/head_module.php'; ?>
 <body class="d-flex flex-column min-vh-100">

@@ -99,3 +99,11 @@ function page_or_bundle_css(string $pageCss): string
     }
     return '<link rel="stylesheet" href="' . asset($pageCss) . '">';
 }
+
+// CSS URL only (for building <link> tags inside PHP strings):
+// page css in dev, the built bundle in prod
+function page_css_href(string $pageCss): string
+{
+    $path = css_mode() === 'prod' ? 'css/all.css' : $pageCss;
+    return asset($path);
+}

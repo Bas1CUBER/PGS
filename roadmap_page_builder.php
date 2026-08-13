@@ -224,7 +224,7 @@ try {
 
 $pageTitle    = h($item['sub_label']);
 $sectionTitle = h($item['title_label']);
-$pageStyles = '<link rel="stylesheet" href="' . page_or_bundle_css('css/pages/roadmap_page_builder.css') . '">';
+$pageStyles = page_css('css/pages/roadmap_page_builder.css');
 ?>
 <!DOCTYPE html>
 <html lang="en">
