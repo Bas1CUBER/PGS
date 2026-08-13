@@ -1,24 +1,41 @@
 # Local Development
 
-Getting a working PGS dev environment on a new machine — the "README quickstart" for engineers. Docker is the blessed path; a native fallback is documented for machines where Docker is unavailable.
+Getting a working PGS dev environment on a new machine — the "README quickstart" for engineers.
+
+> **This machine (TRC DOH dev box):** native XAMPP stack only — **Docker is not used**. Apache service must not be restarted without the machine owner's go-ahead; use `php artisan serve` for the new app until the `pgs.app` vhost is activated.
 
 ---
 
-## 1. Prerequisites
+## 1. Prerequisites (native XAMPP path — blessed on this machine)
 
 | Tool | Version | Notes |
 |---|---|---|
-| Git | ≥ 2.40 | |
-| Docker Desktop (or engine + compose) | ≥ 24 | Blessed path |
-| PHP CLI | 8.4 (native fallback only) | not needed with Docker |
-| Composer | 2.x (native fallback only) | |
-| Node | 22 LTS (native fallback only) | |
-| MySQL client | any (native fallback only) | |
+| XAMPP | current (PHP 8.2, MariaDB 10.4, Apache) | PHP must be on PATH or use `C:\xampp\php\php.exe` |
+| Composer | 2.x | |
+| Node | 22 LTS+ | npm bundled |
 
-## 2. Blessed path (Docker)
+## 2. Native setup (blessed on this machine)
 
 ```bash
-git clone <repo> pgs && cd pgs/app          # new Laravel app directory
+cd app
+composer install
+npm ci
+cp .env.example .env
+# edit DB_* to local MariaDB (DB: pgs_app, user root)
+php artisan key:generate
+php artisan migrate
+php artisan serve          # dev server — http://127.0.0.1:8000 (or 8082 vhost when activated)
+npm run dev                # Vite hot reload (second terminal)
+```
+
+Requires PHP 8.2+ (XAMPP) with `pdo_mysql`, `gd`, `intl`, `zip`, `exif` extensions; MariaDB running.
+
+> Apache vhost `pgs.app` on `127.0.0.1:8082` is written to `httpd-vhosts.conf` but dormant — it activates only after an Apache restart (coordinated with the machine owner). Until then use `php artisan serve`.
+
+## 3. Docker (documented for reference only — NOT used on this machine)
+
+```bash
+git clone <repo> pgs && cd pgs/app
 cp .env.example .env
 docker compose up -d                        # app, nginx, mysql, redis, mailpit, horizon, scheduler
 docker compose exec app php artisan key:generate
@@ -30,20 +47,6 @@ docker compose exec app npm ci && docker compose exec app npm run dev
 - `docker compose exec app php artisan test` — run the suite.
 - `docker compose exec app php artisan horizon` already runs via service.
 - Hot reload: `npm run dev`; production assets: `npm run build`.
-
-## 3. Native fallback (no Docker)
-
-```bash
-composer install
-npm ci
-cp .env.example .env
-# edit DB_* to local MySQL; MAIL_MAILER=smtp MAIL_HOST=localhost MAIL_PORT=1025
-php artisan key:generate
-php artisan migrate --seed
-npm run dev
-```
-
-Requires local PHP 8.4 with `pdo_mysql, redis, gd, intl, zip, exif` extensions; `redis-server` running; `mailpit` (or disable mail in dev).
 
 ## 4. Day-to-day commands
 

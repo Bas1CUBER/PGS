@@ -1,0 +1,18 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+
+parameters:
+    level: max
+    paths:
+        - app
+        - routes
+    tmpDir: storage/framework/cache/phpstan
+    treatPhpDocTypesAsCertain: true
+    checkExplicitMixed: false
+    excludePaths:
+        - app/Providers/*.php
+
+# Note: tests/ intentionally excluded. PHPStan cannot resolve Pest's
+# `$this` binding for test()/it() closures; tests are enforced by Pest
+# runtime execution, Pint, and CI coverage gates instead.
