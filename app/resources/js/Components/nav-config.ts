@@ -20,9 +20,15 @@ export interface PageAccess {
 }
 
 /**
- * Top-navbar menu groups — mirrors the legacy navbar.php structure
- * (dropdown menus across the top, no sidebar). Gated groups follow the
- * per-user page access rows; admins see everything.
+ * Top-navbar menu groups — mirrors the legacy navbar.php structure exactly:
+ * labels, submenu items, order, and per-role visibility.
+ *
+ * - Gated groups (Roadmaps, Scorecard, Performance Assessment, Cascading,
+ *   Governance) are hidden unless the user's access matrix row enables them
+ *   (no row → full access, like the legacy default).
+ * - Organization and About are public for every logged-in user.
+ * - Admins get the extra "Others" group; employees and focals get the
+ *   direct Survey link (legacy behavior).
  */
 export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
     const can = (gate: keyof PageAccess): boolean => user.role === 'admin' || pageAccess[gate];
@@ -32,15 +38,22 @@ export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
             title: 'Roadmaps',
             gate: 'roadmaps',
             items: [
-                { title: 'Sector Roadmaps', href: '/sectors' },
-                { title: 'Roadmaps', href: '/roadmaps' },
-                { title: 'Deliverables', href: '/deliverables' },
+                { title: 'Collaborative Healthcare Management', href: '/sectors/collab' },
+                { title: 'Research', href: '/sectors/research' },
+                { title: 'Training', href: '/sectors/training' },
+                { title: 'Culture of Organization', href: '/sectors/culture' },
+                { title: 'Resilience', href: '/sectors/resilience' },
+                { title: 'Technology', href: '/sectors/technology' },
+                { title: 'Revenue', href: '/sectors/revenue' },
             ],
         },
         {
             title: 'Scorecard',
             gate: 'scorecard',
-            items: [{ title: 'Impact Scorecard', href: '/impact-scorecard' }],
+            items: [
+                { title: 'Roadmap', href: '/roadmaps' },
+                { title: 'Impact Indicator', href: '/impact-scorecard' },
+            ],
         },
         {
             title: 'Performance Assessment',
@@ -99,12 +112,11 @@ export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
         groups.push({
             title: 'Others',
             items: [
+                { title: 'Deadline Controls', href: '/deadlines' },
+                { title: 'Notice', href: '/notices' },
                 { title: 'User Management', href: '/users' },
-                { title: 'Deadlines', href: '/deadlines' },
-                { title: 'Notices', href: '/notices' },
-                { title: 'Backups', href: '/backups' },
-                { title: 'Mailbox', href: '/mailbox' },
-                { title: 'Audit Log', href: '/audit-logs' },
+                { title: 'Backup and Restore', href: '/backups' },
+                { title: 'Survey', href: '/surveys' },
             ],
         });
     }

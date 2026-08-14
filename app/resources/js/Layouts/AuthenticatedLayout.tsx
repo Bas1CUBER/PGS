@@ -35,12 +35,9 @@ function deadlineState(
     } as const;
 }
 
-function quickLinks(): { title: string; href: string }[] {
-    return [
-        { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Uploads', href: '/uploads' },
-        { title: 'Surveys', href: '/surveys' },
-    ];
+function quickLinks(user: { role: string }): { title: string; href: string }[] {
+    // Legacy: employees and focals get a direct Survey link after the menus.
+    return user.role === 'admin' ? [] : [{ title: 'Survey', href: '/surveys' }];
 }
 
 export default function Authenticated({
@@ -66,6 +63,7 @@ export default function Authenticated({
     }
 
     const groups = navGroupsFor(user, pageAccess);
+    const links = quickLinks(user);
     const initials = (user.name ?? user.email).slice(0, 2).toUpperCase();
 
     return (
@@ -86,20 +84,6 @@ export default function Authenticated({
                         className="ml-6 hidden items-center gap-1 xl:flex"
                         aria-label="Main navigation"
                     >
-                        {quickLinks().map((link) => (
-                            <Button
-                                key={link.href}
-                                asChild
-                                variant="ghost"
-                                className={cn(
-                                    'text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground',
-                                    isRouteActive(link.href) && 'bg-primary-foreground/15',
-                                )}
-                            >
-                                <Link href={link.href}>{link.title}</Link>
-                            </Button>
-                        ))}
-
                         {groups.map((group) => (
                             <DropdownMenu key={group.title}>
                                 <DropdownMenuTrigger asChild>
@@ -125,6 +109,21 @@ export default function Authenticated({
                                     ))}
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                        ))}
+
+                        {/* Legacy: direct Survey link for employees and focals */}
+                        {links.map((link) => (
+                            <Button
+                                key={link.href}
+                                asChild
+                                variant="ghost"
+                                className={cn(
+                                    'text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground',
+                                    isRouteActive(link.href) && 'bg-primary-foreground/15',
+                                )}
+                            >
+                                <Link href={link.href}>{link.title}</Link>
+                            </Button>
                         ))}
                     </nav>
 
@@ -180,10 +179,7 @@ export default function Authenticated({
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
-                                    <Link href="/profile">Profile</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href="/notifications">Notifications</Link>
+                                    <Link href="/profile">Change Password</Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
@@ -191,9 +187,9 @@ export default function Authenticated({
                                         href="/logout"
                                         method="post"
                                         as="button"
-                                        className="w-full"
+                                        className="text-destructive w-full"
                                     >
-                                        Log out
+                                        Logout
                                     </Link>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -221,7 +217,7 @@ export default function Authenticated({
                             className="space-y-4 px-4 py-4 xl:hidden"
                             aria-label="Mobile navigation"
                         >
-                            {quickLinks().map((link) => (
+                            {links.map((link) => (
                                 <Link
                                     key={link.href}
                                     href={link.href}
