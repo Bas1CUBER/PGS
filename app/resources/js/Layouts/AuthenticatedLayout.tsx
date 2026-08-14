@@ -278,7 +278,10 @@ export default function Authenticated({
                 </div>
             )}
 
-            <main className="flex-1 p-4 lg:p-6">{children}</main>
+            <main className="flex-1 p-4 lg:p-6">
+                {header && <div className="mb-4">{header}</div>}
+                {children}
+            </main>
         </div>
     );
 }
