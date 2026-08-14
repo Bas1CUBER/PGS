@@ -1,101 +1,117 @@
-import type { LucideIcon } from 'lucide-react';
-import {
-    Bell,
-    Camera,
-    ClipboardList,
-    Database,
-    FileText,
-    FolderOpen,
-    Home,
-    LayoutDashboard,
-    LayoutList,
-    LogIn,
-    Megaphone,
-    ScrollText,
-    Share2,
-    Target,
-    Timer,
-    Users,
-    Inbox,
-} from 'lucide-react';
 import type { User } from '@/types';
 
 export interface NavItem {
     title: string;
     href: string;
-    icon: LucideIcon;
 }
 
-export interface NavSection {
+export interface NavGroup {
     title: string;
+    gate?: keyof PageAccess;
     items: NavItem[];
 }
 
+export interface PageAccess {
+    roadmaps: boolean;
+    scorecard: boolean;
+    performance_assessment: boolean;
+    cascading: boolean;
+    governance: boolean;
+}
+
 /**
- * Role-aware navigation — single source of truth for the sidebar.
- * Module entries for roadmaps/deliverables/scorecard land here in Phase 5-6
- * as their pages ship.
+ * Top-navbar menu groups — mirrors the legacy navbar.php structure
+ * (dropdown menus across the top, no sidebar). Gated groups follow the
+ * per-user page access rows; admins see everything.
  */
-export function navigationFor(user: User): NavSection[] {
-    const sections: NavSection[] = [
+export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
+    const can = (gate: keyof PageAccess): boolean => user.role === 'admin' || pageAccess[gate];
+
+    const groups: NavGroup[] = [
         {
-            title: 'Overview',
+            title: 'Roadmaps',
+            gate: 'roadmaps',
             items: [
-                { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-                { title: 'Notifications', href: '/notifications', icon: Bell },
+                { title: 'Sector Roadmaps', href: '/sectors' },
+                { title: 'Roadmaps', href: '/roadmaps' },
+                { title: 'Deliverables', href: '/deliverables' },
             ],
         },
         {
-            title: 'Modules',
+            title: 'Scorecard',
+            gate: 'scorecard',
+            items: [{ title: 'Impact Scorecard', href: '/impact-scorecard' }],
+        },
+        {
+            title: 'Performance Assessment',
+            gate: 'performance_assessment',
             items: [
-                { title: 'Deliverables', href: '/deliverables', icon: FileText },
-                { title: 'Roadmaps', href: '/roadmaps', icon: LayoutList },
-                { title: 'Sector Roadmaps', href: '/sectors', icon: LayoutList },
-                { title: 'Uploads', href: '/uploads', icon: FolderOpen },
-                { title: 'Communication Plan', href: '/communication-plan', icon: Share2 },
-                { title: 'Gallery', href: '/gallery', icon: Camera },
-                { title: 'Impact Scorecard', href: '/impact-scorecard', icon: Target },
-                { title: 'Surveys', href: '/surveys', icon: ClipboardList },
-                { title: 'Notices', href: '/notices', icon: Megaphone },
+                { title: 'Operations Review', href: '/uploads/operations-review' },
+                { title: 'Strategy Review', href: '/uploads/strategy-review' },
+                { title: 'Strategy Refresh', href: '/uploads/strategy-refresh' },
             ],
         },
         {
-            title: 'Account',
-            items: [{ title: 'Profile', href: '/profile', icon: Home }],
+            title: 'Cascading',
+            gate: 'cascading',
+            items: [
+                { title: 'Communication Plan', href: '/communication-plan' },
+                { title: 'Cascading Activities', href: '/uploads/cascading-activities' },
+                { title: 'Resources', href: '/uploads/resources' },
+                { title: 'Gallery', href: '/gallery' },
+            ],
+        },
+        {
+            title: 'Governance',
+            gate: 'governance',
+            items: [
+                { title: 'Governance Culture', href: '/uploads/governance-culture' },
+                { title: 'Governance Sharing', href: '/uploads/governance-sharing' },
+            ],
+        },
+        {
+            title: 'Organization',
+            items: [
+                {
+                    title: 'Office for Strategy Management',
+                    href: '/content/office-for-strategy-management',
+                },
+                { title: 'PGS Core Team', href: '/content/pgs-core-team' },
+                {
+                    title: 'Multi-Sector Governance System',
+                    href: '/content/multi-sector-governance',
+                },
+            ],
+        },
+        {
+            title: 'About',
+            items: [
+                { title: 'Charter Statements', href: '/content/about-charter-statements' },
+                { title: 'Strategic Position', href: '/content/about-strategic-position' },
+                { title: 'Strategy Map', href: '/content/about-strategy-map' },
+                { title: 'PGS Pathway', href: '/content/about-pgs-pathway' },
+                { title: 'User Access', href: '/content/about-user-access' },
+            ],
         },
     ];
 
     if (user.role === 'admin') {
-        sections.push({
-            title: 'Administration',
+        groups.push({
+            title: 'Others',
             items: [
-                { title: 'User Management', href: '/users', icon: Users },
-                { title: 'Deadlines', href: '/deadlines', icon: Timer },
-                { title: 'Backups', href: '/backups', icon: Database },
-                { title: 'Mailbox', href: '/mailbox', icon: Inbox },
-                { title: 'Audit Log', href: '/audit-logs', icon: ScrollText },
+                { title: 'User Management', href: '/users' },
+                { title: 'Deadlines', href: '/deadlines' },
+                { title: 'Notices', href: '/notices' },
+                { title: 'Backups', href: '/backups' },
+                { title: 'Mailbox', href: '/mailbox' },
+                { title: 'Audit Log', href: '/audit-logs' },
             ],
         });
     }
 
-    sections.push({
-        title: 'Content',
-        items: [
-            { title: 'Strategy Map', href: '/content/about-strategy-map', icon: Home },
-            { title: 'PGS Core Team', href: '/content/pgs-core-team', icon: Users },
-            { title: 'About PGS', href: '/content/about-pgs-pathway', icon: LayoutList },
-        ],
-    });
-
-    return sections;
-}
-
-export function guestNavItems(): NavItem[] {
-    return [{ title: 'Sign in', href: '/login', icon: LogIn }];
+    return groups.filter((group) => group.gate === undefined || can(group.gate));
 }
 
 export function isRouteActive(href: string): boolean {
     return route().current() === href.replace(/^\//, '');
 }
-
-export { FileText };

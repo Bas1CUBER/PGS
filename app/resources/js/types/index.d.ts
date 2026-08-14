@@ -21,6 +21,14 @@ export interface FlashMessages {
     info?: string;
 }
 
+export interface PageAccess {
+    roadmaps: boolean;
+    scorecard: boolean;
+    performance_assessment: boolean;
+    cascading: boolean;
+    governance: boolean;
+}
+
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {
     auth: {
         // Nullable: guests see `auth.user = null` (Welcome page).
@@ -28,5 +36,6 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
     };
     unreadCount: number;
     deadline: DeadlineState | null;
+    pageAccess: PageAccess;
     flash: FlashMessages;
 };
