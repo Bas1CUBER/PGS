@@ -4,11 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>404 - Not found</title>
-    <style>
+    <style nonce="{{ request()->attributes->get('csp_nonce') }}">
         :root { --primary: #0b4aa2; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+            font-family: 'Geist', sans-serif;
             background: #f8fafc;
             color: #0f172a;
             min-height: 100vh;
@@ -42,7 +42,7 @@
     <div class="card">
         <h1>404</h1>
         <p>The page you're looking for doesn't exist or has moved.</p>
-        <a href="{{ url('/dashboard') }}">Back to Dashboard</a>
+        <a href="/dashboard">Back to Dashboard</a>
     </div>
 </body>
 </html>

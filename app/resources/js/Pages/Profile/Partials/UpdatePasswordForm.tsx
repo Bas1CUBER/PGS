@@ -18,7 +18,7 @@ export default function UpdatePasswordForm() {
     const updatePassword = (e: { preventDefault(): void }) => {
         e.preventDefault();
 
-        put(route('password.update'), {
+        put(route('password.update', undefined, false), {
             preserveScroll: true,
             onSuccess: () => {
                 reset();
@@ -99,7 +99,9 @@ export default function UpdatePasswordForm() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Button disabled={processing}>{processing ? 'Saving…' : 'Save'}</Button>
+                    <Button loading={processing} loadingText="Saving" disabled={processing}>
+                        Save
+                    </Button>
 
                     {recentlySuccessful && (
                         <p className="text-muted-foreground flex items-center gap-1 text-sm">

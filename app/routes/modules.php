@@ -8,7 +8,7 @@ use App\Http\Controllers\RoadmapController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function (): void {
-    Route::middleware('auth')->group(function (): void {
+    Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('/deliverables', [DeliverableController::class, 'index'])->name('deliverables.index');
         Route::get('/deliverables/create', [DeliverableController::class, 'create'])->name('deliverables.create');
         Route::post('/deliverables', [DeliverableController::class, 'store'])
@@ -43,8 +43,11 @@ Route::middleware('web')->group(function (): void {
             ->middleware('page.access:roadmaps')->name('roadmaps.blocks.destroy');
 
         Route::get('/notices', [NoticeController::class, 'index'])->name('notices.index');
-        Route::post('/notices', [NoticeController::class, 'store'])->name('notices.store');
-        Route::put('/notices/{notice}', [NoticeController::class, 'update'])->name('notices.update');
-        Route::delete('/notices/{notice}', [NoticeController::class, 'destroy'])->name('notices.destroy');
+        Route::get('/notices/{notice}/{kind}', [NoticeController::class, 'media'])->name('notices.media');
+        Route::middleware('role:admin,focal')->group(function (): void {
+            Route::post('/notices', [NoticeController::class, 'store'])->name('notices.store');
+            Route::put('/notices/{notice}', [NoticeController::class, 'update'])->name('notices.update');
+            Route::delete('/notices/{notice}', [NoticeController::class, 'destroy'])->name('notices.destroy');
+        });
     });
 });

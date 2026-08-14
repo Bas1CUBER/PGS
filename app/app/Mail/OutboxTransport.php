@@ -13,8 +13,8 @@ use Symfony\Component\Mime\RawMessage;
 
 /**
  * LAN mail transport: stores outgoing messages in the `outbox_mails`
- * table instead of sending over SMTP (no mail server on the LAN host).
- * Admins read the mailbox page; password reset links work end-to-end.
+ * table instead of sending over SMTP. Admins can read the mailbox page when
+ * the local outbox mailer is selected.
  */
 final class OutboxTransport implements TransportInterface
 {

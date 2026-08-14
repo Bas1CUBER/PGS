@@ -224,10 +224,13 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                             </div>
 
                             <div className="flex justify-end">
-                                <Button type="submit" disabled={processing}>
-                                    {processing
-                                        ? 'CreatingÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦'
-                                        : 'Create user'}
+                                <Button
+                                    type="submit"
+                                    loading={processing}
+                                    loadingText="Creating"
+                                    disabled={processing}
+                                >
+                                    Create user
                                 </Button>
                             </div>
                         </form>
@@ -256,6 +259,8 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                                 <Button
                                     variant="outline"
                                     size="sm"
+                                    loading={importing}
+                                    loadingText="Checking"
                                     disabled={importFile === null || importing}
                                     onClick={() => void runImport(true)}
                                 >
@@ -263,6 +268,8 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                                 </Button>
                                 <Button
                                     size="sm"
+                                    loading={importing}
+                                    loadingText="Importing"
                                     disabled={importFile === null || importing}
                                     onClick={() => void runImport(false)}
                                 >
@@ -275,8 +282,7 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                         {importReport !== null && (
                             <div className="space-y-2 rounded-md border p-4 text-sm">
                                 <p className="font-medium">
-                                    {importReport.total} rows ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â·{' '}
-                                    {importReport.created} created
+                                    {importReport.total} rows · {importReport.created} created
                                 </p>
                                 {importReport.errors.length > 0 && (
                                     <ul className="space-y-1">

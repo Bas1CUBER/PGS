@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { PageProps, User } from '@/types';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface EditUserPageProps extends PageProps {
     user: User & { page_access: Record<string, boolean> | null };
@@ -38,6 +39,7 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
         office: user.office ?? '',
         is_active: user.is_active,
     });
+    const { isPending, start, finish } = usePendingAction();
 
     function submit(e: { preventDefault(): void }): void {
         e.preventDefault();
@@ -45,11 +47,39 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
     }
 
     function saveAccess(): void {
+        start('access');
         router.put(
             `/users/${String(user.id)}/access`,
             { ...accessState },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish('access');
+                },
+            },
         );
+    }
+
+    function toggleAccount(): void {
+        start('toggle');
+        router.post(
+            `/users/${String(user.id)}/toggle`,
+            {},
+            {
+                onFinish: () => {
+                    finish('toggle');
+                },
+            },
+        );
+    }
+
+    function deleteAccount(): void {
+        start('delete');
+        router.delete(`/users/${String(user.id)}`, {
+            onFinish: () => {
+                finish('delete');
+            },
+        });
     }
 
     return (
@@ -178,10 +208,13 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
                             </label>
 
                             <div className="flex justify-end">
-                                <Button type="submit" disabled={processing}>
-                                    {processing
-                                        ? 'SavingÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦'
-                                        : 'Save changes'}
+                                <Button
+                                    type="submit"
+                                    loading={processing}
+                                    loadingText="Saving"
+                                    disabled={processing}
+                                >
+                                    Save changes
                                 </Button>
                             </div>
                         </form>
@@ -223,7 +256,13 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
                             ))}
                         </div>
                         <div className="flex justify-end">
-                            <Button variant="outline" size="sm" onClick={saveAccess}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                loading={isPending('access')}
+                                loadingText="Saving"
+                                onClick={saveAccess}
+                            >
                                 Save access
                             </Button>
                         </div>
@@ -241,18 +280,18 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                                router.post(`/users/${String(user.id)}/toggle`);
-                            }}
+                            loading={isPending('toggle')}
+                            loadingText="Updating"
+                            onClick={toggleAccount}
                         >
                             {user.is_active ? 'Deactivate account' : 'Activate account'}
                         </Button>
                         <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => {
-                                router.delete(`/users/${String(user.id)}`);
-                            }}
+                            loading={isPending('delete')}
+                            loadingText="Deleting"
+                            onClick={deleteAccount}
                         >
                             Delete user
                         </Button>

@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 it('lists the sector modules', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
 
     $this->actingAs($user)
         ->get('/sectors')
@@ -18,7 +18,7 @@ it('lists the sector modules', function (): void {
 });
 
 it('shows a sector module with its data', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
     DB::table('culture')->insert([
         'category' => 'Patient Safety Culture',
         'year' => 2025,
@@ -45,7 +45,7 @@ it('shows a sector module with its data', function (): void {
 });
 
 it('rejects unknown sector slugs', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
 
     $this->actingAs($user)
         ->get('/sectors/not-a-pillar')
@@ -53,7 +53,7 @@ it('rejects unknown sector slugs', function (): void {
 });
 
 it('updates a sector indicator row', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
     $id = DB::table('collab')->insertGetId([
         'category' => 'Partnerships',
         'year' => 2025,
@@ -73,7 +73,7 @@ it('updates a sector indicator row', function (): void {
 });
 
 it('updates sector progress with audit', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
     $id = DB::table('resilience_progress')->insertGetId([
         'category' => 'Disaster Preparedness',
         'year' => 2025,

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { PageProps } from '@/types';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface CommPlanRow {
     id: number;
@@ -19,10 +20,13 @@ interface CommPlanRow {
     requirements: string | null;
     responsible_person: string | null;
     status: string;
+    created_by?: number | null;
 }
 
 interface CommPlanPageProps extends PageProps {
     rows: CommPlanRow[];
+    userId?: number;
+    canManage: boolean;
 }
 
 const statusStyles: Record<string, string> = {
@@ -31,7 +35,7 @@ const statusStyles: Record<string, string> = {
     'Not Accomplished/Started': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
 };
 
-export default function CommPlanIndex({ rows }: CommPlanPageProps) {
+export default function CommPlanIndex({ rows, userId, canManage }: CommPlanPageProps) {
     const [objective, setObjective] = useState('');
     const [channel, setChannel] = useState('');
     const [timeframe, setTimeframe] = useState('');
@@ -40,9 +44,12 @@ export default function CommPlanIndex({ rows }: CommPlanPageProps) {
     const [audience, setAudience] = useState('');
     const [requirements, setRequirements] = useState('');
     const [editing, setEditing] = useState<CommPlanRow | null>(null);
+    const { isPending, start, finish } = usePendingAction();
+    const canEdit = (row: CommPlanRow): boolean => canManage || row.created_by === userId;
 
     function create(e: { preventDefault(): void }): void {
         e.preventDefault();
+        start('create');
         router.post(
             '/communication-plan',
             {
@@ -54,7 +61,12 @@ export default function CommPlanIndex({ rows }: CommPlanPageProps) {
                 target_audience: audience,
                 requirements,
             },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish('create');
+                },
+            },
         );
         setObjective('');
         setChannel('');
@@ -79,6 +91,7 @@ export default function CommPlanIndex({ rows }: CommPlanPageProps) {
     function saveEdit(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (editing === null) return;
+        start('save');
         router.put(
             `/communication-plan/${String(editing.id)}`,
             {
@@ -90,14 +103,23 @@ export default function CommPlanIndex({ rows }: CommPlanPageProps) {
                 target_audience: audience,
                 requirements,
             },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEditing(null);
+                },
+                onFinish: () => {
+                    finish('save');
+                },
+            },
         );
-        setEditing(null);
     }
 
     function setStatus(id: number, status: string): void {
         const row = rows.find((r) => r.id === id);
         if (row === undefined) return;
+        const action = `status:${String(id)}`;
+        start(action);
         router.put(
             `/communication-plan/${String(id)}`,
             {
@@ -110,8 +132,23 @@ export default function CommPlanIndex({ rows }: CommPlanPageProps) {
                 responsible_person: row.responsible_person,
                 status,
             },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish(action);
+                },
+            },
         );
+    }
+
+    function deleteRow(id: number): void {
+        const action = `delete:${String(id)}`;
+        start(action);
+        router.delete(`/communication-plan/${String(id)}`, {
+            onFinish: () => {
+                finish(action);
+            },
+        });
     }
 
     const formFields = (
@@ -229,7 +266,11 @@ export default function CommPlanIndex({ rows }: CommPlanPageProps) {
                                         Cancel
                                     </Button>
                                 )}
-                                <Button type="submit">
+                                <Button
+                                    type="submit"
+                                    loading={isPending(editing === null ? 'create' : 'save')}
+                                    loadingText={editing === null ? 'Adding' : 'Saving'}
+                                >
                                     <Plus className="size-4" />
                                     {editing === null ? 'Add row' : 'Save changes'}
                                 </Button>
@@ -268,12 +309,16 @@ export default function CommPlanIndex({ rows }: CommPlanPageProps) {
                                                     row.responsible_person,
                                                 ]
                                                     .filter(Boolean)
-                                                    .join(' Ã‚Â· ') || 'Ã¢â‚¬â€'}
+                                                    .join(' · ') || '—'}
                                             </p>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
                                             <select
                                                 value={row.status}
+                                                disabled={
+                                                    !canEdit(row) ||
+                                                    isPending(`status:${String(row.id)}`)
+                                                }
                                                 onChange={(e) => {
                                                     setStatus(row.id, e.target.value);
                                                 }}
@@ -290,27 +335,31 @@ export default function CommPlanIndex({ rows }: CommPlanPageProps) {
                                             >
                                                 {row.status}
                                             </Badge>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => {
-                                                    openEdit(row);
-                                                }}
-                                            >
-                                                Edit
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-destructive hover:text-destructive"
-                                                onClick={() => {
-                                                    router.delete(
-                                                        `/communication-plan/${String(row.id)}`,
-                                                    );
-                                                }}
-                                            >
-                                                <Trash2 className="size-4" />
-                                            </Button>
+                                            {canEdit(row) && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        openEdit(row);
+                                                    }}
+                                                >
+                                                    Edit
+                                                </Button>
+                                            )}
+                                            {canEdit(row) && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    loading={isPending(`delete:${String(row.id)}`)}
+                                                    loadingText=""
+                                                    className="text-destructive hover:text-destructive"
+                                                    onClick={() => {
+                                                        deleteRow(row.id);
+                                                    }}
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </li>

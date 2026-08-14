@@ -1,14 +1,15 @@
 <?php
 
 use App\Http\Middleware\CanAccessPageMiddleware;
+use App\Http\Middleware\EnsureActiveUserMiddleware;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LegacyRedirectMiddleware;
+use App\Http\Middleware\OptionalCanAccessPageMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -30,14 +31,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             LegacyRedirectMiddleware::class,
+            EnsureActiveUserMiddleware::class,
             HandleInertiaRequests::class,
             SecurityHeadersMiddleware::class,
-            AddLinkHeadersForPreloadedAssets::class,
         ]);
 
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'page.access' => CanAccessPageMiddleware::class,
+            'page.access.optional' => OptionalCanAccessPageMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -112,10 +112,13 @@ function DeadlineCard({ deadline }: { deadline: DeadlineRow }) {
                     </div>
 
                     <div className="flex justify-end">
-                        <Button type="submit" disabled={processing}>
-                            {processing
-                                ? 'SavingÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦'
-                                : 'Save deadline'}
+                        <Button
+                            type="submit"
+                            loading={processing}
+                            loadingText="Saving"
+                            disabled={processing}
+                        >
+                            Save deadline
                         </Button>
                     </div>
                 </form>

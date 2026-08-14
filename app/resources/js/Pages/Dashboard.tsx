@@ -16,6 +16,8 @@ interface DashboardData {
         title: string | null;
         description: string | null;
         created_at: string;
+        image_url: string | null;
+        video_url: string | null;
     }[];
     deliverables?: {
         id: number;
@@ -49,6 +51,36 @@ const statIcons: Record<string, typeof Users> = {
     deliverables_ongoing: Timer,
 };
 
+const statDetails: Record<string, { trend: string; detail: string }> = {
+    users_total: { trend: 'Total', detail: 'Registered accounts' },
+    users_active: { trend: 'Active', detail: 'Currently enabled' },
+    deliverables_total: { trend: 'Total', detail: 'Across all modules' },
+    notices_total: { trend: 'Published', detail: 'Published notices' },
+    pending_approvals: { trend: 'Pending', detail: 'Awaiting review' },
+    unread_notifications: { trend: 'Unread', detail: 'Needs attention' },
+    deliverables_accomplished: { trend: 'Complete', detail: 'Successfully delivered' },
+    deliverables_ongoing: { trend: 'Ongoing', detail: 'Currently in progress' },
+};
+
+const statTones: Record<string, 'blue' | 'green' | 'violet' | 'amber' | 'red'> = {
+    users_total: 'blue',
+    users_active: 'green',
+    deliverables_total: 'violet',
+    notices_total: 'amber',
+    pending_approvals: 'red',
+    unread_notifications: 'blue',
+    deliverables_accomplished: 'green',
+    deliverables_ongoing: 'amber',
+};
+
+const statSparkHeights = [35, 52, 42, 68, 57, 78];
+
+function formatStatLabel(key: string): string {
+    const label = key.replace(/_/g, ' ');
+
+    return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export default function Dashboard({ dashboard }: DashboardPageProps) {
     const { auth } = usePage().props;
     const user = auth.user;
@@ -67,7 +99,7 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
             <Head title="Dashboard" />
 
             <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#0b4aa2] via-[#0d5bd1] to-[#1e88e5] p-6 text-white shadow-lg sm:p-8">
+                <div className="pgs-dashboard-hero relative overflow-hidden rounded-xl p-6 text-white sm:p-8">
                     <div className="pointer-events-none absolute -top-20 -right-16 size-64 rounded-full bg-white/10 blur-2xl" />
                     <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
@@ -97,18 +129,35 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {Object.entries(dashboard.stats).map(([key, value]) => {
                         const Icon = statIcons[key] ?? FileText;
+                        const details = statDetails[key] ?? {
+                            trend: 'Current',
+                            detail: 'Current total',
+                        };
 
                         return (
-                            <Card key={key}>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">
-                                        {key.replace(/_/g, ' ')}
-                                    </CardTitle>
-                                    <Icon className="text-muted-foreground size-4" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{String(value)}</div>
-                                </CardContent>
+                            <Card
+                                key={key}
+                                className="pgs-stat-card"
+                                data-stat-tone={statTones[key] ?? 'blue'}
+                            >
+                                <div className="pgs-stat-header">
+                                    <span className="pgs-stat-icon" aria-hidden="true">
+                                        <Icon size={18} />
+                                    </span>
+                                    <span className="pgs-stat-trend">{details.trend}</span>
+                                </div>
+                                <div className="pgs-stat-value">
+                                    <CardTitle>{formatStatLabel(key)}</CardTitle>
+                                    <strong>{String(value)}</strong>
+                                </div>
+                                <div className="pgs-stat-footer">
+                                    <span>{details.detail}</span>
+                                    <span className="pgs-stat-spark" aria-hidden="true">
+                                        {statSparkHeights.map((_, index) => (
+                                            <i key={`${key}-spark-${String(index)}`} />
+                                        ))}
+                                    </span>
+                                </div>
                             </Card>
                         );
                     })}
@@ -124,18 +173,18 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                                         Awaiting review across modules
                                     </CardDescription>
                                 </CardHeader>
-                                <CardContent className="p-0">
+                                <CardContent className="pt-0">
                                     {(dashboard.pending_approvals_list ?? []).length === 0 ? (
-                                        <p className="text-muted-foreground px-6 pb-6 text-sm">
+                                        <p className="pgs-empty-state text-muted-foreground px-0 pb-6 text-sm">
                                             Nothing pending. All caught up.
                                         </p>
                                     ) : (
-                                        <ul className="divide-y">
+                                        <ul className="pgs-dashboard-list">
                                             {(dashboard.pending_approvals_list ?? []).map(
                                                 (item, i) => (
                                                     <li
                                                         key={i}
-                                                        className="flex items-center justify-between gap-3 px-6 py-3"
+                                                        className="flex items-center justify-between gap-3 py-3"
                                                     >
                                                         <div className="min-w-0">
                                                             <p className="truncate text-sm font-medium">
@@ -164,17 +213,17 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                                 <CardHeader>
                                     <CardTitle>Recent uploads</CardTitle>
                                 </CardHeader>
-                                <CardContent className="p-0">
+                                <CardContent className="pt-0">
                                     {(dashboard.recent_uploads ?? []).length === 0 ? (
-                                        <p className="text-muted-foreground px-6 pb-6 text-sm">
+                                        <p className="pgs-empty-state text-muted-foreground px-0 pb-6 text-sm">
                                             No uploads yet.
                                         </p>
                                     ) : (
-                                        <ul className="divide-y">
+                                        <ul className="pgs-dashboard-list">
                                             {(dashboard.recent_uploads ?? []).map((item, i) => (
                                                 <li
                                                     key={i}
-                                                    className="flex items-center justify-between gap-3 px-6 py-3"
+                                                    className="flex items-center justify-between gap-3 py-3"
                                                 >
                                                     <div className="min-w-0">
                                                         <p className="truncate text-sm font-medium">
@@ -202,17 +251,17 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                                 <CardHeader>
                                     <CardTitle>My deliverables</CardTitle>
                                 </CardHeader>
-                                <CardContent className="p-0">
+                                <CardContent className="pt-0">
                                     {(dashboard.deliverables ?? []).length === 0 ? (
-                                        <p className="text-muted-foreground px-6 pb-6 text-sm">
+                                        <p className="pgs-empty-state text-muted-foreground px-0 pb-6 text-sm">
                                             No deliverables yet.
                                         </p>
                                     ) : (
-                                        <ul className="divide-y">
+                                        <ul className="pgs-dashboard-list">
                                             {(dashboard.deliverables ?? []).map((item) => (
                                                 <li
                                                     key={item.id}
-                                                    className="flex items-center justify-between gap-3 px-6 py-3"
+                                                    className="flex items-center justify-between gap-3 py-3"
                                                 >
                                                     <div className="min-w-0">
                                                         <p className="truncate text-sm font-medium">
@@ -246,15 +295,15 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                                 <CardHeader>
                                     <CardTitle>Recent notifications</CardTitle>
                                 </CardHeader>
-                                <CardContent className="p-0">
+                                <CardContent className="pt-0">
                                     {(dashboard.recent_notifications ?? []).length === 0 ? (
-                                        <p className="text-muted-foreground px-6 pb-6 text-sm">
+                                        <p className="pgs-empty-state text-muted-foreground px-0 pb-6 text-sm">
                                             No notifications yet.
                                         </p>
                                     ) : (
-                                        <ul className="divide-y">
+                                        <ul className="pgs-dashboard-list">
                                             {(dashboard.recent_notifications ?? []).map((item) => (
-                                                <li key={item.id} className="px-6 py-3">
+                                                <li key={item.id} className="py-3">
                                                     <p className="text-sm font-medium">
                                                         <span className="text-muted-foreground capitalize">
                                                             [{item.type}]{' '}
@@ -274,7 +323,7 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                     )}
                 </div>
 
-                {isAdmin && (dashboard.notices ?? []).length > 0 && (
+                {(dashboard.notices ?? []).length > 0 && (
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Latest notices</CardTitle>
@@ -282,10 +331,10 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                                 <Link href="/notices">View all</Link>
                             </Button>
                         </CardHeader>
-                        <CardContent className="p-0">
-                            <ul className="divide-y">
+                        <CardContent className="pt-0">
+                            <ul className="pgs-dashboard-list">
                                 {(dashboard.notices ?? []).map((notice) => (
-                                    <li key={notice.notice_id} className="px-6 py-3">
+                                    <li key={notice.notice_id} className="py-3">
                                         <p className="text-sm font-medium">
                                             {notice.title ?? 'Untitled'}
                                         </p>
@@ -293,6 +342,24 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                                             <p className="text-muted-foreground line-clamp-1 text-xs">
                                                 {notice.description}
                                             </p>
+                                        )}
+                                        {(notice.image_url !== null ||
+                                            notice.video_url !== null) && (
+                                            <div className="mt-2 flex gap-2">
+                                                {notice.image_url !== null && (
+                                                    <img
+                                                        src={notice.image_url}
+                                                        alt=""
+                                                        className="size-12 rounded object-cover"
+                                                    />
+                                                )}
+                                                {notice.video_url !== null && (
+                                                    <video
+                                                        src={notice.video_url}
+                                                        className="size-12 rounded object-cover"
+                                                    />
+                                                )}
+                                            </div>
                                         )}
                                     </li>
                                 ))}

@@ -1,4 +1,4 @@
-import GuestLayout from '@/Layouts/GuestLayout';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { MailCheck, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,11 @@ export default function VerifyEmail({ status }: { status?: string }) {
     const submit = (e: { preventDefault(): void }) => {
         e.preventDefault();
 
-        post(route('verification.send'));
+        post(route('verification.send', undefined, false));
     };
 
     return (
-        <GuestLayout>
+        <AuthenticatedLayout>
             <Head title="Email Verification" />
 
             <h2 className="text-xl font-bold text-gray-900">Verify your email</h2>
@@ -30,14 +30,20 @@ export default function VerifyEmail({ status }: { status?: string }) {
             )}
 
             <form onSubmit={submit} className="space-y-4">
-                <Button type="submit" className="w-full" disabled={processing}>
+                <Button
+                    type="submit"
+                    className="w-full"
+                    loading={processing}
+                    loadingText="Sending"
+                    disabled={processing}
+                >
                     <Send className="size-4" />
-                    {processing ? 'Sending…' : 'Resend verification email'}
+                    Resend verification email
                 </Button>
 
                 <p className="text-center text-sm text-gray-500">
                     <Link
-                        href={route('logout')}
+                        href={route('logout', undefined, false)}
                         method="post"
                         as="button"
                         className="text-primary hover:underline"
@@ -46,6 +52,6 @@ export default function VerifyEmail({ status }: { status?: string }) {
                     </Link>
                 </p>
             </form>
-        </GuestLayout>
+        </AuthenticatedLayout>
     );
 }

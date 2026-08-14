@@ -43,12 +43,12 @@ it('blocks employees from modules disabled in their matrix', function (): void {
         ->assertForbidden();
 });
 
-it('defaults to full access when no matrix row exists', function (): void {
+it('denies access when no matrix row exists', function (): void {
     $user = User::factory()->employee()->create();
 
     $this->actingAs($user)
         ->get('/access-check/governance')
-        ->assertOk();
+        ->assertForbidden();
 });
 
 it('caches the access matrix for 60 seconds', function (): void {

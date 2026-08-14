@@ -14,7 +14,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -33,7 +32,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Vite::prefetch(concurrency: 3);
+        if ($this->app->isProduction() && blank(config('backup.backup.password'))) {
+            throw new \RuntimeException('BACKUP_ARCHIVE_PASSWORD must be configured in production.');
+        }
 
         // PGS password policy: min 12 chars; breached-password check against
         // HaveIBeenPwned only in production (requires network).
@@ -52,7 +53,19 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by((string) $request->input('email').'|'.$request->ip());
         });
 
-        // LAN mail: no SMTP server on the host — messages land in outbox_mails.
+        RateLimiter::for('password-reset-verify', function (Request $request): Limit {
+            return Limit::perMinute(10)->by('ip:'.$request->ip().'|session:'.$request->session()->getId());
+        });
+
+        RateLimiter::for('password-reset-resend', function (Request $request): Limit {
+            return Limit::perMinute(3)->by('ip:'.$request->ip().'|session:'.$request->session()->getId());
+        });
+
+        RateLimiter::for('password-reset-change', function (Request $request): Limit {
+            return Limit::perMinute(5)->by('ip:'.$request->ip().'|session:'.$request->session()->getId());
+        });
+
+        // Local fallback mailer: messages land in outbox_mails when selected.
         Mail::extend('outbox', fn (): OutboxTransport => new OutboxTransport);
 
         // Upload/create throttling: 30 submissions per minute per user.

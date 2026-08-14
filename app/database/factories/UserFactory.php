@@ -76,4 +76,21 @@ class UserFactory extends Factory
             'is_active' => false,
         ]);
     }
+
+    /**
+     * Grant every module in the page-access matrix (needed for routes gated
+     * by `page.access:*` since access is deny-by-default).
+     */
+    public function withPageAccess(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $user->pageAccess()->create([
+                'roadmaps' => true,
+                'scorecard' => true,
+                'performance_assessment' => true,
+                'cascading' => true,
+                'governance' => true,
+            ]);
+        });
+    }
 }

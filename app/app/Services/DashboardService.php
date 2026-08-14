@@ -48,7 +48,10 @@ final class DashboardService
             'notices' => Notice::query()
                 ->orderByDesc('created_at')
                 ->limit(5)
-                ->get(['notice_id', 'title', 'description', 'created_at']),
+                ->get(['notice_id', 'title', 'description', 'image', 'video', 'created_at'])
+                ->map(fn (Notice $notice): array => $this->presentNotice($notice))
+                ->values()
+                ->all(),
         ];
     }
 
@@ -65,6 +68,7 @@ final class DashboardService
             ],
             'recent_uploads' => $this->recentUploads(),
             'pending_approvals_list' => $this->pendingApprovals(10),
+            'notices' => $this->latestNotices(),
         ];
     }
 
@@ -94,6 +98,34 @@ final class DashboardService
                 ->orderByDesc('created_at')
                 ->limit(5)
                 ->get(['id', 'type', 'title', 'message', 'is_read', 'created_at']),
+            'notices' => $this->latestNotices(),
+        ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function latestNotices(): array
+    {
+        $notices = Notice::query()
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get(['notice_id', 'title', 'description', 'image', 'video', 'created_at'])
+            ->map(fn (Notice $notice): array => $this->presentNotice($notice))
+            ->values()
+            ->all();
+
+        return array_values($notices);
+    }
+
+    /** @return array<string, mixed> */
+    private function presentNotice(Notice $notice): array
+    {
+        return [
+            'notice_id' => $notice->notice_id,
+            'title' => $notice->title,
+            'description' => $notice->description,
+            'created_at' => $notice->created_at,
+            'image_url' => $notice->image !== null ? route('notices.media', [$notice, 'image'], absolute: false) : null,
+            'video_url' => $notice->video !== null ? route('notices.media', [$notice, 'video'], absolute: false) : null,
         ];
     }
 

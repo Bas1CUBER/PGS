@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { useState } from 'react';
 import type { PageProps } from '@/types';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface BackupRow {
     disk: string;
@@ -36,12 +37,23 @@ function formatBytes(bytes: number): string {
 
 export default function BackupsIndex({ backups }: BackupsPageProps) {
     const [creating, setCreating] = useState(false);
+    const { isPending, start, finish } = usePendingAction();
 
     function createBackup(): void {
         setCreating(true);
         router.post('/backups', undefined, {
             onFinish: () => {
                 setCreating(false);
+            },
+        });
+    }
+
+    function deleteBackup(backup: BackupRow): void {
+        const action = `delete:${backup.path}`;
+        start(action);
+        router.delete(`/backups/${backup.disk}/${backup.path}`, {
+            onFinish: () => {
+                finish(action);
             },
         });
     }
@@ -58,9 +70,14 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
                         <Database className="size-5" />
                         <p className="text-sm">Database-only snapshots stored on the local disk.</p>
                     </div>
-                    <Button onClick={createBackup} disabled={creating}>
-                        <RefreshCw className={creating ? 'size-4 animate-spin' : 'size-4'} />
-                        {creating ? 'CreatingÃ¢â‚¬Â¦' : 'Create backup'}
+                    <Button
+                        onClick={createBackup}
+                        loading={creating}
+                        loadingText="Creating"
+                        disabled={creating}
+                    >
+                        <RefreshCw className="size-4" />
+                        Create backup
                     </Button>
                 </div>
 
@@ -82,7 +99,7 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
                             <TableBody>
                                 {backups.map((backup) => (
                                     <TableRow key={backup.path}>
-                                        <TableCell className="font-mono text-xs">
+                                        <TableCell className="font-sans text-xs">
                                             {backup.path.split('/').pop()}
                                         </TableCell>
                                         <TableCell className="text-muted-foreground text-sm">
@@ -110,10 +127,10 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
                                                     size="sm"
                                                     className="text-destructive hover:text-destructive"
                                                     aria-label="Delete backup"
+                                                    loading={isPending(`delete:${backup.path}`)}
+                                                    loadingText=""
                                                     onClick={() => {
-                                                        router.delete(
-                                                            `/backups/${backup.disk}/${backup.path}`,
-                                                        );
+                                                        deleteBackup(backup);
                                                     }}
                                                 >
                                                     <Trash2 className="size-4" />
@@ -128,7 +145,7 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
                                             colSpan={4}
                                             className="text-muted-foreground py-10 text-center"
                                         >
-                                            No backups yet Ã¢â‚¬â€ create your first snapshot.
+                                            No backups yet — create your first snapshot.
                                         </TableCell>
                                     </TableRow>
                                 )}

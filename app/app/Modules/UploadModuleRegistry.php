@@ -13,7 +13,7 @@ namespace App\Modules;
 final class UploadModuleRegistry
 {
     /**
-     * @return array<string, array{label: string, table: string, has_title: bool, has_description: bool, has_status: bool, status_values: list<string>|null, uploader_fk: string, uploader_label: string, singular: string}>
+     * @return array<string, array{label: string, table: string, has_title: bool, has_description: bool, has_status: bool, status_values: list<string>|null, uploader_fk: string, uploader_label: string, singular: string, templates?: list<array{label: string, file: string, preview: bool}>}>
      */
     public static function modules(): array
     {
@@ -46,7 +46,7 @@ final class UploadModuleRegistry
                 'has_title' => true,
                 'has_description' => true,
                 'has_status' => true,
-                'status_values' => ['Pending', 'In Progress', 'Approved', 'Returned'],
+                'status_values' => ['In Progress', 'Approved', 'Returned'],
                 'uploader_fk' => 'employee_id',
                 'uploader_label' => 'Uploaded by',
                 'singular' => 'document',
@@ -57,7 +57,7 @@ final class UploadModuleRegistry
                 'has_title' => true,
                 'has_description' => true,
                 'has_status' => true,
-                'status_values' => ['Pending', 'In Progress', 'Approved', 'Returned'],
+                'status_values' => ['In Progress', 'Approved', 'Returned'],
                 'uploader_fk' => 'employee_id',
                 'uploader_label' => 'Uploaded by',
                 'singular' => 'document',
@@ -72,6 +72,7 @@ final class UploadModuleRegistry
                 'uploader_fk' => 'employee_id',
                 'uploader_label' => 'Submitted by',
                 'singular' => 'submission',
+                'templates' => [['label' => 'Operations Review Template and Process Flow', 'file' => 'TRC-LU OPERATIONS REVIEW TEMPLATE AND PROCESS FLOW.pdf', 'preview' => true]],
             ],
             'strategy-review' => [
                 'label' => 'Strategy Review',
@@ -83,6 +84,10 @@ final class UploadModuleRegistry
                 'uploader_fk' => 'employee_id',
                 'uploader_label' => 'Submitted by',
                 'singular' => 'submission',
+                'templates' => [
+                    ['label' => 'Strategy Review Template', 'file' => 'strategy_review_template.docx', 'preview' => false],
+                    ['label' => 'Strategy Review Template and Process Flow', 'file' => 'TRC-LU STRATEGY REVIEW TEMPLATE AND PROCESS FLOW.pdf', 'preview' => true],
+                ],
             ],
             'strategy-refresh' => [
                 'label' => 'Strategy Refresh',
@@ -105,12 +110,16 @@ final class UploadModuleRegistry
                 'uploader_fk' => 'employee_id',
                 'uploader_label' => 'Submitted by',
                 'singular' => 'submission',
+                'templates' => [
+                    ['label' => 'Communication Plan Template (PDF)', 'file' => 'Communication Plan Updated.docx.pdf', 'preview' => true],
+                    ['label' => 'Communication Plan Template (DOCX)', 'file' => 'COMMUNICATION PLAN TEMPLATE.docx', 'preview' => false],
+                ],
             ],
         ];
     }
 
     /**
-     * @return array{slug: string, label: string, table: string, has_title: bool, has_description: bool, has_status: bool, status_values: list<string>|null, uploader_fk: string, uploader_label: string, singular: string}|null
+     * @return array{slug: string, label: string, table: string, has_title: bool, has_description: bool, has_status: bool, status_values: list<string>|null, uploader_fk: string, uploader_label: string, singular: string, templates?: list<array{label: string, file: string, preview: bool}>}|null
      */
     public static function find(string $slug): ?array
     {

@@ -162,9 +162,14 @@ export default function DeliverableCreate({ statuses }: DeliverableFormPageProps
                             </div>
 
                             <div className="flex justify-end">
-                                <Button type="submit" disabled={processing}>
+                                <Button
+                                    type="submit"
+                                    loading={processing}
+                                    loadingText="Saving"
+                                    disabled={processing}
+                                >
                                     <Upload className="size-4" />
-                                    {processing ? 'Savingâ€¦' : 'Save deliverable'}
+                                    Save deliverable
                                 </Button>
                             </div>
                         </form>

@@ -1,4 +1,4 @@
-import GuestLayout from '@/Layouts/GuestLayout';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ export default function ConfirmPassword() {
     const submit = (e: { preventDefault(): void }) => {
         e.preventDefault();
 
-        post(route('password.confirm'), {
+        post(route('password.confirm', undefined, false), {
             onFinish: () => {
                 reset('password');
             },
@@ -21,7 +21,7 @@ export default function ConfirmPassword() {
     };
 
     return (
-        <GuestLayout>
+        <AuthenticatedLayout>
             <Head title="Confirm Password" />
 
             <h2 className="text-xl font-bold text-gray-900">Confirm your password</h2>
@@ -50,11 +50,17 @@ export default function ConfirmPassword() {
                     )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={processing}>
+                <Button
+                    type="submit"
+                    className="w-full"
+                    loading={processing}
+                    loadingText="Confirming"
+                    disabled={processing}
+                >
                     <ShieldCheck className="size-4" />
-                    {processing ? 'Confirming…' : 'Confirm'}
+                    Confirm
                 </Button>
             </form>
-        </GuestLayout>
+        </AuthenticatedLayout>
     );
 }

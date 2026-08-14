@@ -10,6 +10,7 @@ use App\Models\User;
 
 it('lists roadmaps with titles and items', function (): void {
     $user = User::factory()->employee()->create();
+    $user->pageAccess()->create(['roadmaps' => true, 'scorecard' => false, 'performance_assessment' => false, 'cascading' => false, 'governance' => false]);
     $title = RoadmapTitle::query()->create(['title' => 'Governance', 'sort_order' => 1]);
     RoadmapItem::query()->create(['title_id' => $title->id, 'sub_letter' => 'A', 'sub_label' => 'Item A', 'page_slug' => 'item-a', 'sort_order' => 1]);
 
@@ -40,6 +41,7 @@ it('enforces the page access matrix on roadmaps', function (): void {
 
 it('creates a title and item', function (): void {
     $user = User::factory()->employee()->create();
+    $user->pageAccess()->create(['roadmaps' => true, 'scorecard' => false, 'performance_assessment' => false, 'cascading' => false, 'governance' => false]);
 
     $this->actingAs($user)
         ->post('/roadmaps/titles', ['title' => 'New Section'])
@@ -57,6 +59,7 @@ it('creates a title and item', function (): void {
 
 it('creates and updates blocks with JSON content', function (): void {
     $user = User::factory()->employee()->create();
+    $user->pageAccess()->create(['roadmaps' => true, 'scorecard' => false, 'performance_assessment' => false, 'cascading' => false, 'governance' => false]);
     $title = RoadmapTitle::query()->create(['title' => 'Section', 'sort_order' => 1]);
     $item = RoadmapItem::query()->create(['title_id' => $title->id, 'sub_letter' => 'A', 'sub_label' => 'Item', 'page_slug' => 'item', 'sort_order' => 1]);
 
@@ -83,6 +86,7 @@ it('creates and updates blocks with JSON content', function (): void {
 
 it('reorders items within a title', function (): void {
     $user = User::factory()->employee()->create();
+    $user->pageAccess()->create(['roadmaps' => true, 'scorecard' => false, 'performance_assessment' => false, 'cascading' => false, 'governance' => false]);
     $title = RoadmapTitle::query()->create(['title' => 'Section', 'sort_order' => 1]);
     $a = RoadmapItem::query()->create(['title_id' => $title->id, 'sub_letter' => 'A', 'sub_label' => 'A', 'page_slug' => 'a', 'sort_order' => 1]);
     $b = RoadmapItem::query()->create(['title_id' => $title->id, 'sub_letter' => 'B', 'sub_label' => 'B', 'page_slug' => 'b', 'sort_order' => 2]);
@@ -97,6 +101,7 @@ it('reorders items within a title', function (): void {
 
 it('deletes an item with its blocks', function (): void {
     $user = User::factory()->employee()->create();
+    $user->pageAccess()->create(['roadmaps' => true, 'scorecard' => false, 'performance_assessment' => false, 'cascading' => false, 'governance' => false]);
     $title = RoadmapTitle::query()->create(['title' => 'Section', 'sort_order' => 1]);
     $item = RoadmapItem::query()->create(['title_id' => $title->id, 'sub_letter' => 'A', 'sub_label' => 'A', 'page_slug' => 'a', 'sort_order' => 1]);
     RoadmapBlock::query()->create(['item_id' => $item->id, 'block_type' => RoadmapBlockType::Paragraph->value, 'sort_order' => 1, 'content' => []]);

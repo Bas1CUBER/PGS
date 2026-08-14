@@ -5,9 +5,20 @@ export interface NavItem {
     href: string;
 }
 
+const commonUtilityLinks: NavItem[] = [
+    { title: 'Profile', href: '/profile' },
+    { title: 'Notifications', href: '/notifications' },
+];
+
+const adminUtilityLinks: NavItem[] = [
+    { title: 'Audit Log', href: '/audit-logs' },
+    { title: 'Mailbox', href: '/mailbox' },
+];
+
 export interface NavGroup {
     title: string;
     gate?: keyof PageAccess;
+    href?: string;
     items: NavItem[];
 }
 
@@ -25,7 +36,7 @@ export interface PageAccess {
  *
  * - Gated groups (Roadmaps, Scorecard, Performance Assessment, Cascading,
  *   Governance) are hidden unless the user's access matrix row enables them
- *   (no row → full access, like the legacy default).
+ *   (no row → denied by default; admins must grant access).
  * - Organization and About are public for every logged-in user.
  * - Admins get the extra "Others" group; employees and focals get the
  *   direct Survey link (legacy behavior).
@@ -37,6 +48,7 @@ export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
         {
             title: 'Roadmaps',
             gate: 'roadmaps',
+            href: '/sectors',
             items: [
                 { title: 'Collaborative Healthcare Management', href: '/sectors/collab' },
                 { title: 'Research', href: '/sectors/research' },
@@ -59,8 +71,12 @@ export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
             title: 'Performance Assessment',
             gate: 'performance_assessment',
             items: [
-                { title: 'Operations Review', href: '/uploads/operations-review' },
+                { title: 'Operations Review', href: '/operations-review' },
                 { title: 'Strategy Review', href: '/uploads/strategy-review' },
+                { title: 'Strategy Review Form', href: '/strategy-review' },
+                { title: 'Annex B — Strategy Map', href: '/annex/annex-b' },
+                { title: 'Annex D — Performance Targets', href: '/annex/annex-d' },
+                { title: 'Annex E — Quarterly Targets', href: '/annex/annex-e' },
                 { title: 'Strategy Refresh', href: '/uploads/strategy-refresh' },
             ],
         },
@@ -117,6 +133,7 @@ export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
                 { title: 'User Management', href: '/users' },
                 { title: 'Backup and Restore', href: '/backups' },
                 { title: 'Survey', href: '/surveys' },
+                { title: 'OPCR', href: '/opcr' },
             ],
         });
     }
@@ -124,6 +141,27 @@ export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
     return groups.filter((group) => group.gate === undefined || can(group.gate));
 }
 
-export function isRouteActive(href: string): boolean {
+/**
+ * Utility destinations available to the authenticated user.
+ * Keep this list role-aware because it feeds both breadcrumbs and the
+ * Ctrl+K palette; backend middleware remains the final authorization layer.
+ */
+export function utilityLinksFor(user: User): NavItem[] {
+    return user.role === 'admin'
+        ? [...commonUtilityLinks, ...adminUtilityLinks]
+        : commonUtilityLinks;
+}
+
+export function isRouteActive(href: string, currentUrl?: string): boolean {
+    if (currentUrl !== undefined) {
+        const currentPath = currentUrl.split('?')[0].replace(/\/+$/, '') || '/';
+        const targetPath = href.split('?')[0].replace(/\/+$/, '') || '/';
+
+        return (
+            currentPath === targetPath ||
+            (targetPath !== '/' && currentPath.startsWith(`${targetPath}/`))
+        );
+    }
+
     return route().current() === href.replace(/^\//, '');
 }

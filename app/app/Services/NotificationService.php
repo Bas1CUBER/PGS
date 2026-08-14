@@ -21,7 +21,11 @@ final class NotificationService
         string $message,
         ?int $relatedId = null,
         ?string $relatedType = null,
-    ): Notification {
+    ): ?Notification {
+        if (! User::query()->whereKey($userId)->exists()) {
+            return null;
+        }
+
         return Notification::query()->create([
             'user_id' => $userId,
             'type' => $type->value,
@@ -45,6 +49,18 @@ final class NotificationService
         ?int $relatedId = null,
         ?string $relatedType = null,
     ): int {
+        $userIds = array_values(array_unique(array_map(static fn (int $id): int => $id, $userIds)));
+
+        if ($userIds === []) {
+            return 0;
+        }
+
+        $userIds = User::query()
+            ->whereIn('id', $userIds)
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
+
         if ($userIds === []) {
             return 0;
         }
@@ -61,7 +77,7 @@ final class NotificationService
                 'is_read' => 0,
                 'created_at' => $now,
             ],
-            array_values(array_unique($userIds)),
+            $userIds,
         );
 
         return DB::table('notifications')->insertOrIgnore($rows);
@@ -97,6 +113,33 @@ final class NotificationService
             $relatedId,
             $relatedType,
         );
+    }
+
+    /**
+     * Create notifications for several roles, excluding the actor who caused
+     * the event. This keeps workflow notices useful without notifying the
+     * submitter about their own action.
+     *
+     * @param  list<string>  $roles
+     */
+    public function createForRolesExcept(
+        array $roles,
+        int $exceptUserId,
+        NotificationType $type,
+        string $title,
+        string $message,
+        ?int $relatedId = null,
+        ?string $relatedType = null,
+    ): int {
+        $ids = User::query()
+            ->whereIn('role', $roles)
+            ->where('is_active', true)
+            ->where('id', '<>', $exceptUserId)
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
+
+        return $this->createForMany(array_values($ids), $type, $title, $message, $relatedId, $relatedType);
     }
 
     public function unreadCount(int $userId): int

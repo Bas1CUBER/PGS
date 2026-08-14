@@ -14,6 +14,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -76,6 +77,7 @@ final class UserController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make((string) $validated['password']),
+                'email_verified_at' => now(),
                 'role' => $validated['role'],
                 'office' => $validated['office'] ?? null,
                 'is_active' => true,
@@ -156,6 +158,8 @@ final class UserController extends Controller
             $matrix,
         );
 
+        Cache::forget("pgs_access_{$user->id}");
+
         $this->audit->record(
             $this->userOrFail($request)->id,
             'user.access_updated',
@@ -192,6 +196,8 @@ final class UserController extends Controller
 
         $email = $user->email;
         $user->delete();
+
+        Cache::forget("pgs_access_{$user->id}");
 
         $this->audit->record(
             $this->userOrFail($request)->id,
@@ -248,6 +254,7 @@ final class UserController extends Controller
                     'name' => $row['name'],
                     'email' => $row['email'],
                     'password' => Hash::make($row['password']),
+                    'email_verified_at' => now(),
                     'role' => $row['role'],
                     'office' => $row['office'] !== '' ? $row['office'] : null,
                     'is_active' => true,

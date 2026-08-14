@@ -35,7 +35,7 @@ export default function MailboxShow({ mail }: MailboxShowPageProps) {
                 </Button>
 
                 <Card>
-                    <CardContent className="space-y-3 p-6">
+                    <CardContent className="space-y-3 p-6 pt-0">
                         <div className="text-muted-foreground flex items-center gap-2 text-sm">
                             <Mail className="size-4" />
                             <span>
@@ -45,10 +45,9 @@ export default function MailboxShow({ mail }: MailboxShowPageProps) {
                             </span>
                         </div>
                         {mail.body ? (
-                            <div
-                                className="prose prose-sm dark:prose-invert max-w-none border-t pt-4"
-                                dangerouslySetInnerHTML={{ __html: mail.body }}
-                            />
+                            <div className="prose prose-sm dark:prose-invert max-w-none border-t pt-4 whitespace-pre-wrap">
+                                {mail.body}
+                            </div>
                         ) : (
                             <p className="text-muted-foreground border-t pt-4 text-sm">
                                 No body content.

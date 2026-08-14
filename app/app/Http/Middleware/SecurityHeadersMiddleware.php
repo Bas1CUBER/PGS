@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\Response;
 
 final class SecurityHeadersMiddleware
@@ -15,6 +16,10 @@ final class SecurityHeadersMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $nonce = base64_encode(random_bytes(16));
+        $request->attributes->set('csp_nonce', $nonce);
+        Vite::useCspNonce($nonce);
+
         $response = $next($request);
 
         $response->headers->set('X-Frame-Options', 'DENY');
@@ -26,11 +31,11 @@ final class SecurityHeadersMiddleware
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
-        // CSP in report-only until Phase 8 audit passes; Vite nonce support
-        // lands with the enforced header (docs/Security.md Â§4).
+        // Enforced CSP with a per-request nonce; active React paths avoid
+        // lands with the enforced header (docs/Security.md §4).
         $response->headers->set(
-            'Content-Security-Policy-Report-Only',
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+            'Content-Security-Policy',
+            "default-src 'self'; script-src 'self' 'nonce-{$nonce}'; style-src 'self' 'nonce-{$nonce}'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
         );
 
         return $response;

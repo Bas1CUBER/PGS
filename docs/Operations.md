@@ -65,7 +65,7 @@ Weekly (manual 15 min): slow-query log review, failed job review, backup restore
 | Frequency | Task |
 |---|---|
 | Daily | Automated health check (above) |
-| Weekly | Slow-query review, failed-job review, restore spot drill, Dependabot review |
+| Weekly | **Log review** (`storage/logs/laravel-*.log`): read all new `ERROR`/`WARNING` entries, correlate with Apache access log, chase root cause to zero unexplained errors (Phase 8 gate); slow-query review, failed-job review, restore spot drill, Dependabot review |
 | Monthly | Full restore drill, dependency drift report, KPI review (Roadmap §6) |
 | Quarterly | Manual Lighthouse pass, audit-log retention review, backup restore test |
 

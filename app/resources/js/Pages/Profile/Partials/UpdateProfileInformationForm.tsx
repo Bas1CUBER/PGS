@@ -25,7 +25,7 @@ export default function UpdateProfileInformation({
     const submit = (e: { preventDefault(): void }) => {
         e.preventDefault();
 
-        patch(route('profile.update'));
+        patch(route('profile.update', undefined, false));
     };
 
     return (
@@ -73,7 +73,7 @@ export default function UpdateProfileInformation({
                         <p className="text-muted-foreground text-sm">
                             Your email address is unverified.{' '}
                             <Link
-                                href={route('verification.send')}
+                                href={route('verification.send', undefined, false)}
                                 method="post"
                                 as="button"
                                 className="text-primary hover:underline"
@@ -91,7 +91,9 @@ export default function UpdateProfileInformation({
                 )}
 
                 <div className="flex items-center gap-3">
-                    <Button disabled={processing}>{processing ? 'Saving…' : 'Save'}</Button>
+                    <Button loading={processing} loadingText="Saving" disabled={processing}>
+                        Save
+                    </Button>
 
                     {recentlySuccessful && (
                         <p className="text-muted-foreground flex items-center gap-1 text-sm">

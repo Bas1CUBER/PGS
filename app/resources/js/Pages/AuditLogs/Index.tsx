@@ -14,6 +14,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import type { PageProps } from '@/types';
+import { relativeInternalUrl } from '@/lib/relative-url';
 
 interface AuditLogRow {
     id: number;
@@ -61,7 +62,7 @@ export default function AuditLogsIndex({ logs, filters }: AuditLogsPageProps) {
                             onChange={(e) => {
                                 setAction(e.target.value);
                             }}
-                            placeholder="Filter by actionÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"
+                            placeholder="Filter by action…"
                             className="pl-9"
                             aria-label="Filter audit log"
                         />
@@ -91,9 +92,7 @@ export default function AuditLogsIndex({ logs, filters }: AuditLogsPageProps) {
                                         </TableCell>
                                         <TableCell>
                                             <p className="text-sm font-medium">
-                                                {log.user?.name ??
-                                                    log.user?.email ??
-                                                    'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â'}
+                                                {log.user?.name ?? log.user?.email ?? '—'}
                                             </p>
                                         </TableCell>
                                         <TableCell>
@@ -105,8 +104,8 @@ export default function AuditLogsIndex({ logs, filters }: AuditLogsPageProps) {
                                             {log.resource_type}
                                             {log.resource_id !== null ? ` #${log.resource_id}` : ''}
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground font-mono text-xs">
-                                            {log.ip_address ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â'}
+                                        <TableCell className="text-muted-foreground font-sans text-xs">
+                                            {log.ip_address ?? '—'}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -135,7 +134,7 @@ export default function AuditLogsIndex({ logs, filters }: AuditLogsPageProps) {
                                         variant={link.active ? 'default' : 'ghost'}
                                         size="sm"
                                     >
-                                        <Link href={link.url}>
+                                        <Link href={relativeInternalUrl(link.url) ?? '#'}>
                                             {link.label.replace(/&laquo;|&raquo;/g, '')}
                                         </Link>
                                     </Button>

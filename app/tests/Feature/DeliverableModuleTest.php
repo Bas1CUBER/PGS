@@ -79,7 +79,7 @@ it('updates a deliverable', function (): void {
         ->assertRedirect('/deliverables');
 
     expect($deliverable->fresh()->title)->toBe('New title')
-        ->and($deliverable->fresh()->status)->toBe(DeliverableStatus::Accomplished);
+        ->and($deliverable->fresh()->status)->toBe(DeliverableStatus::Ongoing);
 });
 
 it('denies updates to other employees deliverables', function (): void {

@@ -21,7 +21,6 @@
 # Database files
 /.freebuff/
 *.sql
-!planning.sql
 
 # PHPUnit / caching
 /.phpunit.cache/

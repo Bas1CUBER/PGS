@@ -44,9 +44,17 @@ SESSION_SECURE_COOKIE=false
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 
-MAIL_MAILER=log            # no mail server on the LAN host; reset links logged
+MAIL_MAILER=smtp           # Gmail SMTP for six-digit password reset codes
+MAIL_SCHEME=smtp           # STARTTLS on port 587
+MAIL_ENCRYPTION=tls
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=             # Gmail account
+MAIL_PASSWORD=             # Gmail app password; keep this server-side
 MAIL_FROM_ADDRESS="pgs@example.ph"
 MAIL_FROM_NAME="${APP_NAME}"
+
+# Use MAIL_MAILER=outbox for LAN-only local preview instead of sending email.
 
 FILESYSTEM_DISK=local
 PRIVATE_DISK=uploads
@@ -54,6 +62,7 @@ BACKUP_DISK=local          # LAN host disk; S3 only if provisioned later
 BACKUP_RETENTION_DAILY=14
 BACKUP_RETENTION_WEEKLY=8
 BACKUP_RETENTION_MONTHLY=12
+BACKUP_ARCHIVE_PASSWORD=       # required in production; use a strong secret
 
 UPLOAD_MAX_SIZE_MB=25
 UPLOAD_WHITELIST="pdf,docx,xlsx,pptx,jpg,jpeg,png,zip"

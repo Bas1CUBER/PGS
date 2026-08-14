@@ -1,18 +1,24 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, FileText, LayoutList, Plus, Save, Trash2 } from 'lucide-react';
+import {
+    ArrowDown,
+    ArrowUp,
+    BarChart3,
+    FileText,
+    LayoutList,
+    Plus,
+    Save,
+    Trash2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import type { PageProps } from '@/types';
+import { usePendingAction } from '@/hooks/use-pending-action';
+import { PgsStatCard, type PgsStatTone } from '@/components/pgs-stat-card';
 
 interface RoadmapBlock {
     id: number;
@@ -42,6 +48,121 @@ interface RoadmapsPageProps extends PageProps {
 
 const blockTypes = ['heading', 'paragraph', 'table', 'dashboard_stat'];
 
+function contentText(content: Record<string, unknown>, key: string, fallback: string): string {
+    const value = content[key];
+
+    return typeof value === 'string' || typeof value === 'number' ? String(value) : fallback;
+}
+
+function contentTone(content: Record<string, unknown>): PgsStatTone {
+    const tone = content.tone;
+
+    return tone === 'green' || tone === 'violet' || tone === 'amber' || tone === 'red'
+        ? tone
+        : 'blue';
+}
+
+function RoadmapStatPreview({ block }: { block: RoadmapBlock }) {
+    if (block.block_type !== 'dashboard_stat') return null;
+
+    return (
+        <PgsStatCard
+            compact
+            label={contentText(block.content, 'label', 'Untitled stat')}
+            value={contentText(block.content, 'value', '0')}
+            icon={<BarChart3 className="size-5" />}
+            status="Configured"
+            detail="Roadmap page builder"
+            tone={contentTone(block.content)}
+        />
+    );
+}
+
+function RoadmapBlockPreview({ block }: { block: RoadmapBlock }) {
+    if (block.block_type === 'dashboard_stat') return <RoadmapStatPreview block={block} />;
+
+    if (block.block_type === 'heading') {
+        return (
+            <h3 className="font-dot-gothic text-lg">
+                {contentText(
+                    block.content,
+                    'text',
+                    contentText(block.content, 'title', 'Untitled section'),
+                )}
+            </h3>
+        );
+    }
+
+    if (block.block_type === 'paragraph') {
+        return (
+            <p className="text-muted-foreground text-sm leading-6 whitespace-pre-wrap">
+                {contentText(
+                    block.content,
+                    'text',
+                    contentText(block.content, 'body', 'No paragraph content yet.'),
+                )}
+            </p>
+        );
+    }
+
+    if (block.block_type === 'table') {
+        const columns = Array.isArray(block.content.columns)
+            ? block.content.columns.filter((column): column is string => typeof column === 'string')
+            : [];
+        const rows = Array.isArray(block.content.rows)
+            ? block.content.rows.filter(
+                  (row): row is Record<string, unknown> => typeof row === 'object' && row !== null,
+              )
+            : [];
+
+        return columns.length > 0 ? (
+            <div data-slot="table-container" className="relative w-full overflow-x-auto">
+                <table data-slot="table" className="w-full text-left text-sm">
+                    <thead data-slot="table-header">
+                        <tr data-slot="table-row">
+                            {columns.map((column) => (
+                                <th
+                                    key={column}
+                                    data-slot="table-head"
+                                    className="border-b px-2 py-2 font-semibold"
+                                >
+                                    {column}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody data-slot="table-body">
+                        {rows.map((row, index) => (
+                            <tr
+                                key={index}
+                                data-slot="table-row"
+                                className="border-b last:border-0"
+                            >
+                                {columns.map((column) => (
+                                    <td key={column} data-slot="table-cell" className="px-2 py-2">
+                                        {typeof row[column] === 'string' ||
+                                        typeof row[column] === 'number'
+                                            ? String(row[column])
+                                            : ''}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        ) : (
+            <p className="text-muted-foreground text-sm">
+                Table needs a columns array and rows array.
+            </p>
+        );
+    }
+
+    return (
+        <p className="text-muted-foreground font-mono text-xs">{JSON.stringify(block.content)}</p>
+    );
+}
+
 export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
     const [newTitle, setNewTitle] = useState('');
     const [itemDrafts, setItemDrafts] = useState<Record<number, string>>({});
@@ -49,21 +170,46 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
     const [builderItem, setBuilderItem] = useState<RoadmapItem | null>(null);
     const [blockType, setBlockType] = useState(blockTypes[0] ?? 'paragraph');
     const [blockContent, setBlockContent] = useState('{}');
+    const { isPending, start, finish } = usePendingAction();
+    const statBlocks = titles.flatMap((title) =>
+        title.items.flatMap((item) =>
+            (item.blocks ?? [])
+                .filter((block) => block.block_type === 'dashboard_stat')
+                .map((block) => ({ block, item })),
+        ),
+    );
 
     function addTitle(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (newTitle.trim() === '') return;
-        router.post('/roadmaps/titles', { title: newTitle }, { preserveScroll: true });
+        start('add-title');
+        router.post(
+            '/roadmaps/titles',
+            { title: newTitle },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish('add-title');
+                },
+            },
+        );
         setNewTitle('');
     }
 
     function addItem(titleId: number): void {
         const content = (itemDrafts[titleId] ?? '').trim();
         if (content === '') return;
+        const action = `add-item:${String(titleId)}`;
+        start(action);
         router.post(
             `/roadmaps/titles/${String(titleId)}/items`,
             { sub_label: content },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish(action);
+                },
+            },
         );
         setItemDrafts((prev) => ({ ...prev, [titleId]: '' }));
     }
@@ -79,6 +225,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
 
         try {
             const parsed = JSON.parse(blockContent) as Record<string, string>;
+            start('add-block');
 
             router.post(
                 `/roadmaps/items/${String(builderItem.id)}/blocks`,
@@ -87,6 +234,9 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                     preserveScroll: true,
                     onSuccess: () => {
                         setBlockContent('{}');
+                    },
+                    onFinish: () => {
+                        finish('add-block');
                     },
                 },
             );
@@ -101,14 +251,67 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
 
         try {
             const parsed = JSON.parse(raw) as Record<string, string>;
+            const action = `update-block:${String(block.id)}`;
+            start(action);
             router.put(
                 `/roadmaps/blocks/${String(block.id)}`,
                 { content: parsed },
-                { preserveScroll: true },
+                {
+                    preserveScroll: true,
+                    onFinish: () => {
+                        finish(action);
+                    },
+                },
             );
         } catch {
             // Invalid JSON: do nothing.
         }
+    }
+
+    function reorderItem(id: number, direction: 'up' | 'down'): void {
+        const action = `reorder:${String(id)}:${direction}`;
+        start(action);
+        router.post(
+            `/roadmaps/items/${String(id)}/reorder`,
+            { direction },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish(action);
+                },
+            },
+        );
+    }
+
+    function deleteItem(id: number): void {
+        const action = `delete-item:${String(id)}`;
+        start(action);
+        router.delete(`/roadmaps/items/${String(id)}`, {
+            onFinish: () => {
+                finish(action);
+            },
+        });
+    }
+
+    function deleteTitle(): void {
+        if (deleteTarget === null) return;
+        start('delete-title');
+        router.delete(`/roadmaps/titles/${String(deleteTarget.id)}`, {
+            onFinish: () => {
+                finish('delete-title');
+                setDeleteTarget(null);
+            },
+        });
+    }
+
+    function deleteBlock(id: number): void {
+        const action = `delete-block:${String(id)}`;
+        start(action);
+        router.delete(`/roadmaps/blocks/${String(id)}`, {
+            onFinish: () => {
+                finish(action);
+            },
+        });
     }
 
     return (
@@ -129,10 +332,15 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                 onChange={(e) => {
                                     setNewTitle(e.target.value);
                                 }}
-                                placeholder="New section titleÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦"
+                                placeholder="New section title…"
                                 aria-label="New roadmap section"
                             />
-                            <Button type="submit" size="sm">
+                            <Button
+                                type="submit"
+                                size="sm"
+                                loading={isPending('add-title')}
+                                loadingText="Adding"
+                            >
                                 <Plus className="size-4" />
                                 Add
                             </Button>
@@ -140,12 +348,29 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                     </CardContent>
                 </Card>
 
+                {statBlocks.length > 0 && (
+                    <section className="space-y-3">
+                        <div>
+                            <h3 className="text-base font-medium">Configured stat cards</h3>
+                            <p className="text-muted-foreground text-xs">
+                                Dashboard stat blocks from the roadmap page builder.
+                            </p>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {statBlocks.map(({ block, item }) => (
+                                <div key={`${String(item.id)}-${String(block.id)}`}>
+                                    <RoadmapStatPreview block={block} />
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
                 {titles.length === 0 && (
                     <Card>
                         <CardContent className="text-muted-foreground py-10 text-center">
                             <LayoutList className="mx-auto mb-2 size-8" />
-                            No roadmap sections yet ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â add the
-                            first one above.
+                            No roadmap sections yet — add the first one above.
                         </CardContent>
                     </Card>
                 )}
@@ -196,12 +421,10 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label="Move up"
+                                                loading={isPending(`reorder:${String(item.id)}:up`)}
+                                                loadingText=""
                                                 onClick={() => {
-                                                    router.post(
-                                                        `/roadmaps/items/${String(item.id)}/reorder`,
-                                                        { direction: 'up' },
-                                                        { preserveScroll: true },
-                                                    );
+                                                    reorderItem(item.id, 'up');
                                                 }}
                                             >
                                                 <ArrowUp className="size-4" />
@@ -210,12 +433,12 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label="Move down"
+                                                loading={isPending(
+                                                    `reorder:${String(item.id)}:down`,
+                                                )}
+                                                loadingText=""
                                                 onClick={() => {
-                                                    router.post(
-                                                        `/roadmaps/items/${String(item.id)}/reorder`,
-                                                        { direction: 'down' },
-                                                        { preserveScroll: true },
-                                                    );
+                                                    reorderItem(item.id, 'down');
                                                 }}
                                             >
                                                 <ArrowDown className="size-4" />
@@ -224,11 +447,13 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label="Delete item"
+                                                loading={isPending(
+                                                    `delete-item:${String(item.id)}`,
+                                                )}
+                                                loadingText=""
                                                 className="text-destructive hover:text-destructive"
                                                 onClick={() => {
-                                                    router.delete(
-                                                        `/roadmaps/items/${String(item.id)}`,
-                                                    );
+                                                    deleteItem(item.id);
                                                 }}
                                             >
                                                 <Trash2 className="size-4" />
@@ -252,11 +477,13 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                             [title.id]: e.target.value,
                                         }));
                                     }}
-                                    placeholder="New item under this sectionÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦"
+                                    placeholder="New item under this section…"
                                     aria-label={`New item for ${title.title}`}
                                 />
                                 <Button
                                     size="sm"
+                                    loading={isPending(`add-item:${String(title.id)}`)}
+                                    loadingText="Adding"
                                     onClick={() => {
                                         addItem(title.id);
                                     }}
@@ -270,43 +497,19 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                 ))}
             </div>
 
-            <Dialog
+            <PgsConfirmationDialog
                 open={deleteTarget !== null}
                 onOpenChange={(open) => {
                     if (!open) setDeleteTarget(null);
                 }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Delete section</DialogTitle>
-                        <p className="text-muted-foreground text-sm">
-                            Delete "{deleteTarget?.title ?? ''}" and all its items? This cannot be
-                            undone.
-                        </p>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setDeleteTarget(null);
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={() => {
-                                if (deleteTarget !== null) {
-                                    router.delete(`/roadmaps/titles/${String(deleteTarget.id)}`);
-                                }
-                                setDeleteTarget(null);
-                            }}
-                        >
-                            Delete
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                title="Delete + section"
+                description="This action permanently removes the section and its items."
+                confirmationTitle="Confirm section deletion"
+                confirmationDescription={`"${deleteTarget?.title ?? 'This section'}" and all of its items will be removed.`}
+                onConfirm={deleteTitle}
+                loading={isPending('delete-title')}
+                loadingText="Deleting"
+            />
 
             <Dialog
                 open={builderItem !== null}
@@ -316,13 +519,31 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
             >
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>
-                            Page builder ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â{' '}
-                            {builderItem?.sub_label ?? ''}
-                        </DialogTitle>
+                        <DialogTitle>Page builder — {builderItem?.sub_label ?? ''}</DialogTitle>
                     </DialogHeader>
 
                     <div className="space-y-4">
+                        {(builderItem?.blocks ?? []).some(
+                            (block) => block.block_type === 'dashboard_stat',
+                        ) && (
+                            <div className="space-y-3">
+                                <div>
+                                    <p className="text-sm font-medium">Stat card preview</p>
+                                    <p className="text-muted-foreground text-xs">
+                                        These cards are rendered from the saved dashboard stat
+                                        blocks.
+                                    </p>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {(builderItem?.blocks ?? [])
+                                        .filter((block) => block.block_type === 'dashboard_stat')
+                                        .map((block) => (
+                                            <RoadmapStatPreview key={block.id} block={block} />
+                                        ))}
+                                </div>
+                            </div>
+                        )}
+
                         <ul className="space-y-2">
                             {(builderItem?.blocks ?? []).map((block) => (
                                 <li
@@ -331,14 +552,16 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                 >
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium">{block.block_type}</p>
-                                        <p className="text-muted-foreground truncate font-mono text-xs">
-                                            {JSON.stringify(block.content)}
-                                        </p>
+                                        <div className="mt-2 max-w-xl rounded-lg border p-3">
+                                            <RoadmapBlockPreview block={block} />
+                                        </div>
                                     </div>
                                     <div className="flex shrink-0 gap-1">
                                         <Button
                                             variant="ghost"
                                             size="sm"
+                                            loading={isPending(`update-block:${String(block.id)}`)}
+                                            loadingText="Saving"
                                             onClick={() => {
                                                 updateBlock(block);
                                             }}
@@ -348,11 +571,11 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                         <Button
                                             variant="ghost"
                                             size="sm"
+                                            loading={isPending(`delete-block:${String(block.id)}`)}
+                                            loadingText=""
                                             className="text-destructive hover:text-destructive"
                                             onClick={() => {
-                                                router.delete(
-                                                    `/roadmaps/blocks/${String(block.id)}`,
-                                                );
+                                                deleteBlock(block.id);
                                             }}
                                         >
                                             <Trash2 className="size-4" />
@@ -390,11 +613,16 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                         setBlockContent(e.target.value);
                                     }}
                                     placeholder='{"label":"...", "value":"..."}'
-                                    className="font-mono"
+                                    className="font-sans"
                                     aria-label="Block content JSON"
                                 />
                             </div>
-                            <Button size="sm" onClick={addBlock}>
+                            <Button
+                                size="sm"
+                                loading={isPending('add-block')}
+                                loadingText="Adding"
+                                onClick={addBlock}
+                            >
                                 <Plus className="size-4" />
                                 Add block
                             </Button>

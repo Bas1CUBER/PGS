@@ -26,25 +26,25 @@
 - [x] `SectorModuleController` — index + show (indicators paginated, progress, schedule) + row/progress updates with audit
 - [x] `Sectors/Index` + `Sectors/Show` pages (shadcn) + nav entry
 - [x] Generic feature tests parameterized over the pattern (5 tests: list, show, unknown slug, row update, progress update)
-- [ ] `YearlyIndicatorTable` / `EventList` / `TrendChartCard` / `DataEntryGrid` components — **deferred (Phase 7b)**
-- [ ] `PrintDocument` layout for annex/OPCR — **deferred (Phase 7b)**
-- [ ] `ModuleCalculations` service for relapse-rate style computed indicators — **deferred (Phase 7b)**
+- [x] Wide-table year-column components — **implemented as the generic `SectorDetailController` + `SectorDetails/Show` page** (one table-driven editor for all sector detail tables; replaces the originally-planned `YearlyIndicatorTable`/`EventList`/`TrendChartCard`/`DataEntryGrid` components — ADR note: simpler, still one pattern per module)
+- [ ] `PrintDocument` layout for annex/OPCR — **still open** (blocked on static form assets, see §2.2)
+- [ ] `ModuleCalculations` service for relapse-rate style computed indicators — **still open**
 
-### 2.2 Ports still to run (Phase 7b — next work package)
-- [ ] Sector detail tables: training pct/tot personnel+events, resilience adverse events/notes/gvr, revenue hospital/ntr, collab rr_*/qli_*, research outputs, client satisfaction, engagement, impact scorecard, technology turnaround — via the YearlyIndicatorTable pattern
-- [ ] Annexes B/D/E/H/J/K + OPCR print documents (Blade print layout + A4 CSS)
-- [ ] Strategy content pages (about_*, pgs_core_team, governance pages, survey)
+### 2.2 Ports still to run (remaining work)
+- [x] Sector detail tables: training pct/tot personnel+events, resilience adverse events/notes/gvr, revenue hospital details/NTR, collab rr_*/qli_*, research outputs, client satisfaction, engagement, records retrieval — via `SectorDetailRegistry` (14 tables; impact scorecard lives in the Scorecard module via `ImpactScorecardController`, technology turnaround under the Technology sector module). Registry column lists re-verified against the live schema during hardening (fixed `resilience_adverse_events` label→category/type and `employee_records_retrieval` registry_no→staff_name drift).
+- [x] Annexes B/D/E/H/J/K + OPCR — **implemented as `LegacyFormRegistry` + `LegacyForms/Show` and `LegacyForms/Opcr` pages**: Annex D/E read live from the OPCR target register (`performance_targets`); Annex B/H/J/K are documented workspace views (columns only) because the original static `forms/Annex *.html`/`.xlsx` artifacts were never tracked in git and were lost with the legacy tree — see the `source_note` on each registry entry. CSV download per annex; OPCR is admin-managed CRUD + CSV export.
+- [x] Strategy content pages (about_*, pgs_core_team, governance pages, survey) — `ContentPageRegistry` + `Content/Show`, `SurveyController`, governance via `UploadModuleRegistry`
 - [ ] Manual parity check per module: compare new UI vs legacy side-by-side with a focal user (no Playwright infra on LAN deployment)
 
 ---
 
 ## 3. Definition of Done / acceptance criteria
 
-- [ ] All 7 sector modules + annexes + survey functional in the new app
+- [x] All 7 sector modules + annexes + survey functional in the new app — sectors, survey, OPCR and annex workspaces done (annex B/H/J/K are workspace views pending owner-provided source artifacts)
 - [ ] Manual screenshot comparison per module (side-by-side, focal sign-off)
-- [ ] Generic module tests pass for every configured module (no per-module special-casing)
-- [ ] Print output verified A4 for annex/OPCR documents
-- [ ] No legacy page remains linked from the new shell
+- [x] Generic module tests pass for every configured module (no per-module special-casing) — `SectorModuleTest`, `ContentModulesTest`, `UploadModuleTest` (8 configured upload modules), plus `SectorWorkflowTest`, `StrategyReviewModuleTest`, `OperationsReviewModuleTest`, `LegacyFormsTest` (190 tests total)
+- [ ] Print output verified A4 for annex/OPCR documents — annexes are on-screen workspaces with CSV export; original print layouts blocked with §2.2
+- [x] No legacy page remains linked from the new shell (nav is registry-driven; legacy URLs 301 via `LegacyRedirectMiddleware`)
 
 ---
 

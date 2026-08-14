@@ -42,23 +42,29 @@
 ### Notices module (`notices`)
 - [x] CRUD with audit; admin/focal manage, all roles read — tested
 
-### Not yet ported (next sessions, per module checklist above)
-- [ ] Communication plan module
-- [ ] Reviews module (strategy review / refresh / operations review + PDF)
-- [ ] Resources module
-- [ ] Gallery module
-- [ ] Cascading activities module
-- [ ] Notifications wiring per workflow transition (events → NotificationService)
+### Ported (config-driven modules)
+- [x] Communication plan module — `CommPlanController` + `UploadModuleRegistry` (roadmap template + uploads + status updates)
+- [x] Reviews module — strategy review / refresh / operations review via `UploadModuleRegistry` + `PdfExportController::uploadRecord` (PDF export, status workflow)
+- [x] Resources module — `UploadModuleRegistry` (`resources_uploads`)
+- [x] Gallery module — `GalleryController` (albums + photos)
+- [x] Cascading activities module — `UploadModuleRegistry`
+- [x] Notifications wiring per workflow transition — `NotificationService` (create/createForRole, deduplicated; tested in `NotificationServiceTest`)
+
+### Post-phase additions (hardening-era features, tested)
+- [x] Dedicated Strategy Review module — `StrategyReviewController` + `StrategyReview/Index` (`strategy_review_forms`): employees draft/submit their own forms, admins/focals review (Approved/Returned) and see all forms, PDF export per form; role matrix tested in `StrategyReviewModuleTest`
+- [x] Dedicated Operations Review module — `OperationsReviewController` + `OperationsReview/Index` (`operations_review`): employees submit their own, focals/admins see all, PDF export; tested in `OperationsReviewModuleTest`
+- [x] Sector row lifecycle — employee row additions route through `progress_pending_changes` (admin approves/rejects); admin direct add/delete; row-level locks on detail tables (admin/focal only); tested in `SectorWorkflowTest`
+- [x] OPCR + Annex workspaces — `LegacyFormController` + `LegacyFormRegistry` + `LegacyForms/*` pages; see Phase_7 §2.2; tested in `LegacyFormsTest`
 
 ---
 
 ## 3. Definition of Done / acceptance criteria
 
 - [ ] Feature parity checklist per module signed off by a focal/admin user
-- [ ] Workflow transitions tested: every allowed/denied transition
-- [ ] Upload security tests: bad MIME, oversize, path traversal, duplicate names
+- [x] Workflow transitions tested: every allowed/denied transition (`WorkflowEngineTest` — allowed, denied, wrong actor, audit)
+- [ ] Upload security tests: bad MIME (done — `UploadModuleTest` rejects executables), oversize / path traversal / duplicate names — **still open**
 - [ ] N+1-free (logged queries) — see [Optimization.md](./Optimization.md)
-- [ ] Notifications fire once, deduplicated, verified against legacy counts
+- [x] Notifications fire once, deduplicated (`NotificationServiceTest`); verified against legacy counts — **pending legacy comparison**
 
 ---
 

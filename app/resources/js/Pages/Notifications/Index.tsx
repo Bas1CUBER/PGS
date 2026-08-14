@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
+import { relativeInternalUrl } from '@/lib/relative-url';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface NotificationItem {
     id: number;
@@ -32,6 +34,35 @@ const typeColors: Record<string, string> = {
 };
 
 export default function NotificationsIndex({ notifications, unreadCount }: NotificationsPageProps) {
+    const { isPending, start, finish } = usePendingAction();
+
+    function markAllRead(): void {
+        start('all');
+        router.post(
+            '/notifications/read-all',
+            {},
+            {
+                onFinish: () => {
+                    finish('all');
+                },
+            },
+        );
+    }
+
+    function markRead(id: number): void {
+        const action = `read:${String(id)}`;
+        start(action);
+        router.post(
+            `/notifications/${String(id)}/read`,
+            {},
+            {
+                onFinish: () => {
+                    finish(action);
+                },
+            },
+        );
+    }
+
     return (
         <AuthenticatedLayout
             header={<h2 className="text-xl leading-tight font-semibold">Notifications</h2>}
@@ -53,9 +84,9 @@ export default function NotificationsIndex({ notifications, unreadCount }: Notif
                         <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                                router.post('/notifications/read-all');
-                            }}
+                            loading={isPending('all')}
+                            loadingText="Marking"
+                            onClick={markAllRead}
                         >
                             <CheckCheck className="size-4" />
                             Mark all as read
@@ -119,18 +150,18 @@ export default function NotificationsIndex({ notifications, unreadCount }: Notif
 
                                         {!notification.is_read && (
                                             <Button
-                                                asChild
                                                 variant="ghost"
                                                 size="sm"
                                                 className="shrink-0"
+                                                loading={isPending(
+                                                    `read:${String(notification.id)}`,
+                                                )}
+                                                loadingText="Marking"
+                                                onClick={() => {
+                                                    markRead(notification.id);
+                                                }}
                                             >
-                                                <Link
-                                                    href={`/notifications/${String(notification.id)}/read`}
-                                                    method="post"
-                                                    as="button"
-                                                >
-                                                    Mark read
-                                                </Link>
+                                                Mark read
                                             </Button>
                                         )}
                                     </li>
@@ -150,7 +181,7 @@ export default function NotificationsIndex({ notifications, unreadCount }: Notif
                                         variant={link.active ? 'default' : 'ghost'}
                                         size="sm"
                                     >
-                                        <Link href={link.url}>
+                                        <Link href={relativeInternalUrl(link.url) ?? '#'}>
                                             {link.label.replace(/&laquo;|&raquo;/g, '')}
                                         </Link>
                                     </Button>

@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { CalendarPlus, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CalendarPlus, LoaderCircle, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface Measure {
     id: number;
@@ -53,13 +54,20 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
     const [newYear, setNewYear] = useState('');
     const [editing, setEditing] = useState<Measure | null>(null);
     const [drafts, setDrafts] = useState<Record<string, string>>({});
+    const { isPending, start, finish } = usePendingAction();
 
     function createMeasure(e: { preventDefault(): void }): void {
         e.preventDefault();
+        start('create-measure');
         router.post(
             '/impact-scorecard/measures',
             { impact, measure, bl },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish('create-measure');
+                },
+            },
         );
         setImpact('');
         setMeasure('');
@@ -68,27 +76,62 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
 
     function addYear(e: { preventDefault(): void }): void {
         e.preventDefault();
-        router.post('/impact-scorecard/years', { year: newYear }, { preserveScroll: true });
+        start('add-year');
+        router.post(
+            '/impact-scorecard/years',
+            { year: newYear },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish('add-year');
+                },
+            },
+        );
         setNewYear('');
     }
 
     function saveEdit(): void {
         if (editing === null) return;
+        start('save-measure');
         router.put(
             `/impact-scorecard/measures/${String(editing.id)}`,
             { impact, measure, bl },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEditing(null);
+                },
+                onFinish: () => {
+                    finish('save-measure');
+                },
+            },
         );
-        setEditing(null);
     }
 
     function commitValue(measureId: number, yearId: number): void {
         const key = `${String(measureId)}:${String(yearId)}`;
+        const action = `value:${key}`;
+        start(action);
         router.put(
             `/impact-scorecard/values/${String(measureId)}/${String(yearId)}`,
             { value: drafts[key] ?? '' },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish(action);
+                },
+            },
         );
+    }
+
+    function deleteYear(id: number): void {
+        const action = `delete-year:${String(id)}`;
+        start(action);
+        router.delete(`/impact-scorecard/years/${String(id)}`, {
+            onFinish: () => {
+                finish(action);
+            },
+        });
     }
 
     return (
@@ -141,7 +184,11 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                                         />
                                     </div>
                                     <div className="flex justify-end">
-                                        <Button type="submit">
+                                        <Button
+                                            type="submit"
+                                            loading={isPending('create-measure')}
+                                            loadingText="Adding"
+                                        >
                                             <Plus className="size-4" />
                                             Add measure
                                         </Button>
@@ -170,7 +217,11 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                                         placeholder="e.g. 2029"
                                         required
                                     />
-                                    <Button type="submit">
+                                    <Button
+                                        type="submit"
+                                        loading={isPending('add-year')}
+                                        loadingText="Adding"
+                                    >
                                         <CalendarPlus className="size-4" />
                                         Add
                                     </Button>
@@ -197,14 +248,26 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                                                         <button
                                                             type="button"
                                                             aria-label={`Remove ${String(year.year)}`}
+                                                            disabled={isPending(
+                                                                `delete-year:${String(year.id)}`,
+                                                            )}
+                                                            aria-busy={
+                                                                isPending(
+                                                                    `delete-year:${String(year.id)}`,
+                                                                ) || undefined
+                                                            }
                                                             onClick={() => {
-                                                                router.delete(
-                                                                    `/impact-scorecard/years/${String(year.id)}`,
-                                                                );
+                                                                deleteYear(year.id);
                                                             }}
                                                             className="text-destructive hover:text-destructive"
                                                         >
-                                                            <Trash2 className="size-3" />
+                                                            {isPending(
+                                                                `delete-year:${String(year.id)}`,
+                                                            ) ? (
+                                                                <LoaderCircle className="loading-button-spinner size-3" />
+                                                            ) : (
+                                                                <Trash2 className="size-3" />
+                                                            )}
                                                         </button>
                                                     )}
                                                 </div>
@@ -239,6 +302,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                                                                 onBlur={() => {
                                                                     commitValue(m.id, year.id);
                                                                 }}
+                                                                disabled={isPending(`value:${key}`)}
                                                                 className="h-8 w-24 text-center text-sm"
                                                             />
                                                         ) : (
@@ -333,7 +397,13 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                         >
                             Cancel
                         </Button>
-                        <Button onClick={saveEdit}>Save</Button>
+                        <Button
+                            onClick={saveEdit}
+                            loading={isPending('save-measure')}
+                            loadingText="Saving"
+                        >
+                            Save
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

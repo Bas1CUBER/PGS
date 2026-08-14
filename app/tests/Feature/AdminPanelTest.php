@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AuditLogService;
+use Illuminate\Support\Facades\Storage;
 
 it('denies non-admin access to audit logs and backups', function (): void {
     $user = User::factory()->focal()->create();
@@ -41,4 +42,20 @@ it('audits a backup download', function (): void {
         ->assertStatus(404); // file does not exist; route still requires auth+role
 
     expect(AuditLog::query()->where('action', 'backup.downloaded')->exists())->toBeFalse();
+});
+
+it('does not expose arbitrary files on the private backup disk', function (): void {
+    Storage::fake('local');
+    Storage::disk('local')->put('not-a-backup.txt', 'private data');
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get('/backups/local/not-a-backup.txt')
+        ->assertNotFound();
+
+    $this->actingAs($admin)
+        ->delete('/backups/local/not-a-backup.txt')
+        ->assertNotFound();
+
+    expect(Storage::disk('local')->exists('not-a-backup.txt'))->toBeTrue();
 });

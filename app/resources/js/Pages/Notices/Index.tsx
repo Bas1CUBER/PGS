@@ -14,14 +14,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import { usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
+import { relativeInternalUrl } from '@/lib/relative-url';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface NoticeRow {
     notice_id: number;
     title: string | null;
     description: string | null;
     created_at: string;
+    image_url: string | null;
+    video_url: string | null;
 }
 
 interface NoticesPageProps extends PageProps {
@@ -38,24 +43,67 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [image, setImage] = useState<File | null>(null);
+    const [video, setVideo] = useState<File | null>(null);
     const [editing, setEditing] = useState<NoticeRow | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<NoticeRow | null>(null);
+    const { isPending, start, finish } = usePendingAction();
 
     function createNotice(e: { preventDefault(): void }): void {
         e.preventDefault();
-        router.post('/notices', { title, description }, { preserveScroll: true });
+        const form = new FormData();
+        form.append('title', title);
+        form.append('description', description);
+        if (image !== null) form.append('image', image);
+        if (video !== null) form.append('video', video);
+
+        start('create');
+        router.post('/notices', form, {
+            forceFormData: true,
+            preserveScroll: true,
+            onFinish: () => {
+                finish('create');
+                setImage(null);
+                setVideo(null);
+            },
+        });
         setTitle('');
         setDescription('');
     }
 
     function saveEdit(): void {
         if (editing === null) return;
-        router.put(
-            `/notices/${String(editing.notice_id)}`,
-            { title, description },
-            { preserveScroll: true },
-        );
-        setEditing(null);
+        const form = new FormData();
+        form.append('_method', 'PUT');
+        form.append('title', title);
+        form.append('description', description);
+        if (image !== null) form.append('image', image);
+        if (video !== null) form.append('video', video);
+
+        start('save');
+        router.post(`/notices/${String(editing.notice_id)}`, form, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditing(null);
+                setImage(null);
+                setVideo(null);
+            },
+            onFinish: () => {
+                finish('save');
+            },
+        });
+    }
+
+    function deleteNotice(): void {
+        if (deleteTarget === null) return;
+        start('delete');
+        router.delete(`/notices/${String(deleteTarget.notice_id)}`, {
+            onFinish: () => {
+                finish('delete');
+                setDeleteTarget(null);
+            },
+        });
     }
 
     return (
@@ -95,8 +143,37 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                         className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                                     />
                                 </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="notice-image">Image</Label>
+                                        <Input
+                                            id="notice-image"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                setImage(e.target.files?.[0] ?? null);
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="notice-video">MP4 video</Label>
+                                        <Input
+                                            id="notice-video"
+                                            type="file"
+                                            accept="video/mp4,video/webm,video/quicktime"
+                                            onChange={(e) => {
+                                                setVideo(e.target.files?.[0] ?? null);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
                                 <div className="flex justify-end">
-                                    <Button type="submit" size="sm">
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        loading={isPending('create')}
+                                        loadingText="Publishing"
+                                    >
                                         <Plus className="size-4" />
                                         Publish
                                     </Button>
@@ -129,6 +206,24 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                             {notice.description}
                                         </p>
                                     )}
+                                    {(notice.image_url !== null || notice.video_url !== null) && (
+                                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                            {notice.image_url !== null && (
+                                                <img
+                                                    src={notice.image_url}
+                                                    alt=""
+                                                    className="max-h-56 w-full rounded-lg object-cover"
+                                                />
+                                            )}
+                                            {notice.video_url !== null && (
+                                                <video
+                                                    src={notice.video_url}
+                                                    controls
+                                                    className="max-h-56 w-full rounded-lg"
+                                                />
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                                 {canManage && (
                                     <div className="flex shrink-0 gap-1">
@@ -140,6 +235,8 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                                 setEditing(notice);
                                                 setTitle(notice.title ?? '');
                                                 setDescription(notice.description ?? '');
+                                                setImage(null);
+                                                setVideo(null);
                                             }}
                                         >
                                             <Pencil className="size-4" />
@@ -172,7 +269,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                         variant={link.active ? 'default' : 'ghost'}
                                         size="sm"
                                     >
-                                        <a href={link.url}>
+                                        <a href={relativeInternalUrl(link.url) ?? '#'}>
                                             {link.label.replace(/&laquo;|&raquo;/g, '')}
                                         </a>
                                     </Button>
@@ -220,6 +317,30 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                 className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                             />
                         </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-notice-image">Replace image</Label>
+                                <Input
+                                    id="edit-notice-image"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        setImage(e.target.files?.[0] ?? null);
+                                    }}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-notice-video">Replace video</Label>
+                                <Input
+                                    id="edit-notice-video"
+                                    type="file"
+                                    accept="video/mp4,video/webm,video/quicktime"
+                                    onChange={(e) => {
+                                        setVideo(e.target.files?.[0] ?? null);
+                                    }}
+                                />
+                            </div>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button
@@ -230,47 +351,26 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                         >
                             Cancel
                         </Button>
-                        <Button onClick={saveEdit}>Save</Button>
+                        <Button onClick={saveEdit} loading={isPending('save')} loadingText="Saving">
+                            Save
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            <Dialog
+            <PgsConfirmationDialog
                 open={deleteTarget !== null}
                 onOpenChange={(open) => {
                     if (!open) setDeleteTarget(null);
                 }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Delete notice</DialogTitle>
-                        <p className="text-muted-foreground text-sm">
-                            Delete "{deleteTarget?.title ?? ''}"? This cannot be undone.
-                        </p>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setDeleteTarget(null);
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={() => {
-                                if (deleteTarget !== null) {
-                                    router.delete(`/notices/${String(deleteTarget.notice_id)}`);
-                                }
-                                setDeleteTarget(null);
-                            }}
-                        >
-                            Delete
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                title="Delete + notice"
+                description="This action permanently removes the notice."
+                confirmationTitle="Confirm notice deletion"
+                confirmationDescription={`"${deleteTarget?.title ?? 'This notice'}" will be removed from the workspace.`}
+                onConfirm={deleteNotice}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

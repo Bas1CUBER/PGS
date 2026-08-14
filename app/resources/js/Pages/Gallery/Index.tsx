@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Camera, ImagePlus, Plus, Trash2 } from 'lucide-react';
+import { Camera, ImagePlus, LoaderCircle, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface Album {
     id: number;
@@ -46,30 +47,122 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
     const [description, setDescription] = useState('');
     const [uploadTarget, setUploadTarget] = useState<Album | null>(null);
     const [caption, setCaption] = useState('');
-    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+    const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
+    const [albumEditName, setAlbumEditName] = useState('');
+    const [albumEditDescription, setAlbumEditDescription] = useState('');
+    const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
+    const [photoEditCaption, setPhotoEditCaption] = useState('');
+    const { isPending, start, finish } = usePendingAction();
 
     function createAlbum(e: { preventDefault(): void }): void {
         e.preventDefault();
-        router.post('/gallery/albums', { name, description }, { preserveScroll: true });
+        start('create-album');
+        router.post(
+            '/gallery/albums',
+            {
+                name,
+                description,
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish('create-album');
+                },
+            },
+        );
         setName('');
         setDescription('');
     }
 
     function uploadPhoto(e: { preventDefault(): void }): void {
         e.preventDefault();
-        if (uploadTarget === null || photoFile === null) return;
+        if (uploadTarget === null || photoFiles.length === 0) return;
 
         const form = new FormData();
-        form.append('photo', photoFile);
+        photoFiles.forEach((photo) => {
+            form.append('photos[]', photo);
+        });
         form.append('caption', caption);
 
+        start('upload-photo');
         router.post(`/gallery/albums/${String(uploadTarget.id)}/photos`, form, {
             forceFormData: true,
             preserveScroll: true,
             onFinish: () => {
+                finish('upload-photo');
                 setUploadTarget(null);
                 setCaption('');
-                setPhotoFile(null);
+                setPhotoFiles([]);
+            },
+        });
+    }
+
+    function openAlbumEdit(album: Album): void {
+        setEditingAlbum(album);
+        setAlbumEditName(album.name);
+        setAlbumEditDescription(album.description ?? '');
+    }
+
+    function saveAlbum(e: { preventDefault(): void }): void {
+        e.preventDefault();
+        if (editingAlbum === null) return;
+        start(`edit-album:${String(editingAlbum.id)}`);
+        router.put(
+            `/gallery/albums/${String(editingAlbum.id)}`,
+            {
+                name: albumEditName,
+                description: albumEditDescription,
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish(`edit-album:${String(editingAlbum.id)}`);
+                    setEditingAlbum(null);
+                },
+            },
+        );
+    }
+
+    function openPhotoEdit(photo: Photo): void {
+        setEditingPhoto(photo);
+        setPhotoEditCaption(photo.caption ?? '');
+    }
+
+    function savePhoto(e: { preventDefault(): void }): void {
+        e.preventDefault();
+        if (editingPhoto === null) return;
+        start(`edit-photo:${String(editingPhoto.id)}`);
+        router.put(
+            `/gallery/photos/${String(editingPhoto.id)}`,
+            { caption: photoEditCaption },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish(`edit-photo:${String(editingPhoto.id)}`);
+                    setEditingPhoto(null);
+                },
+            },
+        );
+    }
+
+    function deletePhoto(photoId: number): void {
+        const action = `delete-photo:${String(photoId)}`;
+        start(action);
+        router.delete(`/gallery/photos/${String(photoId)}`, {
+            onFinish: () => {
+                finish(action);
+            },
+        });
+    }
+
+    function deleteAlbum(albumId: number): void {
+        const action = `delete-album:${String(albumId)}`;
+        start(action);
+        router.delete(`/gallery/albums/${String(albumId)}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                finish(action);
             },
         });
     }
@@ -107,7 +200,11 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                                     placeholder="Description (optional)"
                                     className="sm:max-w-xs"
                                 />
-                                <Button type="submit">
+                                <Button
+                                    type="submit"
+                                    loading={isPending('create-album')}
+                                    loadingText="Creating"
+                                >
                                     <Plus className="size-4" />
                                     Create
                                 </Button>
@@ -135,9 +232,39 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                                                 {album.description ?? ''}
                                             </CardDescription>
                                         </div>
-                                        <Badge variant="outline" className="shrink-0">
-                                            {album.photo_count} photo(s)
-                                        </Badge>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="shrink-0">
+                                                {album.photo_count} photo(s)
+                                            </Badge>
+                                            {canManage && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-label={`Edit ${album.name}`}
+                                                    onClick={() => {
+                                                        openAlbumEdit(album);
+                                                    }}
+                                                >
+                                                    <Pencil className="size-4" />
+                                                </Button>
+                                            )}
+                                            {canManage && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-label={`Delete ${album.name}`}
+                                                    className="text-destructive"
+                                                    loading={isPending(
+                                                        `delete-album:${String(album.id)}`,
+                                                    )}
+                                                    onClick={() => {
+                                                        deleteAlbum(album.id);
+                                                    }}
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
@@ -157,15 +284,36 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                                                     {canManage && (
                                                         <button
                                                             type="button"
-                                                            aria-label="Delete photo"
+                                                            className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-1 text-xs text-white opacity-0 transition group-hover:opacity-100"
                                                             onClick={() => {
-                                                                router.delete(
-                                                                    `/gallery/photos/${String(photo.id)}`,
-                                                                );
+                                                                openPhotoEdit(photo);
+                                                            }}
+                                                        >
+                                                            <Pencil className="size-3" />
+                                                            <span className="sr-only">
+                                                                Edit caption
+                                                            </span>
+                                                        </button>
+                                                    )}
+                                                    {canManage && (
+                                                        <button
+                                                            type="button"
+                                                            aria-label="Delete photo"
+                                                            disabled={isPending(
+                                                                `delete-photo:${String(photo.id)}`,
+                                                            )}
+                                                            onClick={() => {
+                                                                deletePhoto(photo.id);
                                                             }}
                                                             className="absolute top-1 right-1 rounded bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100"
                                                         >
-                                                            <Trash2 className="size-3" />
+                                                            {isPending(
+                                                                `delete-photo:${String(photo.id)}`,
+                                                            ) ? (
+                                                                <LoaderCircle className="loading-button-spinner size-3" />
+                                                            ) : (
+                                                                <Trash2 className="size-3" />
+                                                            )}
                                                         </button>
                                                     )}
                                                 </div>
@@ -215,13 +363,14 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="photo">Photo (JPG/PNG/WebP, max 10 MB)</Label>
+                            <Label htmlFor="photo">Photos (JPG/PNG/WebP, max 10 MB each)</Label>
                             <Input
                                 id="photo"
                                 type="file"
                                 accept="image/*"
+                                multiple
                                 onChange={(e) => {
-                                    setPhotoFile(e.target.files?.[0] ?? null);
+                                    setPhotoFiles(Array.from(e.target.files ?? []));
                                 }}
                             />
                         </div>
@@ -235,8 +384,98 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={photoFile === null}>
+                            <Button
+                                type="submit"
+                                loading={isPending('upload-photo')}
+                                loadingText="Uploading"
+                                disabled={photoFiles.length === 0}
+                            >
                                 Upload
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={editingAlbum !== null}
+                onOpenChange={(open) => {
+                    if (!open) setEditingAlbum(null);
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit album</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={saveAlbum} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-album-name">Name</Label>
+                            <Input
+                                id="edit-album-name"
+                                value={albumEditName}
+                                onChange={(e) => {
+                                    setAlbumEditName(e.target.value);
+                                }}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-album-description">Description</Label>
+                            <Input
+                                id="edit-album-description"
+                                value={albumEditDescription}
+                                onChange={(e) => {
+                                    setAlbumEditDescription(e.target.value);
+                                }}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="submit"
+                                loading={
+                                    editingAlbum !== null &&
+                                    isPending(`edit-album:${String(editingAlbum.id)}`)
+                                }
+                                loadingText="Saving"
+                            >
+                                <Save className="size-4" /> Save album
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={editingPhoto !== null}
+                onOpenChange={(open) => {
+                    if (!open) setEditingPhoto(null);
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit photo caption</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={savePhoto} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-photo-caption">Caption</Label>
+                            <Input
+                                id="edit-photo-caption"
+                                value={photoEditCaption}
+                                onChange={(e) => {
+                                    setPhotoEditCaption(e.target.value);
+                                }}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="submit"
+                                loading={
+                                    editingPhoto !== null &&
+                                    isPending(`edit-photo:${String(editingPhoto.id)}`)
+                                }
+                                loadingText="Saving"
+                            >
+                                <Save className="size-4" /> Save caption
                             </Button>
                         </DialogFooter>
                     </form>

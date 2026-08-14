@@ -38,4 +38,7 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
     deadline: DeadlineState | null;
     pageAccess: PageAccess;
     flash: FlashMessages;
+    // Optional page-provided breadcrumb trail (label/href pairs); when
+    // present the layout renders it exactly as-is.
+    breadcrumbs?: { label: string; href?: string }[];
 };

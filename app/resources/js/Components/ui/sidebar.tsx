@@ -23,9 +23,6 @@ import { SidebarLeftIcon } from '@hugeicons/core-free-icons';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = '16rem';
-const SIDEBAR_WIDTH_MOBILE = '18rem';
-const SIDEBAR_WIDTH_ICON = '3rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 
 interface SidebarContextProps {
@@ -54,10 +51,9 @@ function SidebarProvider({
     open: openProp,
     onOpenChange: setOpenProp,
     className,
-    style,
     children,
     ...props
-}: React.ComponentProps<'div'> & {
+}: Omit<React.ComponentProps<'div'>, 'style'> & {
     defaultOpen?: boolean;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -129,13 +125,6 @@ function SidebarProvider({
         <SidebarContext.Provider value={contextValue}>
             <div
                 data-slot="sidebar-wrapper"
-                style={
-                    {
-                        '--sidebar-width': SIDEBAR_WIDTH,
-                        '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
-                        ...style,
-                    } as React.CSSProperties
-                }
                 className={cn(
                     'group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full',
                     className,
@@ -187,11 +176,6 @@ function Sidebar({
                     data-slot="sidebar"
                     data-mobile="true"
                     className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
-                    style={
-                        {
-                            '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
-                        } as React.CSSProperties
-                    }
                     side={side}
                 >
                     <SheetHeader className="sr-only">
@@ -571,11 +555,6 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<'div'> & {
     showIcon?: boolean;
 }) {
-    // Random width between 50 to 90%.
-    const [width] = React.useState(() => {
-        return `${String(Math.floor(Math.random() * 40) + 50)}%`;
-    });
-
     return (
         <div
             data-slot="sidebar-menu-skeleton"
@@ -586,15 +565,7 @@ function SidebarMenuSkeleton({
             {showIcon && (
                 <Skeleton className="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />
             )}
-            <Skeleton
-                className="h-4 max-w-(--skeleton-width) flex-1"
-                data-sidebar="menu-skeleton-text"
-                style={
-                    {
-                        '--skeleton-width': width,
-                    } as React.CSSProperties
-                }
-            />
+            <Skeleton className="h-4 max-w-[75%] flex-1" data-sidebar="menu-skeleton-text" />
         </div>
     );
 }

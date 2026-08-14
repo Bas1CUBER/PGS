@@ -4,21 +4,29 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Middleware\LegacyRedirectMiddleware;
-use App\Models\Notice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'notices' => Notice::query()
-            ->orderByDesc('created_at')
-            ->limit(6)
-            ->get(['notice_id', 'title', 'description', 'created_at']),
-    ]);
-});
+Route::redirect('/', '/login');
+
+Route::get('/guest-assets/{name}', function (string $name) {
+    $allowed = [
+        'background_image.png',
+        'bldg_img1.png',
+        'doh_trc_logo.png',
+        'final_login.png',
+        'final_logo.png',
+        'login.png',
+        'logo_doh2.png',
+        'pgs_logo.png',
+        'logo_trc.png',
+    ];
+    $name = basename(urldecode($name));
+
+    abort_unless(in_array($name, $allowed, true), 404);
+
+    return response()->file(base_path('../img/'.$name));
+})->where('name', '[A-Za-z0-9_.-]+')->name('guest-assets');
 
 Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])->name('dashboard');
@@ -43,7 +51,9 @@ if (app()->environment(['local', 'testing'])) {
 
     Route::prefix('/access-check')->middleware('auth')->group(function (): void {
         foreach (['roadmaps', 'scorecard', 'performance_assessment', 'cascading', 'governance'] as $module) {
-            Route::get("/{$module}", fn (): string => 'ok')->middleware("page.access:{$module}");
+            Route::get("/{$module}", fn (): string => 'ok')
+                ->middleware("page.access:{$module}")
+                ->name("access-check.{$module}");
         }
     });
 }

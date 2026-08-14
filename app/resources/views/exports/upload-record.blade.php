@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $moduleLabel }} — Record #{{ $recordId }}</title>
-    <style>
+    <style nonce="{{ request()->attributes->get('csp_nonce') }}">
         * { box-sizing: border-box; }
         body {
-            font-family: Helvetica, Arial, sans-serif;
+            font-family: 'Geist', sans-serif;
             font-size: 11pt;
             color: #1e293b;
             margin: 24px;

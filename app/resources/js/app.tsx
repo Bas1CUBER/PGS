@@ -4,8 +4,7 @@ import './bootstrap';
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
-import { Toaster } from '@/components/ui/sonner';
-import { ThemeProvider } from '@/components/theme-provider';
+import { PgsToastViewport, ToastProvider } from '@/components/pgs-toast';
 
 const appName = (import.meta.env.VITE_APP_NAME as string | undefined) ?? 'PGS';
 
@@ -17,13 +16,13 @@ void createInertiaApp({
         const root = createRoot(el);
 
         root.render(
-            <ThemeProvider defaultTheme="system" storageKey="pgs-theme">
+            <ToastProvider>
                 <App {...props} />
-                <Toaster richColors position="top-right" />
-            </ThemeProvider>,
+                <PgsToastViewport />
+            </ToastProvider>,
         );
     },
-    progress: {
-        color: '#0b4aa2',
-    },
+    // Inertia's default progress bar injects CSS and mutates inline styles,
+    // which is incompatible with the nonce-only CSP used by this app.
+    progress: false,
 });

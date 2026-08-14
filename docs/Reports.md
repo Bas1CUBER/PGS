@@ -8,10 +8,11 @@ Specification for all generated documents: annexes, OPCR, strategy reviews, oper
 
 | Document | Source (legacy) | Format | Trigger | Owner |
 |---|---|---|---|---|
-| Annex B/D/E/H/J/K | `annexb.php` … `annexk.php` | PDF (A4 print) | View/export from module | Read-only viewers, admins |
-| OPCR | `OPCR.php` | PDF + on-screen | Annual commitment | Office leads |
-| Strategy review | `strategy_review_generate_pdf.php` | PDF | Focal/admin, any status | Focal |
-| Operations review | `operations_review*.php` | PDF | Focal | Focal |
+| Annex B/D/E/H/J/K | `annexb.php` … `annexk.php` | On-screen workspace + CSV (D/E live from the OPCR register; B/H/J/K workspace views pending the original lost artifacts) | View/export from module | Read-only viewers, admins |
+| OPCR | `OPCR.php` | On-screen + CSV | Annual commitment | Admin |
+| Strategy review | `strategy_review_generate_pdf.php` | PDF (`exports/structured-form` Blade) | Focal/admin, any status | Focal |
+| Operations review | `operations_review*.php` | PDF (`exports/structured-form` Blade) + upload PDF | Focal | Focal |
+| Sector detail tables | — | CSV (`GET /sectors/{pillar}/{slug}/export`) | Any role | All |
 | Tabular exports | various `get_*.php` | CSV/XLSX | All list views | Any role |
 
 ## 2. Generation engine

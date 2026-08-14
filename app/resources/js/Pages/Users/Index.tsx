@@ -14,16 +14,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import { cn } from '@/lib/utils';
 import type { PageProps, User } from '@/types';
+import { relativeInternalUrl } from '@/lib/relative-url';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface UsersPageProps extends PageProps {
     users: {
@@ -43,6 +38,7 @@ const roleColors: Record<string, string> = {
 export default function UsersIndex({ users, filters }: UsersPageProps) {
     const [search, setSearch] = useState(filters.search);
     const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+    const { isPending, start, finish } = usePendingAction();
 
     function submitSearch(e: { preventDefault(): void }): void {
         e.preventDefault();
@@ -51,8 +47,27 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
 
     function confirmDelete(): void {
         if (deleteTarget === null) return;
-        router.delete(`/users/${String(deleteTarget.id)}`);
-        setDeleteTarget(null);
+        start('delete');
+        router.delete(`/users/${String(deleteTarget.id)}`, {
+            onFinish: () => {
+                finish('delete');
+                setDeleteTarget(null);
+            },
+        });
+    }
+
+    function toggleUser(user: User & { is_active: boolean }): void {
+        const action = `toggle:${String(user.id)}`;
+        start(action);
+        router.post(
+            `/users/${String(user.id)}/toggle`,
+            {},
+            {
+                onFinish: () => {
+                    finish(action);
+                },
+            },
+        );
     }
 
     return (
@@ -74,7 +89,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                 onChange={(e) => {
                                     setSearch(e.target.value);
                                 }}
-                                placeholder="Search name, email, officeÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦"
+                                placeholder="Search name, email, office…"
                                 className="pl-9"
                                 aria-label="Search users"
                             />
@@ -113,10 +128,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                 {users.data.map((user) => (
                                     <TableRow key={user.id}>
                                         <TableCell>
-                                            <p className="font-medium">
-                                                {user.name ??
-                                                    'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â'}
-                                            </p>
+                                            <p className="font-medium">{user.name ?? '—'}</p>
                                             <p className="text-muted-foreground text-xs">
                                                 {user.email}
                                             </p>
@@ -130,8 +142,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-muted-foreground text-sm">
-                                            {user.office ??
-                                                'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â'}
+                                            {user.office ?? '—'}
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant={user.is_active ? 'success' : 'outline'}>
@@ -148,10 +159,10 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
+                                                    loading={isPending(`toggle:${String(user.id)}`)}
+                                                    loadingText="Saving"
                                                     onClick={() => {
-                                                        router.post(
-                                                            `/users/${String(user.id)}/toggle`,
-                                                        );
+                                                        toggleUser(user);
                                                     }}
                                                 >
                                                     {user.is_active ? 'Deactivate' : 'Activate'}
@@ -195,7 +206,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                         variant={link.active ? 'default' : 'ghost'}
                                         size="sm"
                                     >
-                                        <Link href={link.url}>
+                                        <Link href={relativeInternalUrl(link.url) ?? '#'}>
                                             {link.label.replace(/&laquo;|&raquo;/g, '')}
                                         </Link>
                                     </Button>
@@ -210,35 +221,19 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                 )}
             </div>
 
-            <Dialog
+            <PgsConfirmationDialog
                 open={deleteTarget !== null}
                 onOpenChange={(open) => {
                     if (!open) setDeleteTarget(null);
                 }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Delete user</DialogTitle>
-                        <DialogDescription>
-                            Delete {deleteTarget?.email ?? 'this user'}? This action cannot be
-                            undone and the account will be removed.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setDeleteTarget(null);
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button variant="destructive" onClick={confirmDelete}>
-                            Delete
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                title="Delete + user"
+                description="This action permanently removes the account."
+                confirmationTitle="Confirm user deletion"
+                confirmationDescription={`${deleteTarget?.email ?? 'This user'} will be removed from the workspace.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

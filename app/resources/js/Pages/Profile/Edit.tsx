@@ -18,7 +18,7 @@ export default function Edit({
 
             <div className="mx-auto max-w-2xl space-y-6">
                 <Card>
-                    <CardContent className="pt-6">
+                    <CardContent>
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
@@ -27,13 +27,13 @@ export default function Edit({
                 </Card>
 
                 <Card>
-                    <CardContent className="pt-6">
+                    <CardContent>
                         <UpdatePasswordForm />
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardContent className="pt-6">
+                    <CardContent>
                         <DeleteUserForm />
                     </CardContent>
                 </Card>

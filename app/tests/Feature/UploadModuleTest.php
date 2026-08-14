@@ -77,6 +77,36 @@ it('approves and returns pending uploads as focal', function (): void {
     expect(DB::table('operations_review_uploads')->where('id', $id)->value('status'))->toBe('Approved');
 });
 
+it('prevents employees from changing upload status', function (): void {
+    $employee = User::factory()->employee()->create();
+    $id = DB::table('operations_review_uploads')->insertGetId([
+        'employee_id' => $employee->id,
+        'filename' => 'x.pdf',
+        'original_name' => 'x.pdf',
+        'file_size' => 10,
+        'mime_type' => 'application/pdf',
+        'status' => 'Pending',
+        'uploaded_at' => now(),
+    ]);
+
+    $this->actingAs($employee)
+        ->put("/uploads/operations-review/{$id}/status", ['status' => 'Approved'])
+        ->assertForbidden();
+
+    expect(DB::table('operations_review_uploads')->where('id', $id)->value('status'))->toBe('Pending');
+});
+
+it('rejects executable upload content', function (): void {
+    $user = User::factory()->employee()->create();
+
+    $this->actingAs($user)
+        ->post('/uploads/resources', [
+            'title' => 'Unsafe file',
+            'file' => UploadedFile::fake()->create('payload.exe', 10, 'application/x-msdownload'),
+        ])
+        ->assertSessionHasErrors('file');
+});
+
 it('blocks uploads when the deadline has passed', function (): void {
     DeadlineControl::query()->create([
         'role' => 'employee',

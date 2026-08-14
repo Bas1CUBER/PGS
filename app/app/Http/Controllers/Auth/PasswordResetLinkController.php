@@ -5,18 +5,24 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\PasswordResetCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class PasswordResetLinkController extends Controller
 {
+    public function __construct(
+        private readonly PasswordResetCodeService $passwordResetCodes,
+    ) {}
+
     /**
-     * Display the password reset link request view.
+     * Display the password reset code request view.
      */
     public function create(): Response
     {
@@ -26,7 +32,7 @@ class PasswordResetLinkController extends Controller
     }
 
     /**
-     * Handle an incoming password reset link request.
+     * Handle an incoming password reset code request.
      *
      * @throws ValidationException
      */
@@ -36,14 +42,28 @@ class PasswordResetLinkController extends Controller
             'email' => 'required|email',
         ])->validate();
 
-        $status = Password::sendResetLink($validated);
+        $email = Str::lower(trim($request->string('email')->toString()));
 
-        if ($status === Password::RESET_LINK_SENT) {
-            return back()->with('status', __($status));
+        try {
+            $issued = $this->passwordResetCodes->issue($email);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            throw ValidationException::withMessages([
+                'email' => ['We could not send a reset code right now. Please try again.'],
+            ]);
         }
 
-        throw ValidationException::withMessages([
-            'email' => [trans($status)],
+        $request->session()->put([
+            'password_reset_email' => $email,
+            'password_reset_verified_code_id' => null,
+            'password_reset_verified_at' => null,
         ]);
+
+        if (! $issued) {
+            return redirect()->route('password.code')->with('status', 'If an account exists for that email, a reset code has been sent.');
+        }
+
+        return redirect()->route('password.code')->with('status', 'We sent a 6-digit reset code to your email.');
     }
 }

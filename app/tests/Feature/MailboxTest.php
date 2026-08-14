@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
-it('stores password reset mails in the outbox when outbox mailer is active', function (): void {
+it('stores password reset codes in the outbox when the outbox mailer is selected', function (): void {
     config()->set('mail.default', 'outbox');
 
     $user = User::factory()->employee()->create();
@@ -20,8 +20,8 @@ it('stores password reset mails in the outbox when outbox mailer is active', fun
     $mail = DB::table('outbox_mails')->where('to_email', $user->email)->first();
 
     expect($mail)->not->toBeNull()
-        ->and($mail->subject)->toContain('Reset Password')
-        ->and($mail->body)->toContain('reset-password');
+        ->and($mail->subject)->toContain('password reset code')
+        ->and($mail->body)->toContain('reset code');
 });
 
 it('lists outbox mail for admins only', function (): void {

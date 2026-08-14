@@ -6,18 +6,8 @@
 
         <title inertia>{{ config('app.name', 'PGS') }}</title>
 
-        <script>
-            // Apply saved theme before paint to avoid dark-mode flash.
-            (function () {
-                const stored = localStorage.getItem('pgs-theme');
-                const dark = stored === 'dark' ||
-                    (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                if (dark) document.documentElement.classList.add('dark');
-            })();
-        </script>
-
         <!-- Scripts -->
-        @routes
+        @routes(nonce: request()->attributes->get('csp_nonce'))
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/Pages/{$page['component']}.tsx"])
         @inertiaHead

@@ -47,6 +47,10 @@ final class BackupController extends Controller
 
     public function create(Request $request): RedirectResponse
     {
+        if (app()->isProduction() && blank(config('backup.backup.password'))) {
+            return back()->with('error', 'Backup encryption is not configured. Set BACKUP_ARCHIVE_PASSWORD before creating a production backup.');
+        }
+
         Artisan::call('backup:run', ['--only-db' => true]);
 
         $this->audit->record(
@@ -66,7 +70,7 @@ final class BackupController extends Controller
             abort(404);
         }
 
-        if (! Storage::disk($disk)->exists($path)) {
+        if (! $this->isKnownBackupPath($disk, $path)) {
             abort(404);
         }
 
@@ -84,6 +88,10 @@ final class BackupController extends Controller
     public function destroy(Request $request, string $disk, string $path): RedirectResponse
     {
         if (! in_array($disk, config('backup.backup.destination.disks', []), true)) {
+            abort(404);
+        }
+
+        if (! $this->isKnownBackupPath($disk, $path)) {
             abort(404);
         }
 
@@ -112,5 +120,22 @@ final class BackupController extends Controller
         }
 
         return $user->id;
+    }
+
+    private function isKnownBackupPath(string $disk, string $path): bool
+    {
+        if (! in_array($disk, config('backup.backup.destination.disks', []), true)) {
+            return false;
+        }
+
+        $destination = BackupDestination::create($disk, (string) config('backup.backup.name', 'pgs'));
+
+        foreach ($destination->backups() as $backup) {
+            if ($backup->path() === $path) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

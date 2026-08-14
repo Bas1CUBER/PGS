@@ -140,14 +140,19 @@ it('shows and edits sector detail tables', function (): void {
     ]);
 
     $this->actingAs($user)
-        ->get('/sector-details/resilience-gvr')
+        ->get('/sectors/resilience/gvr')
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('SectorDetails/Show')
-            ->has('rows.data', 1));
+            ->has('rows.data', 1)
+            ->where('breadcrumbs', [
+                ['label' => 'Roadmaps', 'href' => '/sectors'],
+                ['label' => 'Resilience', 'href' => '/sectors/resilience'],
+                ['label' => 'Green Viability Ratio'],
+            ]));
 
     $this->actingAs($user)
-        ->put("/sector-details/resilience-gvr/{$id}", [
+        ->put("/sectors/resilience/gvr/{$id}", [
             'indicator' => 'Green areas',
             'share' => '55',
             'y2024' => '48',
@@ -155,6 +160,20 @@ it('shows and edits sector detail tables', function (): void {
         ->assertRedirect();
 
     expect(DB::table('resilience_gvr')->where('id', $id)->value('share'))->toBe('55.00');
+});
+
+it('404s sector detail pages with mismatched pillar and slug', function (): void {
+    $user = User::factory()->admin()->create();
+
+    $this->actingAs($user)->get('/sectors/collab/gvr')->assertNotFound();
+});
+
+it('301-redirects the pre-nesting sector detail URLs', function (): void {
+    $user = User::factory()->admin()->create();
+
+    $this->actingAs($user)
+        ->get('/sector-details/collab-relapse-rate')
+        ->assertRedirect('/sectors/collab/relapse-rate');
 });
 
 it('renders static content pages', function (): void {
@@ -165,12 +184,6 @@ it('renders static content pages', function (): void {
     }
 });
 
-it('renders the branded landing page with notices', function (): void {
-    DB::table('notices')->insert(['title' => 'Welcome', 'description' => 'Hello']);
-
-    $this->get('/')
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('Welcome')
-            ->has('notices', 1));
+it('redirects the public root to login', function (): void {
+    $this->get('/')->assertRedirect('/login');
 });

@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Enums\DeliverableStatus;
+use App\Enums\NotificationType;
 use App\Models\Deliverable;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\DeadlineService;
+use App\Services\NotificationService;
 use App\Services\TransitionsWorkflowService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -27,6 +30,7 @@ final class DeliverableController extends Controller
     public function __construct(
         private readonly AuditLogService $audit,
         private readonly TransitionsWorkflowService $workflow,
+        private readonly NotificationService $notifications,
     ) {}
 
     public function index(Request $request): Response
@@ -83,7 +87,7 @@ final class DeliverableController extends Controller
         ])->validate();
 
         $deliverable = new Deliverable;
-        $this->fillFromRequest($deliverable, $request);
+        $this->fillFromRequest($deliverable, $request, includeStatus: true);
 
         if ($request->hasFile('mov_file')) {
             $path = $request->file('mov_file')->store('deliverables', 'local');
@@ -100,6 +104,16 @@ final class DeliverableController extends Controller
             (string) $deliverable->id,
             after: ['title' => $deliverable->title, 'status' => $deliverable->status?->value],
             request: $request,
+        );
+
+        $this->notifications->createForRolesExcept(
+            ['admin', 'focal'],
+            $deliverable->uploaded_by,
+            NotificationType::Edit,
+            'New deliverable created',
+            ($this->userOrFail($request)->email).' created a new deliverable for tracking.',
+            $deliverable->id,
+            'p_deliverables',
         );
 
         return redirect()->route('deliverables.index')->with('success', 'Deliverable created.');
@@ -183,7 +197,20 @@ final class DeliverableController extends Controller
             abort(404);
         }
 
-        return Storage::disk('local')->download($deliverable->mov_file, $deliverable->title.'.pdf');
+        $this->audit->record(
+            $this->userId($request),
+            'deliverable.downloaded',
+            'p_deliverables',
+            (string) $deliverable->id,
+            request: $request,
+        );
+
+        $filename = Str::slug($deliverable->title ?? 'deliverable');
+
+        return Storage::disk('local')->download(
+            $deliverable->mov_file,
+            $filename !== '' ? $filename.'.pdf' : 'deliverable.pdf',
+        );
     }
 
     public function transition(Request $request, Deliverable $deliverable): RedirectResponse
@@ -200,10 +227,22 @@ final class DeliverableController extends Controller
             $this->userOrFail($request),
         );
 
+        $ownerId = (int) $deliverable->uploaded_by;
+        if ($ownerId > 0 && $ownerId !== $this->userId($request)) {
+            $this->notifications->create(
+                $ownerId,
+                NotificationType::Edit,
+                'Deliverable status updated',
+                'Your deliverable is now '.$request->string('to')->toString().'.',
+                $deliverable->id,
+                'p_deliverables',
+            );
+        }
+
         return back()->with('success', 'Deliverable status updated.');
     }
 
-    private function fillFromRequest(Deliverable $deliverable, Request $request): void
+    private function fillFromRequest(Deliverable $deliverable, Request $request, bool $includeStatus = false): void
     {
         $deliverable->fill([
             'form_type' => $request->filled('form_type') ? $request->string('form_type')->toString() : null,
@@ -211,9 +250,12 @@ final class DeliverableController extends Controller
             'focal_person' => $request->filled('focal_person') ? $request->string('focal_person')->toString() : null,
             'division' => $request->filled('division') ? $request->string('division')->toString() : null,
             'target_date' => $request->filled('target_date') ? $request->date('target_date') : null,
-            'status' => $request->string('status')->toString(),
             'actual_date' => $request->filled('actual_date') ? $request->date('actual_date') : null,
         ]);
+
+        if ($includeStatus) {
+            $deliverable->status = DeliverableStatus::from($request->string('status')->toString());
+        }
     }
 
     /**

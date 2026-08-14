@@ -7,9 +7,9 @@ namespace App\Http\Middleware;
 use App\Models\DeadlineControl;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\PageAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -53,38 +53,15 @@ class HandleInertiaRequests extends Middleware
      * Per-user page access for the gated navbar groups (legacy
      * user_page_access rows, session-cached 60s — same as the old navbar).
      *
-     * @return array{roadmaps: bool, scorecard: bool, performance_assessment: bool, cascading: bool, governance: bool}
+     * @return array<string, bool>
      */
     private function pageAccessFor(Request $request): array
     {
         $user = $request->user();
-        $keys = ['roadmaps', 'scorecard', 'performance_assessment', 'cascading', 'governance'];
 
-        if (! $user instanceof User || $user->isAdmin()) {
-            return array_fill_keys($keys, true);
-        }
-
-        $cacheKey = 'pgs_access_'.$user->id;
-
-        /** @var array{roadmaps: bool, scorecard: bool, performance_assessment: bool, cascading: bool, governance: bool}|null $access */
-        $access = Cache::get($cacheKey);
-
-        if (is_array($access)) {
-            return $access;
-        }
-
-        $row = DB::table('user_page_access')->where('user_id', $user->id)->first();
-        $access = array_fill_keys($keys, true); // no row → full access (matches CanAccessPageMiddleware)
-
-        if ($row !== null) {
-            foreach ($keys as $key) {
-                $access[$key] = (bool) ($row->{$key} ?? false);
-            }
-        }
-
-        Cache::put($cacheKey, $access, 60);
-
-        return $access;
+        return $user instanceof User
+            ? app(PageAccessService::class)->all($user)
+            : array_fill_keys(PageAccessService::MODULES, false);
     }
 
     /**

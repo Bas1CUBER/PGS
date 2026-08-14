@@ -8,6 +8,7 @@ use App\Models\User;
 use Closure;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -51,49 +52,47 @@ final class TransitionsWorkflowService
             throw new \InvalidArgumentException('Model does not match the workflow class.');
         }
 
-        $transition = $this->transitionFor($model, $to, $actor);
+        $from = null;
 
-        if ($transition === null) {
-            throw new AuthorizationException('This status transition is not allowed.');
-        }
+        $updated = DB::transaction(function () use ($model, $to, $actor, &$from): Model {
+            $locked = $this->lockModel($model);
 
-        $preconditionError = ($transition['preconditions'] ?? null) !== null
-            ? ($transition['preconditions'])($model)
-            : null;
+            // Re-evaluate both authorization and preconditions against the
+            // locked row so concurrent transitions cannot use stale state.
+            $transition = $this->transitionFor($locked, $to, $actor);
 
-        if ($preconditionError !== null) {
-            throw ValidationException::withMessages([
-                'status' => [$preconditionError],
-            ]);
-        }
-
-        $from = $model->getRawOriginal('status');
-
-        DB::transaction(function () use ($model, $transition): void {
-            $locked = $model->newQuery()
-                ->whereKey($model->getKey())
-                ->lockForUpdate()
-                ->first();
-
-            if ($locked !== null) {
-                $model = $locked;
+            if ($transition === null) {
+                throw new AuthorizationException('This status transition is not allowed.');
             }
 
-            $model->setAttribute('status', $transition['to']);
-            $model->forceFill($transition['on_apply'] ?? []);
-            $model->save();
+            $preconditionError = ($transition['preconditions'] ?? null) !== null
+                ? ($transition['preconditions'])($locked)
+                : null;
+
+            if ($preconditionError !== null) {
+                throw ValidationException::withMessages([
+                    'status' => [$preconditionError],
+                ]);
+            }
+
+            $from = $locked->getRawOriginal('status');
+            $locked->setAttribute('status', $transition['to']);
+            $locked->forceFill($transition['on_apply'] ?? []);
+            $locked->save();
+
+            return $locked;
         });
 
         app(AuditLogService::class)->record(
             $actor->id,
-            "{$model->getTable()}.status_changed",
-            $model->getTable(),
-            (string) $model->getKey(),
+            "{$updated->getTable()}.status_changed",
+            $updated->getTable(),
+            (string) $updated->getKey(),
             before: ['status' => $from],
-            after: ['status' => $transition['to']],
+            after: ['status' => $to],
         );
 
-        return $model;
+        return $updated;
     }
 
     /**
@@ -128,5 +127,27 @@ final class TransitionsWorkflowService
         }
 
         return in_array($actor->role->value, explode('|', $pattern), true);
+    }
+
+    /**
+     * @param  TModel  $model
+     * @return TModel
+     */
+    private function lockModel(Model $model): Model
+    {
+        $locked = $model->newQuery()
+            ->whereKey($model->getKey())
+            ->lockForUpdate()
+            ->first();
+
+        if ($locked === null) {
+            throw (new ModelNotFoundException)->setModel($this->modelClass, [$model->getKey()]);
+        }
+
+        if (! $locked instanceof $this->modelClass) {
+            throw new \InvalidArgumentException('Locked model does not match the workflow class.');
+        }
+
+        return $locked;
     }
 }

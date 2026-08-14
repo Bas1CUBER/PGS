@@ -64,6 +64,16 @@ jobs:
           DB_PASSWORD: ''
         run: php artisan test
 
+      - name: Coverage gate (services, models, requests, modules)
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: pgs_test
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: vendor/bin/pest --configuration=phpunit.coverage.xml --coverage --min=85
+
       - name: Static analysis (PHPStan level max)
         run: composer analyse
 

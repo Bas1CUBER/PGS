@@ -16,7 +16,7 @@ export default function Register() {
     const submit = (e: { preventDefault(): void }) => {
         e.preventDefault();
 
-        post(route('register'), {
+        post(route('register', undefined, false), {
             onFinish: () => {
                 reset('password', 'password_confirmation');
             },
@@ -101,14 +101,20 @@ export default function Register() {
                     )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={processing}>
+                <Button
+                    type="submit"
+                    className="w-full"
+                    loading={processing}
+                    loadingText="Creating account"
+                    disabled={processing}
+                >
                     <UserPlus className="size-4" />
-                    {processing ? 'Creating account…' : 'Register'}
+                    Register
                 </Button>
 
                 <p className="text-center text-sm text-gray-500">
                     Already registered?{' '}
-                    <Link href={route('login')} className="text-primary hover:underline">
+                    <Link href={route('login', undefined, false)} className="text-primary hover:underline">
                         Sign in
                     </Link>
                 </p>

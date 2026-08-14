@@ -6,10 +6,10 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,18 +19,120 @@ final class SurveyController extends Controller
     {
         $user = $this->userOrFail($request);
 
-        $surveys = DB::table('surveys as s')
-            ->leftJoin('surveys_done as d', function (JoinClause $join) use ($user): void {
-                $join->on('d.survey_id', '=', 's.id')->where('d.user_id', '=', $user->id);
-            })
-            ->select('s.id', 's.title', 's.url', 's.status', 's.created_at', DB::raw('CASE WHEN d.survey_id IS NOT NULL THEN 1 ELSE 0 END as done'))
-            ->whereNull('s.archived_at')
-            ->orderByDesc('s.created_at')
+        $surveys = DB::table('surveys')
+            ->whereNull('archived_at')
+            ->orderByDesc('created_at')
             ->get();
+
+        $doneIds = DB::table('surveys_done')
+            ->where('user_id', $user->id)
+            ->pluck('survey_id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
+
+        $completionCounts = DB::table('surveys_done')
+            ->select('survey_id', DB::raw('COUNT(*) as total'))
+            ->groupBy('survey_id')
+            ->pluck('total', 'survey_id');
+
+        $surveys = $surveys->map(function (object $survey) use ($doneIds, $completionCounts): array {
+            $surveyId = $this->toInt($survey->id);
+
+            return [
+                'id' => $surveyId,
+                'title' => $survey->title,
+                'url' => $survey->url,
+                'status' => $survey->status,
+                'created_at' => $survey->created_at,
+                'done' => in_array($surveyId, $doneIds, true) ? 1 : 0,
+                'completion_count' => $this->toInt($completionCounts[$survey->id] ?? 0),
+            ];
+        })->values();
+
+        $archived = $this->isAdmin($user)
+            ? DB::table('surveys')->whereNotNull('archived_at')->orderByDesc('archived_at')->get()->map(fn (object $survey): array => [
+                'id' => $this->toInt($survey->id),
+                'title' => $survey->title,
+                'url' => $survey->url,
+                'status' => $survey->status,
+                'created_at' => $survey->created_at,
+                'archived_at' => $survey->archived_at,
+                'completion_count' => $this->toInt($completionCounts[$survey->id] ?? 0),
+            ])->values()->all()
+            : [];
 
         return Inertia::render('Surveys/Index', [
             'surveys' => $surveys,
+            'archived' => $archived,
+            'canManage' => $this->isAdmin($user),
         ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $user = $this->userOrFail($request);
+        abort_unless($this->isAdmin($user), 403);
+
+        Validator::make($request->all(), [
+            'title' => ['required', 'string', 'max:255'],
+            'url' => ['required', 'url', 'max:1024'],
+        ])->validate();
+
+        DB::table('surveys')->insert([
+            'title' => $request->string('title')->toString(),
+            'url' => $request->string('url')->toString(),
+            'status' => 'Active',
+            'created_by' => $user->id,
+            'created_at' => now(),
+        ]);
+
+        return back()->with('success', 'Survey published.');
+    }
+
+    public function update(Request $request, int $survey): RedirectResponse
+    {
+        $user = $this->userOrFail($request);
+        abort_unless($this->isAdmin($user), 403);
+
+        Validator::make($request->all(), [
+            'title' => ['required', 'string', 'max:255'],
+            'url' => ['required', 'url', 'max:1024'],
+        ])->validate();
+
+        $updated = DB::table('surveys')->where('id', $survey)->update([
+            'title' => $request->string('title')->toString(),
+            'url' => $request->string('url')->toString(),
+        ]);
+
+        abort_unless($updated > 0, 404);
+
+        return back()->with('success', 'Survey updated.');
+    }
+
+    public function archive(Request $request, int $survey): RedirectResponse
+    {
+        $user = $this->userOrFail($request);
+        abort_unless($this->isAdmin($user), 403);
+
+        $updated = DB::table('surveys')->where('id', $survey)->whereNull('archived_at')->update([
+            'status' => 'Archived',
+            'archived_at' => now(),
+        ]);
+
+        abort_unless($updated > 0, 404);
+
+        return back()->with('success', 'Survey archived.');
+    }
+
+    public function destroy(Request $request, int $survey): RedirectResponse
+    {
+        $user = $this->userOrFail($request);
+        abort_unless($this->isAdmin($user), 403);
+
+        $deleted = DB::table('surveys')->where('id', $survey)->whereNotNull('archived_at')->delete();
+        abort_unless($deleted > 0, 404);
+
+        return back()->with('success', 'Archived survey deleted.');
     }
 
     public function markDone(Request $request, int $survey): RedirectResponse
@@ -61,5 +163,15 @@ final class SurveyController extends Controller
         }
 
         return $user;
+    }
+
+    private function isAdmin(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
+    private function toInt(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 }

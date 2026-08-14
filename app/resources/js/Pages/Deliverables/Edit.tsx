@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface DeliverableDetail {
     id: number;
@@ -29,7 +30,7 @@ interface DeliverableEditPageProps extends PageProps {
 
 const statusOrder = ['Not Yet Started', 'Ongoing', 'Accomplished'];
 
-export default function DeliverableEdit({ deliverable, statuses }: DeliverableEditPageProps) {
+export default function DeliverableEdit({ deliverable }: DeliverableEditPageProps) {
     const { data, setData, put, processing, errors } = useForm({
         title: deliverable.title ?? '',
         form_type: deliverable.form_type ?? '',
@@ -39,6 +40,7 @@ export default function DeliverableEdit({ deliverable, statuses }: DeliverableEd
         status: deliverable.status ?? 'Not Yet Started',
         actual_date: deliverable.actual_date ?? '',
     });
+    const { isPending, start, finish } = usePendingAction();
 
     function submit(e: { preventDefault(): void }): void {
         e.preventDefault();
@@ -53,10 +55,17 @@ export default function DeliverableEdit({ deliverable, statuses }: DeliverableEd
             return;
         }
 
+        const action = `move:${direction}`;
+        start(action);
         router.post(
             `/deliverables/${String(deliverable.id)}/status`,
             { to: statusOrder[target] },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish(action);
+                },
+            },
         );
     }
 
@@ -148,20 +157,12 @@ export default function DeliverableEdit({ deliverable, statuses }: DeliverableEd
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="status">Status</Label>
-                                    <select
-                                        id="status"
-                                        value={data.status}
-                                        onChange={(e) => {
-                                            setData('status', e.target.value);
-                                        }}
-                                        className="border-input bg-background flex h-10 w-full rounded-md border px-3 py-2 text-sm"
-                                    >
-                                        {statuses.map((status) => (
-                                            <option key={status} value={status}>
-                                                {status}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="border-border bg-muted flex min-h-10 items-center rounded-[var(--kinetic-radius-control)] border px-3 text-sm shadow-[var(--shadow-inset)]">
+                                        {data.status}
+                                    </div>
+                                    <p className="text-muted-foreground text-xs">
+                                        Use the workflow controls below to change status.
+                                    </p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="actual_date">Actual date</Label>
@@ -177,8 +178,13 @@ export default function DeliverableEdit({ deliverable, statuses }: DeliverableEd
                             </div>
 
                             <div className="flex justify-end">
-                                <Button type="submit" disabled={processing}>
-                                    {processing ? 'Savingâ€¦' : 'Save changes'}
+                                <Button
+                                    type="submit"
+                                    loading={processing}
+                                    loadingText="Saving"
+                                    disabled={processing}
+                                >
+                                    Save changes
                                 </Button>
                             </div>
                         </form>
@@ -229,6 +235,8 @@ export default function DeliverableEdit({ deliverable, statuses }: DeliverableEd
                                 variant="outline"
                                 size="sm"
                                 disabled={data.status === statusOrder[0]}
+                                loading={isPending('move:up')}
+                                loadingText="Moving"
                                 onClick={() => {
                                     move('up');
                                 }}
@@ -239,6 +247,8 @@ export default function DeliverableEdit({ deliverable, statuses }: DeliverableEd
                             <Button
                                 size="sm"
                                 disabled={data.status === statusOrder[statusOrder.length - 1]}
+                                loading={isPending('move:down')}
+                                loadingText="Moving"
                                 onClick={() => {
                                     move('down');
                                 }}

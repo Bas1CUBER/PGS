@@ -38,3 +38,17 @@ it('exports a deliverable as PDF', function (): void {
         ->assertOk()
         ->assertHeader('Content-Type', 'application/pdf');
 });
+
+it('does not export another employee deliverable', function (): void {
+    $owner = User::factory()->employee()->create();
+    $other = User::factory()->employee()->create();
+    $id = DB::table('p_deliverables')->insertGetId([
+        'title' => 'Private Report',
+        'status' => 'Ongoing',
+        'uploaded_by' => $owner->id,
+    ]);
+
+    $this->actingAs($other)
+        ->get("/deliverables/{$id}/pdf")
+        ->assertForbidden();
+});

@@ -77,5 +77,5 @@ echo 'Redirect: '.($loc[1] ?? 'none')."\n";
 // 4) GET /dashboard with the session
 $r = req('GET', $base.'/dashboard');
 echo "GET /dashboard: {$r['code']}\n";
-echo 'Shell rendered: '.(str_contains($r['body'], 'Performance Governance System') ? 'yes' : 'no')."\n";
+echo 'Shell rendered: '.(str_contains($r['body'], 'data-page') ? 'yes' : 'no')."\n";
 echo 'Inertia page data: '.(str_contains($r['body'], 'Dashboard') ? 'yes' : 'no')."\n";

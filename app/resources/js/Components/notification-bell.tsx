@@ -1,18 +1,9 @@
-import { Bell } from 'lucide-react';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { Bell, CheckCircle2, FileEdit, LoaderCircle, Users } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { usePage } from '@inertiajs/react';
+import type { PageProps } from '@/types';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface NotificationItem {
     id: number;
@@ -23,18 +14,18 @@ interface NotificationItem {
     created_at: string;
 }
 
-const typeColors: Record<string, string> = {
-    upload: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
-    approved: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
-    returned: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
-    edit: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
-    default: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
-};
+function NotificationIcon({ type }: { type: string }) {
+    if (type === 'approved') return <CheckCircle2 size={16} />;
+    if (type === 'edit') return <FileEdit size={16} />;
+    return <Users size={16} />;
+}
 
 export default function NotificationBell() {
-    const { unreadCount } = usePage().props;
+    const { unreadCount } = usePage<PageProps>().props;
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [open, setOpen] = useState(false);
+    const [loaded, setLoaded] = useState(false);
+    const { isPending, start, finish } = usePendingAction();
 
     async function fetchNotifications(): Promise<void> {
         try {
@@ -44,105 +35,185 @@ export default function NotificationBell() {
             if (!response.ok) return;
             const payload = (await response.json()) as { data: NotificationItem[] };
             setNotifications(payload.data);
+            setLoaded(true);
         } catch {
-            // Non-critical: badge still works via the shared unreadCount prop.
+            // Non-critical: the indicator still reflects the shared unread count.
         }
     }
 
-    function handleOpenChange(next: boolean): void {
+    function toggleOpen(): void {
+        const next = !open;
         setOpen(next);
+        if (next && !loaded) void fetchNotifications();
+    }
 
-        if (next && notifications.length === 0) {
-            void fetchNotifications();
+    function markAllRead(): void {
+        start('all');
+        router.post(
+            '/notifications/read-all',
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish('all');
+                },
+            },
+        );
+        setNotifications((items) => items.map((item) => ({ ...item, is_read: true })));
+    }
+
+    function openNotification(notification: NotificationItem): void {
+        if (!notification.is_read) {
+            const action = `read:${String(notification.id)}`;
+            start(action);
+            router.post(
+                `/notifications/${String(notification.id)}/read`,
+                {},
+                {
+                    preserveScroll: true,
+                    onFinish: () => {
+                        finish(action);
+                    },
+                },
+            );
+            setNotifications((items) =>
+                items.map((item) =>
+                    item.id === notification.id ? { ...item, is_read: true } : item,
+                ),
+            );
         }
+        setOpen(false);
     }
 
     return (
-        <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-                    <Bell className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                        <Badge
-                            className={cn(
-                                'absolute -top-1 -right-1 h-5 min-w-5 justify-center rounded-full px-1 text-xs',
-                            )}
-                            variant="destructive"
-                        >
-                            {unreadCount > 99 ? '99+' : String(unreadCount)}
-                        </Badge>
-                    )}
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel className="flex items-center justify-between">
-                    Notifications
-                    {unreadCount > 0 && (
-                        <button
-                            type="button"
-                            className="text-xs font-normal text-blue-600 hover:underline dark:text-blue-300"
+        <div
+            className="navbar-notification-wrap"
+            onClick={(event) => {
+                event.stopPropagation();
+            }}
+        >
+            <button
+                className={cn('icon-button notification-button', open && 'active')}
+                type="button"
+                aria-label={`${String(unreadCount)} notifications`}
+                aria-haspopup="dialog"
+                aria-expanded={open}
+                aria-controls="navbar-notifications"
+                onClick={toggleOpen}
+            >
+                <Bell size={18} />
+                {unreadCount > 0 && <i aria-hidden="true" />}
+            </button>
+
+            {open && (
+                <section
+                    className="navbar-notification-menu"
+                    id="navbar-notifications"
+                    role="dialog"
+                    aria-label="Notifications"
+                    onKeyDown={(event) => {
+                        if (event.key === 'Escape') setOpen(false);
+                    }}
+                >
+                    <header>
+                        <div>
+                            <strong>Notifications</strong>
+                            <small>
+                                {unreadCount > 0
+                                    ? `${String(unreadCount)} unread updates`
+                                    : "You're all caught up"}
+                            </small>
+                        </div>
+                        {unreadCount > 0 && (
+                            <button
+                                className="loading-button"
+                                type="button"
+                                disabled={isPending('all')}
+                                aria-busy={isPending('all') || undefined}
+                                data-loading={isPending('all') || undefined}
+                                aria-label={
+                                    isPending('all') ? 'Marking notifications as read' : undefined
+                                }
+                                onClick={markAllRead}
+                            >
+                                <span
+                                    className="loading-button-content"
+                                    aria-hidden={isPending('all') || undefined}
+                                >
+                                    Mark all read
+                                </span>
+                                {isPending('all') ? (
+                                    <span className="loading-button-status" aria-hidden="true">
+                                        <LoaderCircle className="loading-button-spinner" />
+                                        Marking
+                                    </span>
+                                ) : null}
+                            </button>
+                        )}
+                    </header>
+                    <div className="navbar-notification-list">
+                        {notifications.length === 0 ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setOpen(false);
+                                }}
+                            >
+                                <span className="navbar-notification-icon">
+                                    <Bell size={16} />
+                                </span>
+                                <span>
+                                    <strong>
+                                        {loaded ? 'No new notifications' : 'Loading notifications'}
+                                    </strong>
+                                    <small>
+                                        {loaded
+                                            ? 'You are all caught up.'
+                                            : 'Checking your latest updates.'}
+                                    </small>
+                                </span>
+                            </button>
+                        ) : (
+                            notifications.map((notification) => (
+                                <button
+                                    className={notification.is_read ? '' : 'is-unread'}
+                                    type="button"
+                                    disabled={isPending(`read:${String(notification.id)}`)}
+                                    aria-busy={
+                                        isPending(`read:${String(notification.id)}`) || undefined
+                                    }
+                                    key={notification.id}
+                                    onClick={() => {
+                                        openNotification(notification);
+                                    }}
+                                >
+                                    <span className="navbar-notification-icon">
+                                        {isPending(`read:${String(notification.id)}`) ? (
+                                            <LoaderCircle className="loading-button-spinner" />
+                                        ) : (
+                                            <NotificationIcon type={notification.type} />
+                                        )}
+                                    </span>
+                                    <span>
+                                        <strong>{notification.title}</strong>
+                                        <small>{notification.message}</small>
+                                    </span>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                    <footer>
+                        <Link
+                            href="/notifications"
                             onClick={() => {
-                                router.post('/notifications/read-all');
                                 setOpen(false);
                             }}
                         >
-                            Mark all read
-                        </button>
-                    )}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {notifications.length === 0 ? (
-                    <div className="text-muted-foreground px-3 py-6 text-center text-sm">
-                        <Link
-                            href="/notifications"
-                            className="text-blue-600 hover:underline dark:text-blue-300"
-                        >
-                            Open notifications
+                            View all notifications
                         </Link>
-                    </div>
-                ) : (
-                    notifications.map((notification) => (
-                        <DropdownMenuItem
-                            key={notification.id}
-                            asChild
-                            className={cn(
-                                'flex-col items-start gap-1 py-2',
-                                !notification.is_read && 'bg-accent',
-                            )}
-                        >
-                            <Link
-                                href={`/notifications/${String(notification.id)}/read`}
-                                method="post"
-                                as="button"
-                                className="w-full text-left"
-                            >
-                                <span className="flex items-center gap-2">
-                                    <span
-                                        className={cn(
-                                            'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
-                                            typeColors[notification.type] ?? typeColors.default,
-                                        )}
-                                    >
-                                        {notification.type}
-                                    </span>
-                                    <span className="text-sm font-medium">
-                                        {notification.title}
-                                    </span>
-                                </span>
-                                <span className="text-muted-foreground line-clamp-2 text-xs">
-                                    {notification.message}
-                                </span>
-                            </Link>
-                        </DropdownMenuItem>
-                    ))
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                    <Link href="/notifications" className="justify-center text-sm">
-                        View all
-                    </Link>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+                    </footer>
+                </section>
+            )}
+        </div>
     );
 }

@@ -1,7 +1,17 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { ArrowLeft, CalendarClock, ListChecks, Table2 } from 'lucide-react';
+import {
+    CalendarClock,
+    CheckCircle2,
+    CircleDashed,
+    CircleX,
+    ListChecks,
+    Plus,
+    Table2,
+    Trash2,
+    XCircle,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +26,10 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
+import { relativeInternalUrl } from '@/lib/relative-url';
+import { usePendingAction } from '@/hooks/use-pending-action';
+import { PgsStatCard } from '@/components/pgs-stat-card';
+import { legacyImageUrl } from '@/lib/legacy-asset';
 
 interface SectorRow {
     id: number;
@@ -43,6 +57,7 @@ interface SectorShowPageProps extends PageProps {
     module: {
         slug: string;
         label: string;
+        logo: string;
         table: string;
         progress_table: string;
         schedule_table: string | null;
@@ -62,6 +77,18 @@ interface SectorShowPageProps extends PageProps {
           }[]
         | null;
     details: SectorDetailLink[];
+    progressSummary: Record<string, number | undefined>;
+    pendingChanges: {
+        id: number;
+        change_type: string;
+        category: string;
+        year: number;
+        month: number | null;
+        status: string | null;
+        description: string | null;
+        submitted_at: string;
+    }[];
+    canManage: boolean;
 }
 
 const statusStyles: Record<string, string> = {
@@ -76,11 +103,63 @@ export default function SectorShow({
     progress,
     schedule,
     details: detailModules,
+    progressSummary,
+    pendingChanges,
+    canManage,
 }: SectorShowPageProps) {
     const [editTarget, setEditTarget] = useState<SectorRow | null>(null);
     const [editCategory, setEditCategory] = useState('');
     const [editYear, setEditYear] = useState('');
     const [editDescription, setEditDescription] = useState('');
+    const [newCategory, setNewCategory] = useState('');
+    const [newYear, setNewYear] = useState(String(new Date().getFullYear()));
+    const [newDescription, setNewDescription] = useState('');
+    const { isPending, start, finish } = usePendingAction();
+
+    function addRow(e: { preventDefault(): void }): void {
+        e.preventDefault();
+        start('add');
+        router.post(
+            `/sectors/${module.slug}/rows`,
+            { category: newCategory, year: newYear, description: newDescription },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setNewCategory('');
+                    setNewDescription('');
+                },
+                onFinish: () => {
+                    finish('add');
+                },
+            },
+        );
+    }
+
+    function deleteRow(id: number): void {
+        const action = `delete:${String(id)}`;
+        start(action);
+        router.delete(`/sectors/${module.slug}/rows/${String(id)}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                finish(action);
+            },
+        });
+    }
+
+    function decidePending(id: number, decision: 'Approved' | 'Rejected'): void {
+        const action = `decision:${String(id)}`;
+        start(action);
+        router.post(
+            `/sectors/${module.slug}/pending/${String(id)}/decision`,
+            { decision },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish(action);
+                },
+            },
+        );
+    }
 
     function openEdit(row: SectorRow): void {
         setEditTarget(row);
@@ -92,12 +171,20 @@ export default function SectorShow({
     function saveEdit(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (editTarget === null) return;
+        start('save');
         router.put(
             `/sectors/${module.slug}/rows/${String(editTarget.id)}`,
             { category: editCategory, year: editYear, description: editDescription },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEditTarget(null);
+                },
+                onFinish: () => {
+                    finish('save');
+                },
+            },
         );
-        setEditTarget(null);
     }
 
     return (
@@ -107,12 +194,20 @@ export default function SectorShow({
             <Head title={module.label} />
 
             <div className="space-y-6">
-                <Button asChild variant="ghost" size="sm">
-                    <Link href="/sectors">
-                        <ArrowLeft className="size-4" />
-                        All sectors
-                    </Link>
-                </Button>
+                <Card className="pgs-sector-banner">
+                    <CardContent className="flex items-center gap-4 p-5 sm:p-6">
+                        <div className="pgs-sector-logo" aria-hidden="true">
+                            <img src={legacyImageUrl(module.logo)} alt="" />
+                        </div>
+                        <div>
+                            <p className="pgs-section-kicker">Sector roadmap</p>
+                            <h1 className="text-2xl font-semibold">{module.label}</h1>
+                            <p className="text-muted-foreground mt-1 text-sm">
+                                Indicators, progress tracking, schedules, and detailed roadmaps.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <CardHeader>
@@ -130,7 +225,7 @@ export default function SectorShow({
                             <div className="flex flex-wrap gap-2">
                                 {detailModules.map((detail) => (
                                     <Button key={detail.slug} asChild variant="outline" size="sm">
-                                        <Link href={`/sector-details/${detail.slug}`}>
+                                        <Link href={`/sectors/${module.slug}/${detail.slug}`}>
                                             {detail.label}
                                         </Link>
                                     </Button>
@@ -139,6 +234,147 @@ export default function SectorShow({
                         )}
                     </CardContent>
                 </Card>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <PgsStatCard
+                        label="Accomplished"
+                        value={progressSummary.Accomplished ?? 0}
+                        icon={<CheckCircle2 className="size-5" />}
+                        status="Complete"
+                        detail="Completed indicators"
+                        tone="green"
+                        compact
+                    />
+                    <PgsStatCard
+                        label="Ongoing"
+                        value={progressSummary.Ongoing ?? 0}
+                        icon={<CircleDashed className="size-5" />}
+                        status="Active"
+                        detail="Indicators in progress"
+                        tone="blue"
+                        compact
+                    />
+                    <PgsStatCard
+                        label="Not accomplished / started"
+                        value={progressSummary['Not Accomplished/Started'] ?? 0}
+                        icon={<CircleX className="size-5" />}
+                        status="Needs attention"
+                        detail="Indicators needing action"
+                        tone="red"
+                        compact
+                    />
+                </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Plus className="size-4" /> Add roadmap indicator
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form
+                            onSubmit={addRow}
+                            className="grid gap-3 md:grid-cols-[1fr_120px_2fr_auto] md:items-end"
+                        >
+                            <div className="space-y-2">
+                                <label htmlFor="new-category" className="text-sm font-medium">
+                                    Category
+                                </label>
+                                <Input
+                                    id="new-category"
+                                    value={newCategory}
+                                    onChange={(e) => {
+                                        setNewCategory(e.target.value);
+                                    }}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="new-year" className="text-sm font-medium">
+                                    Year
+                                </label>
+                                <Input
+                                    id="new-year"
+                                    type="number"
+                                    value={newYear}
+                                    onChange={(e) => {
+                                        setNewYear(e.target.value);
+                                    }}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="new-description" className="text-sm font-medium">
+                                    Description
+                                </label>
+                                <Input
+                                    id="new-description"
+                                    value={newDescription}
+                                    onChange={(e) => {
+                                        setNewDescription(e.target.value);
+                                    }}
+                                    required
+                                />
+                            </div>
+                            <Button type="submit" loading={isPending('add')} loadingText="Saving">
+                                <Plus className="size-4" /> Add
+                            </Button>
+                        </form>
+                        {!canManage && (
+                            <p className="text-muted-foreground mt-3 text-xs">
+                                New indicators are sent to an admin for approval.
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {canManage && pendingChanges.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Pending roadmap changes</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            {pendingChanges.map((change) => (
+                                <div
+                                    key={change.id}
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+                                >
+                                    <div>
+                                        <p className="text-sm font-medium">
+                                            {change.change_type === 'add_row'
+                                                ? 'New indicator'
+                                                : 'Progress update'}{' '}
+                                            — {change.category} ({change.year})
+                                        </p>
+                                        <p className="text-muted-foreground text-xs">
+                                            {change.description ?? change.status ?? 'No details'} ·{' '}
+                                            {new Date(change.submitted_at).toLocaleString()}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <Button
+                                            onClick={() => {
+                                                decidePending(change.id, 'Approved');
+                                            }}
+                                            loading={isPending(`decision:${String(change.id)}`)}
+                                        >
+                                            <CheckCircle2 className="size-4" /> Approve
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                decidePending(change.id, 'Rejected');
+                                            }}
+                                            loading={isPending(`decision:${String(change.id)}`)}
+                                        >
+                                            <XCircle className="size-4" /> Reject
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card>
                     <CardHeader>
@@ -174,6 +410,20 @@ export default function SectorShow({
                                             >
                                                 Edit
                                             </Button>
+                                            {canManage && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label="Delete indicator"
+                                                    className="text-destructive"
+                                                    loading={isPending(`delete:${String(row.id)}`)}
+                                                    onClick={() => {
+                                                        deleteRow(row.id);
+                                                    }}
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -202,7 +452,7 @@ export default function SectorShow({
                                         variant={link.active ? 'default' : 'ghost'}
                                         size="sm"
                                     >
-                                        <Link href={link.url}>
+                                        <Link href={relativeInternalUrl(link.url) ?? '#'}>
                                             {link.label.replace(/&laquo;|&raquo;/g, '')}
                                         </Link>
                                     </Button>
@@ -355,7 +605,13 @@ export default function SectorShow({
                                     >
                                         Cancel
                                     </Button>
-                                    <Button type="submit">Save</Button>
+                                    <Button
+                                        type="submit"
+                                        loading={isPending('save')}
+                                        loadingText="Saving"
+                                    >
+                                        Save
+                                    </Button>
                                 </div>
                             </form>
                         </CardContent>

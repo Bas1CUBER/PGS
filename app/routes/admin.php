@@ -7,7 +7,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\DeadlineController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'role:admin'])->group(function (): void {
+Route::middleware(['auth', 'verified', 'role:admin'])->group(function (): void {
     Route::get('/deadlines', [DeadlineController::class, 'index'])->name('deadlines.index');
     Route::put('/deadlines/{role}', [DeadlineController::class, 'update'])->name('deadlines.update');
 

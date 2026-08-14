@@ -4,19 +4,13 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
-use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
+use App\Http\Controllers\Auth\PasswordResetCodeController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
-
-    Route::post('register', [RegisteredUserController::class, 'store']);
-
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
@@ -29,11 +23,23 @@ Route::middleware('guest')->group(function () {
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
         ->name('password.email');
 
-    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
-        ->name('password.reset');
+    Route::get('reset-password/code', [PasswordResetCodeController::class, 'create'])
+        ->name('password.code');
 
-    Route::post('reset-password', [NewPasswordController::class, 'store'])
-        ->name('password.store');
+    Route::post('reset-password/code', [PasswordResetCodeController::class, 'verify'])
+        ->middleware('throttle:password-reset-verify')
+        ->name('password.code.verify');
+
+    Route::post('reset-password/code/resend', [PasswordResetCodeController::class, 'resend'])
+        ->middleware('throttle:password-reset-resend')
+        ->name('password.code.resend');
+
+    Route::get('reset-password/change', [PasswordResetCodeController::class, 'change'])
+        ->name('password.change');
+
+    Route::post('reset-password/change', [PasswordResetCodeController::class, 'update'])
+        ->middleware('throttle:password-reset-change')
+        ->name('password.change.store');
 });
 
 Route::middleware('auth')->group(function () {

@@ -8,21 +8,35 @@ use App\Models\User;
 it('sends the security headers on web responses', function (): void {
     $user = User::factory()->employee()->create();
 
-    $this->actingAs($user)
+    $response = $this->actingAs($user)
         ->get('/dashboard')
         ->assertHeader('X-Frame-Options', 'DENY')
         ->assertHeader('X-Content-Type-Options', 'nosniff')
         ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
         ->assertHeader('Permissions-Policy')
-        ->assertHeader('Content-Security-Policy-Report-Only');
+        ->assertHeader('Content-Security-Policy');
+
+    $csp = (string) $response->headers->get('Content-Security-Policy');
+    expect($csp)
+        ->toContain("script-src 'self' 'nonce-")
+        ->not->toContain("script-src 'self' 'unsafe-inline'");
 });
 
 it('declares auth and throttle middleware on state-changing routes', function (): void {
     $expectations = [
         'deliverables.store' => ['auth', 'throttle:submissions'],
         'deliverables.transition' => ['auth'],
-        'notices.store' => ['auth'],
-        'sectors.rows.update' => ['auth'],
+        'uploads.store' => ['auth', 'verified', 'throttle:submissions'],
+        'uploads.status' => ['auth', 'verified', 'role:admin,focal'],
+        'notices.store' => ['auth', 'verified', 'role:admin,focal'],
+        'sectors.rows.update' => ['auth', 'page.access:roadmaps'],
+        'sectors.details.show' => ['auth', 'verified', 'page.access:roadmaps'],
+        'sectors.details.update' => ['auth', 'verified', 'role:admin,focal', 'page.access:roadmaps'],
+        'sectors.details.destroy' => ['auth', 'role:admin,focal'],
+        'sectors.details.lock' => ['auth', 'role:admin,focal'],
+        'opcr.store' => ['auth', 'role:admin', 'page.access:performance_assessment'],
+        'strategy-review.review' => ['auth', 'page.access:performance_assessment'],
+        'scorecard.index' => ['auth', 'verified', 'page.access:scorecard'],
         'users.store' => ['auth', 'role:admin'],
         'deadlines.update' => ['auth', 'role:admin'],
         'backups.create' => ['auth', 'role:admin'],

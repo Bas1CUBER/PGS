@@ -14,6 +14,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import type { PageProps } from '@/types';
+import { relativeInternalUrl } from '@/lib/relative-url';
 
 interface MailRow {
     id: number;
@@ -48,7 +49,8 @@ export default function MailboxIndex({ mails, filters }: MailboxPageProps) {
                 <div className="text-muted-foreground flex items-center gap-2">
                     <Mail className="size-5" />
                     <p className="text-sm">
-                        Outgoing mail store (LAN: no SMTP server). Password reset links land here.
+                        Local outgoing mail store. Password reset codes land here when the outbox
+                        mailer is selected.
                     </p>
                 </div>
 
@@ -125,7 +127,7 @@ export default function MailboxIndex({ mails, filters }: MailboxPageProps) {
                                         variant={link.active ? 'default' : 'ghost'}
                                         size="sm"
                                     >
-                                        <Link href={link.url}>
+                                        <Link href={relativeInternalUrl(link.url) ?? '#'}>
                                             {link.label.replace(/&laquo;|&raquo;/g, '')}
                                         </Link>
                                     </Button>

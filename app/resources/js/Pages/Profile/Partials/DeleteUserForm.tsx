@@ -1,16 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 export default function DeleteUserForm() {
     const [confirmingUserDeletion, setConfirmingUserDeletion] = useState(false);
@@ -28,10 +19,8 @@ export default function DeleteUserForm() {
         password: '',
     });
 
-    const deleteUser = (e: { preventDefault(): void }) => {
-        e.preventDefault();
-
-        destroy(route('profile.destroy'), {
+    const deleteUser = () => {
+        destroy(route('profile.destroy', undefined, false), {
             preserveScroll: true,
             onSuccess: () => {
                 closeModal();
@@ -70,56 +59,26 @@ export default function DeleteUserForm() {
                 Delete Account
             </Button>
 
-            <Dialog
+            <PgsConfirmationDialog
                 open={confirmingUserDeletion}
                 onOpenChange={(open) => {
-                    if (!open) {
-                        closeModal();
-                    }
+                    if (!open) closeModal();
                 }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Are you sure you want to delete your account?</DialogTitle>
-                        <DialogDescription>
-                            Once your account is deleted, all of its resources and data will be
-                            permanently deleted. Please enter your password to confirm.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form onSubmit={deleteUser} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="password" className="sr-only">
-                                Password
-                            </Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                name="password"
-                                ref={passwordInput}
-                                value={data.password}
-                                onChange={(e) => {
-                                    setData('password', e.target.value);
-                                }}
-                                autoFocus
-                                placeholder="Password"
-                            />
-                            {errors.password && (
-                                <p className="text-destructive text-sm">{errors.password}</p>
-                            )}
-                        </div>
-
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={closeModal}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" variant="destructive" disabled={processing}>
-                                {processing ? 'Deleting…' : 'Delete Account'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+                title="Delete + password"
+                description="Require a second verification step."
+                confirmationTitle="Confirm with your password"
+                confirmationDescription="Enter your password to permanently delete your account."
+                onConfirm={deleteUser}
+                loading={processing}
+                loadingText="Deleting"
+                password={{
+                    value: data.password,
+                    onChange: (value) => {
+                        setData('password', value);
+                    },
+                    error: errors.password,
+                }}
+            />
         </section>
     );
 }

@@ -30,16 +30,15 @@ return [
     | your mailers below. You may also add additional mailers if needed.
     |
     | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
-    |            "postmark", "resend", "log", "array",
+    |            "postmark", "log", "array",
     |            "failover", "roundrobin"
     |
     */
 
     'mailers' => [
 
-        // LAN outbox: no SMTP server on the host. Outgoing messages
-        // (e.g. password reset) land in the outbox_mails table and are
-        // read from the admin Mailbox page. Transport: App\Mail\OutboxTransport.
+        // Local outbox: use this mailer when outgoing messages should land in
+        // the outbox_mails table instead of being sent by SMTP.
         'outbox' => [
             'transport' => 'outbox',
         ],
@@ -66,10 +65,6 @@ return [
             // 'client' => [
             //     'timeout' => 5,
             // ],
-        ],
-
-        'resend' => [
-            'transport' => 'resend',
         ],
 
         'sendmail' => [

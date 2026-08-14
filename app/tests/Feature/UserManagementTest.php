@@ -61,6 +61,7 @@ it('creates a user with page access and audits the action', function (): void {
     $created = User::query()->where('email', 'new@example.com')->first();
     expect($created)->not->toBeNull()
         ->and($created->role->value)->toBe('focal')
+        ->and($created->email_verified_at)->not->toBeNull()
         ->and($created->pageAccess()->first()->scorecard)->toBeFalse();
 
     expect(AuditLog::query()->where('action', 'user.created')->exists())->toBeTrue();

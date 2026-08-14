@@ -25,13 +25,13 @@ export default function Welcome({ notices, canLogin, canRegister }: WelcomePageP
         <>
             <Head title="Welcome" />
 
-            <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#0b4aa2] via-[#0d5bd1] to-[#1e88e5] text-white">
+            <div className="ui-kit pgs-welcome-page relative min-h-screen overflow-hidden text-white">
                 <div className="pointer-events-none absolute -top-40 -right-32 size-[32rem] rounded-full bg-white/10 blur-3xl" />
                 <div className="pointer-events-none absolute -bottom-48 -left-32 size-[32rem] rounded-full bg-white/10 blur-3xl" />
 
                 <div className="relative mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-4 py-16">
                     <div className="mb-6 flex items-center gap-3">
-                        <div className="flex size-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30 backdrop-blur">
+                        <div className="pgs-welcome-mark flex size-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30 backdrop-blur">
                             <HeartPulse className="size-8" />
                         </div>
                         <div>
@@ -57,7 +57,7 @@ export default function Welcome({ notices, canLogin, canRegister }: WelcomePageP
                                         size="lg"
                                         className="text-primary bg-white hover:bg-blue-50"
                                     >
-                                        <Link href={route('login')}>
+                                        <Link href={route('login', undefined, false)}>
                                             <LogIn className="size-4" />
                                             Sign in
                                         </Link>
@@ -70,7 +70,7 @@ export default function Welcome({ notices, canLogin, canRegister }: WelcomePageP
                                         variant="outline"
                                         className="border-white/40 bg-white/10 text-white hover:bg-white/20"
                                     >
-                                        <Link href={route('register')}>
+                                        <Link href={route('register', undefined, false)}>
                                             <UserPlus className="size-4" />
                                             Register
                                         </Link>
@@ -83,7 +83,7 @@ export default function Welcome({ notices, canLogin, canRegister }: WelcomePageP
                                 size="lg"
                                 className="text-primary bg-white hover:bg-blue-50"
                             >
-                                <Link href={route('dashboard')}>Go to dashboard</Link>
+                                <Link href={route('dashboard', undefined, false)}>Go to dashboard</Link>
                             </Button>
                         )}
                     </div>
@@ -96,7 +96,7 @@ export default function Welcome({ notices, canLogin, canRegister }: WelcomePageP
                             </p>
                             {notices.map((notice) => (
                                 <Card key={notice.notice_id} className="bg-white/95">
-                                    <CardContent className="p-4">
+                                    <CardContent className="p-4 pt-0">
                                         <p className="font-semibold text-slate-900">
                                             {notice.title ?? 'Announcement'}
                                         </p>

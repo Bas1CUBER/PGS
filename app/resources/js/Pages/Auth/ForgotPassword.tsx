@@ -1,66 +1,93 @@
 import GuestLayout from '@/Layouts/GuestLayout';
+import GuestLogoGroup from '@/components/guest-logo-group';
+import GuestStatusAlert from '@/components/guest-status-alert';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Mail } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { LoaderCircle, Mail } from 'lucide-react';
+import type { SyntheticEvent } from 'react';
 
-export default function ForgotPassword({ status }: { status?: string }) {
+interface ForgotPasswordProps {
+    status?: string;
+}
+
+export default function ForgotPassword({ status }: ForgotPasswordProps) {
     const { data, setData, post, processing, errors } = useForm({
         email: '',
     });
 
-    const submit = (e: { preventDefault(): void }) => {
-        e.preventDefault();
-
-        post(route('password.email'));
+    const submit = (event: SyntheticEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        post(route('password.email', undefined, false));
     };
 
     return (
         <GuestLayout>
             <Head title="Forgot Password" />
 
-            <h2 className="text-xl font-bold text-gray-900">Reset your password</h2>
-            <p className="mt-1 mb-6 text-sm text-gray-500">
-                Enter your email address and we will send you a reset link.
-            </p>
+            <article className="pgs-recovery-card">
+                <header className="pgs-recovery-header">
+                    <GuestLogoGroup />
+                    <div>
+                        <span className="pgs-login-eyebrow">Password recovery - 1 of 3</span>
+                        <h1>Forgot password</h1>
+                        <p>We will send a one-time reset code to your email.</p>
+                    </div>
+                </header>
 
-            {status && (
-                <div className="mb-4 rounded-md bg-green-50 p-3 text-sm font-medium text-green-700">
-                    {status}
-                </div>
-            )}
+                {status && <GuestStatusAlert title="Reset code sent" message={status} />}
 
-            <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        autoFocus
-                        placeholder="you@trcdoh.ph"
-                        onChange={(e) => {
-                            setData('email', e.target.value);
-                        }}
-                        required
-                    />
-                    {errors.email && <p className="text-destructive text-sm">{errors.email}</p>}
-                </div>
+                <form className="pgs-login-form pgs-recovery-form" onSubmit={submit}>
+                    <div className="pgs-login-field">
+                        <label htmlFor="reset-email">Email address</label>
+                        <span className="pgs-login-input-shell">
+                            <Mail size={16} aria-hidden="true" />
+                            <input
+                                id="reset-email"
+                                className="pgs-login-input"
+                                type="email"
+                                name="email"
+                                value={data.email}
+                                autoComplete="email"
+                                autoFocus
+                                placeholder="you@trcdoh.ph"
+                                onChange={(event) => {
+                                    setData('email', event.target.value);
+                                }}
+                                required
+                            />
+                        </span>
+                        {errors.email && <p className="pgs-login-error">{errors.email}</p>}
+                    </div>
 
-                <Button type="submit" className="w-full" disabled={processing}>
-                    <Mail className="size-4" />
-                    {processing ? 'Sending…' : 'Email password reset link'}
-                </Button>
+                    <button
+                        className="pgs-login-submit loading-button"
+                        type="submit"
+                        disabled={processing}
+                        aria-busy={processing}
+                        data-loading={processing || undefined}
+                        aria-label={processing ? 'Sending code' : undefined}
+                    >
+                        <span
+                            className="loading-button-content"
+                            aria-hidden={processing || undefined}
+                        >
+                            Send reset code
+                        </span>
+                        {processing ? (
+                            <span className="loading-button-status" aria-hidden="true">
+                                <LoaderCircle className="loading-button-spinner" />
+                                Sending code
+                            </span>
+                        ) : null}
+                    </button>
+                </form>
 
-                <p className="text-center text-sm text-gray-500">
-                    Remembered it?{' '}
-                    <Link href={route('login')} className="text-primary hover:underline">
+                <footer className="pgs-recovery-footer">
+                    <span>Remembered your password?</span>{' '}
+                    <Link className="pgs-login-text-link" href={route('login', undefined, false)}>
                         Back to sign in
                     </Link>
-                </p>
-            </form>
+                </footer>
+            </article>
         </GuestLayout>
     );
 }

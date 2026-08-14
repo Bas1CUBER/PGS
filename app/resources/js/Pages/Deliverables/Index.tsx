@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
+import { relativeInternalUrl } from '@/lib/relative-url';
 
 interface DeliverableRow {
     id: number;
@@ -72,7 +73,7 @@ export default function DeliverablesIndex({
                                 onChange={(e) => {
                                     setSearch(e.target.value);
                                 }}
-                                placeholder="Search title or divisionâ€¦"
+                                placeholder="Search title or division…"
                                 className="pl-9"
                                 aria-label="Search deliverables"
                             />
@@ -207,7 +208,7 @@ export default function DeliverablesIndex({
                                         variant={link.active ? 'default' : 'ghost'}
                                         size="sm"
                                     >
-                                        <Link href={link.url}>
+                                        <Link href={relativeInternalUrl(link.url) ?? '#'}>
                                             {link.label.replace(/&laquo;|&raquo;/g, '')}
                                         </Link>
                                     </Button>
