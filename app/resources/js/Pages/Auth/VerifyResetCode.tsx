@@ -151,7 +151,10 @@ export default function VerifyResetCode({ email, status }: VerifyResetCodeProps)
                             </span>
                         ) : null}
                     </button>
-                    <Link className="pgs-login-text-link" href={route('password.request', undefined, false)}>
+                    <Link
+                        className="pgs-login-text-link"
+                        href={route('password.request', undefined, false)}
+                    >
                         Use a different email
                     </Link>
                 </footer>

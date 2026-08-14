@@ -114,7 +114,10 @@ export default function Register() {
 
                 <p className="text-center text-sm text-gray-500">
                     Already registered?{' '}
-                    <Link href={route('login', undefined, false)} className="text-primary hover:underline">
+                    <Link
+                        href={route('login', undefined, false)}
+                        className="text-primary hover:underline"
+                    >
                         Sign in
                     </Link>
                 </p>

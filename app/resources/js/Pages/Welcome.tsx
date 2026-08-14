@@ -83,7 +83,9 @@ export default function Welcome({ notices, canLogin, canRegister }: WelcomePageP
                                 size="lg"
                                 className="text-primary bg-white hover:bg-blue-50"
                             >
-                                <Link href={route('dashboard', undefined, false)}>Go to dashboard</Link>
+                                <Link href={route('dashboard', undefined, false)}>
+                                    Go to dashboard
+                                </Link>
                             </Button>
                         )}
                     </div>
