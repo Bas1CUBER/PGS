@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Middleware\LegacyRedirectMiddleware;
 use App\Models\Notice;
@@ -26,6 +27,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'role:admin'])->prefix('/mailbox')->group(function () {
+    Route::get('/', [MailboxController::class, 'index'])->name('mailbox.index');
+    Route::get('/{mail}', [MailboxController::class, 'show'])->name('mailbox.show');
 });
 
 if (app()->environment(['local', 'testing'])) {

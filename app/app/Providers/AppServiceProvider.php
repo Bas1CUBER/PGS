@@ -6,11 +6,13 @@ namespace App\Providers;
 
 use App\Enums\DeliverableStatus;
 use App\Http\Controllers\DeliverableController;
+use App\Mail\OutboxTransport;
 use App\Models\Deliverable;
 use App\Services\TransitionsWorkflowService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -49,6 +51,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', function (Request $request): Limit {
             return Limit::perMinute(5)->by((string) $request->input('email').'|'.$request->ip());
         });
+
+        // LAN mail: no SMTP server on the host — messages land in outbox_mails.
+        Mail::extend('outbox', fn (): OutboxTransport => new OutboxTransport);
 
         // Upload/create throttling: 30 submissions per minute per user.
         RateLimiter::for('submissions', function (Request $request): Limit {

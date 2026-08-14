@@ -16,6 +16,7 @@ import {
     Target,
     Timer,
     Users,
+    Inbox,
 } from 'lucide-react';
 import type { User } from '@/types';
 
@@ -71,6 +72,7 @@ export function navigationFor(user: User): NavSection[] {
                 { title: 'User Management', href: '/users', icon: Users },
                 { title: 'Deadlines', href: '/deadlines', icon: Timer },
                 { title: 'Backups', href: '/backups', icon: Database },
+                { title: 'Mailbox', href: '/mailbox', icon: Inbox },
                 { title: 'Audit Log', href: '/audit-logs', icon: ScrollText },
             ],
         });

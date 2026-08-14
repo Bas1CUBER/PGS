@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\CommPlanController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\ImpactScorecardController;
+use App\Http\Controllers\PdfExportController;
 use App\Http\Controllers\SectorDetailController;
 use App\Http\Controllers\StaticContentController;
 use App\Http\Controllers\SurveyController;
@@ -56,7 +57,11 @@ Route::middleware('web')->group(function (): void {
         Route::get('/content/{slug}', [StaticContentController::class, 'show'])->name('content.show');
         Route::post('/content/{slug}/image', [StaticContentController::class, 'replaceImage'])->name('content.image');
 
-        // Serve images from the shared legacy img/ directory (outside the app public dir).
+        // PDF exports
+        Route::get('/uploads/{slug}/{id}/pdf', [PdfExportController::class, 'uploadRecord'])->name('uploads.pdf');
+        Route::get('/deliverables/{id}/pdf', [PdfExportController::class, 'deliverable'])->name('deliverables.pdf');
+
+        // Serve images from the shared img/ directory (outside the app public dir).
         Route::get('/legacy-img/{name}', function (string $name) {
             $name = basename(urldecode($name));
             $path = base_path('../img/'.$name);

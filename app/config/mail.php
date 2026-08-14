@@ -37,6 +37,13 @@ return [
 
     'mailers' => [
 
+        // LAN outbox: no SMTP server on the host. Outgoing messages
+        // (e.g. password reset) land in the outbox_mails table and are
+        // read from the admin Mailbox page. Transport: App\Mail\OutboxTransport.
+        'outbox' => [
+            'transport' => 'outbox',
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
