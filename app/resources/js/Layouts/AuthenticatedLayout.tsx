@@ -141,8 +141,6 @@ export default function Authenticated({
                             </Badge>
                         )}
 
-                        {header && <div className="hidden md:block">{header}</div>}
-
                         <ModeToggle />
                         <NotificationBell />
 
