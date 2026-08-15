@@ -27,14 +27,14 @@
     --card-foreground: hsl(216 31% 18%);
     --popover: hsl(214 27% 98%);
     --popover-foreground: hsl(216 31% 18%);
-    --primary: hsl(213 58% 40%);
+    --primary: #0b4aa2;
     --primary-foreground: hsl(214 27% 98%);
     --secondary: hsl(212 25% 88%);
     --secondary-foreground: hsl(216 31% 18%);
     --muted: hsl(213 24% 91%);
     --muted-foreground: hsl(214 18% 44%);
     --accent: hsl(211 54% 90%);
-    --accent-foreground: hsl(213 58% 35%);
+    --accent-foreground: #083b82;
     --destructive: hsl(0 72% 51%);
     --destructive-foreground: hsl(210 40% 98%);
     --success: hsl(142 71% 45%);
@@ -43,16 +43,16 @@
     --warning-foreground: hsl(216 31% 18%);
     --border: hsl(214 22% 79%);
     --input: hsl(214 22% 79%);
-    --ring: hsl(213 58% 40%);
+    --ring: #0b4aa2;
     --radius: 0.5rem;
     --sidebar: hsl(213 17% 87%);
     --sidebar-foreground: hsl(216 22% 25%);
-    --sidebar-primary: hsl(211 58% 44%);
+    --sidebar-primary: #0d5bd1;
     --sidebar-primary-foreground: hsl(214 27% 98%);
     --sidebar-accent: hsl(211 19% 80%);
     --sidebar-accent-foreground: hsl(216 22% 25%);
     --sidebar-border: hsl(214 14% 72%);
-    --sidebar-ring: hsl(211 58% 44%);
+    --sidebar-ring: #0d5bd1;
 
     --bg: var(--background);
     --bg-deep: color-mix(in srgb, var(--background) 88%, var(--sidebar));
@@ -105,7 +105,7 @@
     --button-label-size: 13px;
     --button-label-size-compact: 12px;
 
-    --chart-1: hsl(213 58% 40%);
+    --chart-1: #0b4aa2;
     --chart-2: hsl(142 71% 45%);
     --chart-3: hsl(38 92% 50%);
     --chart-4: hsl(262 83% 58%);
