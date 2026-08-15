@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogFooter,
     DialogHeader,
@@ -290,11 +291,11 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                     if (!open) setEditing(null);
                 }}
             >
-                <DialogContent>
+                <DialogContent className="pgs-modal-form-dialog">
                     <DialogHeader>
                         <DialogTitle>Edit notice</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-3">
+                    <DialogBody className="space-y-3">
                         <div className="space-y-2">
                             <Label htmlFor="edit-title">Title</Label>
                             <Input
@@ -341,7 +342,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                 />
                             </div>
                         </div>
-                    </div>
+                    </DialogBody>
                     <DialogFooter>
                         <Button
                             variant="outline"
@@ -363,7 +364,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                 onOpenChange={(open) => {
                     if (!open) setDeleteTarget(null);
                 }}
-                title="Delete + notice"
+                title="Delete notice"
                 description="This action permanently removes the notice."
                 confirmationTitle="Confirm notice deletion"
                 confirmationDescription={`"${deleteTarget?.title ?? 'This notice'}" will be removed from the workspace.`}

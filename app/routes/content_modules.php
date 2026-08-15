@@ -13,13 +13,14 @@ use App\Http\Controllers\StaticContentController;
 use App\Http\Controllers\StrategyReviewController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\UploadModuleController;
+use App\Modules\UploadModuleRegistry;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function (): void {
     Route::middleware(['auth', 'verified'])->group(function (): void {
         // Upload modules (config-driven)
         Route::get('/uploads', [UploadModuleController::class, 'index'])->name('uploads.index');
-        Route::get('/uploads/{slug}', [UploadModuleController::class, 'show'])->name('uploads.show');
+        Route::get('/uploads/{slug}', [UploadModuleController::class, 'legacyShow'])->name('uploads.show');
         Route::post('/uploads/{slug}', [UploadModuleController::class, 'store'])
             ->middleware('throttle:submissions')->name('uploads.store');
         Route::get('/uploads/{slug}/{id}/download', [UploadModuleController::class, 'download'])->name('uploads.download');
@@ -33,6 +34,32 @@ Route::middleware('web')->group(function (): void {
             ->name('uploads.templates.download');
         Route::delete('/uploads/{slug}/templates/{template}', [UploadModuleController::class, 'templateDestroy'])
             ->middleware('role:admin')->name('uploads.templates.destroy');
+
+        // Canonical module-owned upload workspaces. The legacy /uploads/{slug}
+        // endpoints remain available for old links and POST clients, while all
+        // new navigation and generated actions use /{slug}/upload.
+        foreach (UploadModuleRegistry::slugs() as $slug) {
+            Route::prefix('/'.$slug.'/upload')->group(function () use ($slug): void {
+                Route::get('/', [UploadModuleController::class, 'show'])
+                    ->defaults('slug', $slug)->name($slug.'.upload.index');
+                Route::post('/', [UploadModuleController::class, 'store'])
+                    ->defaults('slug', $slug)->middleware('throttle:submissions')->name($slug.'.upload.store');
+                Route::get('/{id}/download', [UploadModuleController::class, 'download'])
+                    ->defaults('slug', $slug)->whereNumber('id')->name($slug.'.upload.download');
+                Route::get('/{id}/pdf', [PdfExportController::class, 'uploadRecord'])
+                    ->defaults('slug', $slug)->whereNumber('id')->name($slug.'.upload.pdf');
+                Route::delete('/{id}', [UploadModuleController::class, 'destroy'])
+                    ->defaults('slug', $slug)->whereNumber('id')->name($slug.'.upload.destroy');
+                Route::put('/{id}/status', [UploadModuleController::class, 'updateStatus'])
+                    ->defaults('slug', $slug)->whereNumber('id')->middleware('role:admin,focal')->name($slug.'.upload.status');
+                Route::post('/templates', [UploadModuleController::class, 'templateStore'])
+                    ->defaults('slug', $slug)->middleware('role:admin')->name($slug.'.upload.templates.store');
+                Route::get('/templates/{template}/download', [UploadModuleController::class, 'templateDownload'])
+                    ->defaults('slug', $slug)->whereNumber('template')->name($slug.'.upload.templates.download');
+                Route::delete('/templates/{template}', [UploadModuleController::class, 'templateDestroy'])
+                    ->defaults('slug', $slug)->whereNumber('template')->middleware('role:admin')->name($slug.'.upload.templates.destroy');
+            });
+        }
 
         // Communication plan template
         Route::middleware('page.access:cascading')->group(function (): void {

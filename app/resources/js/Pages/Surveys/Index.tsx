@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogFooter,
     DialogHeader,
@@ -329,11 +330,11 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                     if (!open) setEditing(null);
                 }}
             >
-                <DialogContent>
+                <DialogContent className="pgs-modal-form-dialog">
                     <DialogHeader>
                         <DialogTitle>Edit survey</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-3">
+                    <DialogBody className="space-y-3">
                         <div className="space-y-2">
                             <Label htmlFor="edit-survey-title">Title</Label>
                             <Input
@@ -355,7 +356,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                                 }}
                             />
                         </div>
-                    </div>
+                    </DialogBody>
                     <DialogFooter>
                         <Button
                             variant="outline"
@@ -376,7 +377,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                 onOpenChange={(open) => {
                     if (!open) setDeleteTarget(null);
                 }}
-                title="Delete + survey"
+                title="Delete survey"
                 description="This action permanently removes the archived survey."
                 confirmationTitle="Confirm survey deletion"
                 confirmationDescription="The survey and its completion history will be removed."

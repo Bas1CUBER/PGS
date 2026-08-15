@@ -1,14 +1,24 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { Download, FilePenLine, Save, Send, ShieldCheck } from 'lucide-react';
+import { Download, FilePenLine, FileUp, Save, Send, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface ReviewForm {
     id: number;
@@ -19,12 +29,18 @@ interface ReviewForm {
     created_at: string;
     updated_at: string;
 }
+
+interface ReviewDecisionTarget {
+    form: ReviewForm;
+    status: 'Approved' | 'Returned';
+}
 interface StrategyReviewProps extends PageProps {
     forms: ReviewForm[];
     canReview: boolean;
     userId: number;
     canEditAny: boolean;
     fields: string[];
+    uploadUrl: string;
 }
 
 const fieldLabels: Record<string, string> = {
@@ -64,9 +80,12 @@ export default function StrategyReviewIndex({
     userId,
     canEditAny,
     fields,
+    uploadUrl,
 }: StrategyReviewProps) {
     const [data, setData] = useState<Record<string, string | undefined>>(() => blankForm(fields));
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [formOpen, setFormOpen] = useState(false);
+    const [reviewTarget, setReviewTarget] = useState<ReviewDecisionTarget | null>(null);
     const { isPending, start, finish } = usePendingAction();
 
     function save(status: 'Draft' | 'Submitted'): void {
@@ -75,10 +94,9 @@ export default function StrategyReviewIndex({
         const options = {
             preserveScroll: true,
             onSuccess: () => {
-                if (status === 'Submitted') {
-                    setEditingId(null);
-                    setData(blankForm(fields));
-                }
+                setEditingId(null);
+                setData(blankForm(fields));
+                setFormOpen(false);
             },
             onFinish: () => {
                 finish(action);
@@ -91,19 +109,21 @@ export default function StrategyReviewIndex({
     function openForm(review: ReviewForm): void {
         setEditingId(review.id);
         setData({ ...blankForm(fields), ...review.data });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setFormOpen(true);
     }
 
-    function review(id: number, status: 'Approved' | 'Returned'): void {
-        const action = `review:${String(id)}`;
+    function confirmReview(): void {
+        if (reviewTarget === null) return;
+        const action = `review:${String(reviewTarget.form.id)}`;
         start(action);
         router.post(
-            `/strategy-review/${String(id)}/review`,
-            { status },
+            `/strategy-review/${String(reviewTarget.form.id)}/review`,
+            { status: reviewTarget.status },
             {
                 preserveScroll: true,
                 onFinish: () => {
                     finish(action);
+                    setReviewTarget(null);
                 },
             },
         );
@@ -123,130 +143,24 @@ export default function StrategyReviewIndex({
                         <p className="text-muted-foreground text-sm">
                             Complete the review, save it as a draft, or submit it for approval.
                         </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button asChild variant="outline">
+                                <a href={uploadUrl}>
+                                    <FileUp className="size-4" /> Upload register
+                                </a>
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    setEditingId(null);
+                                    setData(blankForm(fields));
+                                    setFormOpen(true);
+                                }}
+                            >
+                                <FilePenLine className="size-4" /> New review
+                            </Button>
+                        </div>
                     </CardHeader>
-                    <CardContent className="space-y-5">
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <Field
-                                label="Review date"
-                                value={data.review_date ?? ''}
-                                type="date"
-                                onChange={(value) => {
-                                    setData({ ...data, review_date: value });
-                                }}
-                            />
-                            <Field
-                                label="Objective"
-                                value={data.objective ?? ''}
-                                area
-                                onChange={(value) => {
-                                    setData({ ...data, objective: value });
-                                }}
-                            />
-                            <Field
-                                label="Directly contributing units"
-                                value={data.directly_contributing_units ?? ''}
-                                area
-                                onChange={(value) => {
-                                    setData({ ...data, directly_contributing_units: value });
-                                }}
-                            />
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-3">
-                            {['measure', 'target', 'actual_to_date_measure', 'status_measure'].map(
-                                (field) => (
-                                    <Field
-                                        key={field}
-                                        label={fieldLabels[field] ?? field}
-                                        value={data[field] ?? ''}
-                                        onChange={(value) => {
-                                            setData({ ...data, [field]: value });
-                                        }}
-                                    />
-                                ),
-                            )}
-                        </div>
-                        <div className="grid gap-4 md:grid-cols-3">
-                            {[1, 2, 3].map((number) => (
-                                <Card key={number} className="bg-transparent shadow-none">
-                                    <CardHeader className="px-4 pb-2">
-                                        <CardTitle className="text-sm">KRA {number}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3 px-4">
-                                        {[
-                                            'key_results_area',
-                                            'deliverable',
-                                            'actual_to_date',
-                                            'status',
-                                        ].map((suffix) => {
-                                            const field = `kra${String(number)}_${suffix}`;
-                                            return (
-                                                <Field
-                                                    key={field}
-                                                    label={fieldLabels[field] ?? field}
-                                                    value={data[field] ?? ''}
-                                                    area={suffix === 'key_results_area'}
-                                                    onChange={(value) => {
-                                                        setData({ ...data, [field]: value });
-                                                    }}
-                                                />
-                                            );
-                                        })}
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                        <div className="grid gap-4 md:grid-cols-3">
-                            {['continue', 'stop', 'start'].map((field) => (
-                                <Field
-                                    key={field}
-                                    label={fieldLabels[field] ?? field}
-                                    value={data[field] ?? ''}
-                                    area
-                                    onChange={(value) => {
-                                        setData({ ...data, [field]: value });
-                                    }}
-                                />
-                            ))}
-                        </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <Field
-                                label="Prepared by"
-                                value={data.prepared_by ?? ''}
-                                onChange={(value) => {
-                                    setData({ ...data, prepared_by: value });
-                                }}
-                            />
-                            <Field
-                                label="Approved by (unit head)"
-                                value={data.approved_by ?? ''}
-                                onChange={(value) => {
-                                    setData({ ...data, approved_by: value });
-                                }}
-                            />
-                        </div>
-                        <div className="flex flex-wrap justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    save('Draft');
-                                }}
-                                loading={isPending('draft')}
-                                loadingText="Saving"
-                            >
-                                <Save className="size-4" /> Save draft
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    save('Submitted');
-                                }}
-                                loading={isPending('submit')}
-                                loadingText="Submitting"
-                            >
-                                <Send className="size-4" />{' '}
-                                {editingId === null ? 'Submit review' : 'Update and submit'}
-                            </Button>
-                        </div>
-                    </CardContent>
                 </Card>
 
                 <section className="space-y-3">
@@ -298,8 +212,12 @@ export default function StrategyReviewIndex({
                                     reviewForm.status === 'Submitted' && (
                                         <>
                                             <Button
+                                                className="pgs-success-action-button"
                                                 onClick={() => {
-                                                    review(reviewForm.id, 'Approved');
+                                                    setReviewTarget({
+                                                        form: reviewForm,
+                                                        status: 'Approved',
+                                                    });
                                                 }}
                                                 loading={isPending(
                                                     `review:${String(reviewForm.id)}`,
@@ -310,7 +228,10 @@ export default function StrategyReviewIndex({
                                             <Button
                                                 variant="outline"
                                                 onClick={() => {
-                                                    review(reviewForm.id, 'Returned');
+                                                    setReviewTarget({
+                                                        form: reviewForm,
+                                                        status: 'Returned',
+                                                    });
                                                 }}
                                                 loading={isPending(
                                                     `review:${String(reviewForm.id)}`,
@@ -325,6 +246,199 @@ export default function StrategyReviewIndex({
                     ))}
                 </section>
             </div>
+
+            <Dialog
+                open={formOpen}
+                onOpenChange={(open) => {
+                    setFormOpen(open);
+                    if (!open) {
+                        setEditingId(null);
+                        setData(blankForm(fields));
+                    }
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog pgs-modal-wide">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingId === null
+                                ? 'New strategy review'
+                                : `Edit review #${String(editingId)}`}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Complete the review, save it as a draft, or submit it for approval.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="pgs-modal-form pgs-modal-form-scroll">
+                        <DialogBody>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <Field
+                                    label="Review date"
+                                    value={data.review_date ?? ''}
+                                    type="date"
+                                    onChange={(value) => {
+                                        setData({ ...data, review_date: value });
+                                    }}
+                                />
+                                <Field
+                                    label="Objective"
+                                    value={data.objective ?? ''}
+                                    area
+                                    onChange={(value) => {
+                                        setData({ ...data, objective: value });
+                                    }}
+                                />
+                                <Field
+                                    label="Directly contributing units"
+                                    value={data.directly_contributing_units ?? ''}
+                                    area
+                                    onChange={(value) => {
+                                        setData({ ...data, directly_contributing_units: value });
+                                    }}
+                                />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-3">
+                                {[
+                                    'measure',
+                                    'target',
+                                    'actual_to_date_measure',
+                                    'status_measure',
+                                ].map((field) => (
+                                    <Field
+                                        key={field}
+                                        label={fieldLabels[field] ?? field}
+                                        value={data[field] ?? ''}
+                                        onChange={(value) => {
+                                            setData({ ...data, [field]: value });
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-3">
+                                {[1, 2, 3].map((number) => (
+                                    <div
+                                        key={number}
+                                        className="pgs-nested-card rounded-[var(--kinetic-radius-control)] p-4"
+                                    >
+                                        <p className="mb-3 text-sm font-semibold">KRA {number}</p>
+                                        <div className="space-y-3">
+                                            {[
+                                                'key_results_area',
+                                                'deliverable',
+                                                'actual_to_date',
+                                                'status',
+                                            ].map((suffix) => {
+                                                const field = `kra${String(number)}_${suffix}`;
+                                                return (
+                                                    <Field
+                                                        key={field}
+                                                        label={fieldLabels[field] ?? field}
+                                                        value={data[field] ?? ''}
+                                                        area={suffix === 'key_results_area'}
+                                                        onChange={(value) => {
+                                                            setData({ ...data, [field]: value });
+                                                        }}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-3">
+                                {['continue', 'stop', 'start'].map((field) => (
+                                    <Field
+                                        key={field}
+                                        label={fieldLabels[field] ?? field}
+                                        value={data[field] ?? ''}
+                                        area
+                                        onChange={(value) => {
+                                            setData({ ...data, [field]: value });
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <Field
+                                    label="Prepared by"
+                                    value={data.prepared_by ?? ''}
+                                    onChange={(value) => {
+                                        setData({ ...data, prepared_by: value });
+                                    }}
+                                />
+                                <Field
+                                    label="Approved by (unit head)"
+                                    value={data.approved_by ?? ''}
+                                    onChange={(value) => {
+                                        setData({ ...data, approved_by: value });
+                                    }}
+                                />
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setFormOpen(false);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    save('Draft');
+                                }}
+                                loading={isPending('draft')}
+                                loadingText="Saving"
+                            >
+                                <Save className="size-4" /> Save draft
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    save('Submitted');
+                                }}
+                                loading={isPending('submit')}
+                                loadingText="Submitting"
+                            >
+                                <Send className="size-4" />{' '}
+                                {editingId === null ? 'Submit review' : 'Update and submit'}
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <PgsConfirmationDialog
+                open={reviewTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setReviewTarget(null);
+                }}
+                title={
+                    reviewTarget?.status === 'Approved'
+                        ? 'Approve strategy review'
+                        : 'Return strategy review'
+                }
+                description={
+                    reviewTarget?.status === 'Approved'
+                        ? 'This will approve the submitted strategy review.'
+                        : 'This will return the submitted strategy review for further work.'
+                }
+                confirmationTitle={
+                    reviewTarget?.status === 'Approved' ? 'Confirm approval' : 'Confirm return'
+                }
+                confirmationDescription={`${reviewTarget?.form.data.objective ?? `Strategy Review #${String(reviewTarget?.form.id ?? '')}`} will be marked ${reviewTarget?.status.toLowerCase() ?? 'updated'}.`}
+                onConfirm={confirmReview}
+                loading={
+                    reviewTarget !== null && isPending(`review:${String(reviewTarget.form.id)}`)
+                }
+                loadingText={reviewTarget?.status === 'Approved' ? 'Approving' : 'Returning'}
+                confirmText={reviewTarget?.status === 'Approved' ? 'Approve' : 'Return'}
+                confirmVariant={reviewTarget?.status === 'Approved' ? 'default' : 'destructive'}
+                kind={reviewTarget?.status === 'Approved' ? 'approve' : 'reject'}
+            />
         </AuthenticatedLayout>
     );
 }

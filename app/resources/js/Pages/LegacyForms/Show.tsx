@@ -1,12 +1,16 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { Download, FileSpreadsheet, Plus, Save, Trash2 } from 'lucide-react';
+import { Download, FileSpreadsheet, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import type { PageProps } from '@/types';
+import { TableRowActions } from '@/components/table-row-actions';
+import { usePendingAction } from '@/hooks/use-pending-action';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface LegacyForm {
     slug: string;
@@ -32,6 +36,8 @@ interface LegacyFormsProps extends PageProps {
 export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: LegacyFormsProps) {
     const [values, setValues] = useState<string[]>(() => form.columns.map(() => ''));
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<AnnexRow | null>(null);
+    const { isPending, start, finish } = usePendingAction();
 
     function saveRow(): void {
         const options = {
@@ -50,8 +56,16 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
         setValues(row.values.map((value) => value ?? ''));
     }
 
-    function deleteRow(id: number): void {
-        router.delete(`/annex/${form.slug}/${String(id)}`, { preserveScroll: true });
+    function confirmDelete(): void {
+        if (deleteTarget === null) return;
+        start('delete');
+        router.delete(`/annex/${form.slug}/${String(deleteTarget.id)}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                finish('delete');
+                setDeleteTarget(null);
+            },
+        });
     }
     return (
         <AuthenticatedLayout
@@ -198,28 +212,29 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                                         data-slot="table-cell"
                                                         className="px-4 py-3"
                                                     >
-                                                        <div className="flex gap-1">
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                onClick={() => {
+                                                        <TableRowActions
+                                                            label={`Row #${String(rowId)}`}
+                                                        >
+                                                            <DropdownMenuItem
+                                                                onSelect={() => {
                                                                     editRow(row as AnnexRow);
                                                                 }}
                                                             >
-                                                                Edit
-                                                            </Button>
-                                                            <Button
-                                                                size="icon-sm"
-                                                                variant="ghost"
-                                                                className="text-destructive"
-                                                                aria-label="Delete row"
-                                                                onClick={() => {
-                                                                    deleteRow((row as AnnexRow).id);
+                                                                <Pencil className="size-4" /> Edit
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                variant="destructive"
+                                                                disabled={isPending('delete')}
+                                                                onSelect={() => {
+                                                                    setDeleteTarget(
+                                                                        row as AnnexRow,
+                                                                    );
                                                                 }}
                                                             >
-                                                                <Trash2 className="size-4" />
-                                                            </Button>
-                                                        </div>
+                                                                <Trash2 className="size-4" /> Delete
+                                                            </DropdownMenuItem>
+                                                        </TableRowActions>
                                                     </td>
                                                 )}
                                             </tr>
@@ -251,6 +266,20 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                     </CardContent>
                 </Card>
             </div>
+
+            <PgsConfirmationDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTarget(null);
+                }}
+                title="Delete annex row"
+                description="This action permanently removes the annex row."
+                confirmationTitle="Confirm row deletion"
+                confirmationDescription={`Annex row #${String(deleteTarget?.id ?? '')} will be removed.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

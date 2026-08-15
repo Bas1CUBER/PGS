@@ -18,6 +18,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import {
     Table,
     TableBody,
     TableCell,
@@ -30,6 +40,8 @@ import { relativeInternalUrl } from '@/lib/relative-url';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { PgsStatCard, type PgsStatTone } from '@/components/pgs-stat-card';
 import { legacyImageUrl } from '@/lib/legacy-asset';
+import { TableRowActions } from '@/components/table-row-actions';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface SectorDetailPageProps extends PageProps {
     module: {
@@ -110,13 +122,15 @@ export default function SectorDetailShow({
     lockColumn,
     canManage,
 }: SectorDetailPageProps) {
-    const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
+    const [drafts, setDrafts] = useState<Partial<Record<string, Record<string, string>>>>({});
     const newColumns = [...new Set([...module.columns, ...module.year_columns])].filter(
         (column) => column !== 'is_head',
     );
     const [newData, setNewData] = useState<Record<string, string>>(() =>
         Object.fromEntries(newColumns.map((column) => [column, ''])),
     );
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
     const { isPending, start, finish } = usePendingAction();
     const editableColumns = [...new Set([...module.editable, ...module.year_columns])];
 
@@ -126,6 +140,7 @@ export default function SectorDetailShow({
             preserveScroll: true,
             onSuccess: () => {
                 setNewData(Object.fromEntries(newColumns.map((column) => [column, ''])));
+                setCreateDialogOpen(false);
             },
             onFinish: () => {
                 finish('create');
@@ -133,8 +148,8 @@ export default function SectorDetailShow({
         });
     }
 
-    function commit(id: number): void {
-        const rowDraft = drafts[String(id)] ?? {};
+    function commit(id: number, draftOverride?: Record<string, string>): void {
+        const rowDraft = draftOverride ?? drafts[String(id)] ?? {};
         if (Object.keys(rowDraft).length === 0) return;
         const action = `save:${String(id)}`;
         start(action);
@@ -146,7 +161,7 @@ export default function SectorDetailShow({
                     const next: Record<string, Record<string, string>> = {};
 
                     for (const [key, value] of Object.entries(prev)) {
-                        if (key !== String(id)) {
+                        if (key !== String(id) && value !== undefined) {
                             next[key] = value;
                         }
                     }
@@ -160,13 +175,14 @@ export default function SectorDetailShow({
         });
     }
 
-    function remove(id: number): void {
-        const action = `delete:${String(id)}`;
-        start(action);
-        router.delete(`/sectors/${module.pillar}/${module.slug}/${String(id)}`, {
+    function confirmDelete(): void {
+        if (deleteTarget === null) return;
+        start('delete');
+        router.delete(`/sectors/${module.pillar}/${module.slug}/${String(deleteTarget)}`, {
             preserveScroll: true,
             onFinish: () => {
-                finish(action);
+                finish('delete');
+                setDeleteTarget(null);
             },
         });
     }
@@ -239,53 +255,27 @@ export default function SectorDetailShow({
                 <Card>
                     <CardHeader className="flex flex-row items-start justify-between gap-4">
                         <div>
-                            <CardTitle className="flex items-center gap-2">
-                                <Plus className="size-4" /> Add roadmap row
-                            </CardTitle>
+                            <CardTitle>Roadmap data</CardTitle>
                             <p className="text-muted-foreground mt-1 text-sm">
-                                Add a new record to this detailed roadmap table.
+                                Manage records in this detailed roadmap table.
                             </p>
                         </div>
-                        <Button asChild variant="outline" size="sm">
-                            <a href={`/sectors/${module.pillar}/${module.slug}/export`}>
-                                <Download className="size-4" /> Export CSV
-                            </a>
-                        </Button>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                            {newColumns.map((column) => (
-                                <div key={column} className="space-y-2">
-                                    <label
-                                        className="text-xs font-semibold"
-                                        htmlFor={`new-${column}`}
-                                    >
-                                        {column.replace(/_/g, ' ')}
-                                    </label>
-                                    <input
-                                        id={`new-${column}`}
-                                        value={newData[column] ?? ''}
-                                        onChange={(event) => {
-                                            setNewData({
-                                                ...newData,
-                                                [column]: event.target.value,
-                                            });
-                                        }}
-                                        className="border-input bg-background flex h-8 w-full rounded-md border px-2 text-sm"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-4 flex justify-end">
+                        <div className="flex flex-wrap justify-end gap-2">
                             <Button
-                                onClick={create}
-                                loading={isPending('create')}
-                                loadingText="Adding"
+                                type="button"
+                                onClick={() => {
+                                    setCreateDialogOpen(true);
+                                }}
                             >
                                 <Plus className="size-4" /> Add row
                             </Button>
+                            <Button asChild variant="outline">
+                                <a href={`/sectors/${module.pillar}/${module.slug}/export`}>
+                                    <Download className="size-4" /> Export CSV
+                                </a>
+                            </Button>
                         </div>
-                    </CardContent>
+                    </CardHeader>
                 </Card>
 
                 <Card>
@@ -293,132 +283,123 @@ export default function SectorDetailShow({
                         <CardTitle>{module.label}</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    {columns.map((column) => (
+                                        <TableHead key={column} className="whitespace-nowrap">
+                                            {column.replace(/_/g, ' ')}
+                                        </TableHead>
+                                    ))}
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {rows.data.map((row) => (
+                                    <TableRow key={row.id}>
                                         {columns.map((column) => (
-                                            <TableHead key={column} className="whitespace-nowrap">
-                                                {column.replace(/_/g, ' ')}
-                                            </TableHead>
+                                            <TableCell key={column} className="whitespace-nowrap">
+                                                {editableColumns.includes(column) ? (
+                                                    <input
+                                                        type="text"
+                                                        defaultValue={row[column] ?? ''}
+                                                        disabled={
+                                                            (Boolean(row.locked) && !canManage) ||
+                                                            isPending(`save:${String(row.id)}`)
+                                                        }
+                                                        onBlur={(e) => {
+                                                            const value = e.target.value;
+                                                            const originalValue = row[column] ?? '';
+
+                                                            if (value === originalValue) return;
+
+                                                            const rowDraft = { [column]: value };
+                                                            setDrafts((prev) => ({
+                                                                ...prev,
+                                                                [String(row.id)]: {
+                                                                    ...(prev[String(row.id)] ?? {}),
+                                                                    ...rowDraft,
+                                                                },
+                                                            }));
+                                                            commit(Number(row.id), rowDraft);
+                                                        }}
+                                                        className="hover:border-input focus:border-input focus:bg-background h-8 w-full min-w-24 rounded-md border border-transparent bg-transparent px-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                                                    />
+                                                ) : (
+                                                    <span>{row[column] ?? '—'}</span>
+                                                )}
+                                            </TableCell>
                                         ))}
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {rows.data.map((row) => (
-                                        <TableRow key={row.id}>
-                                            {columns.map((column) => (
-                                                <TableCell
-                                                    key={column}
-                                                    className="whitespace-nowrap"
-                                                >
-                                                    {editableColumns.includes(column) ? (
-                                                        <input
-                                                            type="text"
-                                                            defaultValue={row[column] ?? ''}
-                                                            disabled={
-                                                                Boolean(row.locked) && !canManage
-                                                            }
-                                                            onBlur={(e) => {
-                                                                const value = e.target.value;
-                                                                setDrafts((prev) => ({
-                                                                    ...prev,
-                                                                    [String(row.id)]: {
-                                                                        ...(prev[String(row.id)] ??
-                                                                            {}),
-                                                                        [column]: value,
-                                                                    },
-                                                                }));
-                                                            }}
-                                                            className="hover:border-input focus:border-input focus:bg-background h-8 w-full min-w-24 rounded-md border border-transparent bg-transparent px-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                                                        />
-                                                    ) : (
-                                                        <span>{row[column] ?? '—'}</span>
-                                                    )}
-                                                </TableCell>
-                                            ))}
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    {row.locked && (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="mr-1 gap-1"
-                                                        >
-                                                            <LockKeyhole className="size-3" />{' '}
-                                                            Locked
-                                                        </Badge>
-                                                    )}
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        aria-label="Save row"
-                                                        disabled={Boolean(row.locked) && !canManage}
-                                                        loading={isPending(
-                                                            `save:${String(row.id)}`,
-                                                        )}
-                                                        onClick={() => {
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-1">
+                                                {row.locked && (
+                                                    <Badge variant="outline" className="mr-1 gap-1">
+                                                        <LockKeyhole className="size-3" /> Locked
+                                                    </Badge>
+                                                )}
+                                                <TableRowActions label={`Row #${String(row.id)}`}>
+                                                    <DropdownMenuItem
+                                                        disabled={
+                                                            (Boolean(row.locked) && !canManage) ||
+                                                            isPending(`save:${String(row.id)}`)
+                                                        }
+                                                        onSelect={() => {
                                                             commit(Number(row.id));
                                                         }}
                                                     >
-                                                        <Save className="size-4" />
-                                                    </Button>
+                                                        <Save className="size-4" /> Save
+                                                    </DropdownMenuItem>
                                                     {lockColumn !== null && canManage && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            aria-label={
-                                                                row.locked
-                                                                    ? 'Unlock row'
-                                                                    : 'Lock row'
-                                                            }
-                                                            loading={isPending(
-                                                                `lock:${String(row.id)}`,
-                                                            )}
-                                                            onClick={() => {
-                                                                toggleLock(Number(row.id));
-                                                            }}
-                                                        >
-                                                            {row.locked ? (
-                                                                <LockOpen className="size-4" />
-                                                            ) : (
-                                                                <LockKeyhole className="size-4" />
-                                                            )}
-                                                        </Button>
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                disabled={isPending(
+                                                                    `lock:${String(row.id)}`,
+                                                                )}
+                                                                onSelect={() => {
+                                                                    toggleLock(Number(row.id));
+                                                                }}
+                                                            >
+                                                                {row.locked ? (
+                                                                    <LockOpen className="size-4" />
+                                                                ) : (
+                                                                    <LockKeyhole className="size-4" />
+                                                                )}
+                                                                {row.locked ? 'Unlock' : 'Lock'} row
+                                                            </DropdownMenuItem>
+                                                        </>
                                                     )}
                                                     {canManage && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            aria-label="Delete row"
-                                                            className="text-destructive"
-                                                            loading={isPending(
-                                                                `delete:${String(row.id)}`,
-                                                            )}
-                                                            onClick={() => {
-                                                                remove(Number(row.id));
-                                                            }}
-                                                        >
-                                                            <Trash2 className="size-4" />
-                                                        </Button>
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                variant="destructive"
+                                                                disabled={isPending('delete')}
+                                                                onSelect={() => {
+                                                                    setDeleteTarget(Number(row.id));
+                                                                }}
+                                                            >
+                                                                <Trash2 className="size-4" /> Delete
+                                                            </DropdownMenuItem>
+                                                        </>
                                                     )}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {rows.data.length === 0 && (
-                                        <TableRow>
-                                            <TableCell
-                                                colSpan={columns.length + 1}
-                                                className="text-muted-foreground py-10 text-center"
-                                            >
-                                                No rows in this table yet.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                                </TableRowActions>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {rows.data.length === 0 && (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={columns.length + 1}
+                                            className="text-muted-foreground py-10 text-center"
+                                        >
+                                            No rows in this table yet.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
 
@@ -446,6 +427,86 @@ export default function SectorDetailShow({
                     </div>
                 )}
             </div>
+
+            <Dialog
+                open={createDialogOpen}
+                onOpenChange={(open) => {
+                    setCreateDialogOpen(open);
+                    if (!open) {
+                        setNewData(Object.fromEntries(newColumns.map((column) => [column, ''])));
+                    }
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog pgs-modal-wide">
+                    <DialogHeader>
+                        <DialogTitle>Add roadmap row</DialogTitle>
+                        <DialogDescription>
+                            Add a new record to this detailed roadmap table.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            create();
+                        }}
+                        className="pgs-modal-form pgs-modal-form-scroll"
+                    >
+                        <DialogBody>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {newColumns.map((column) => (
+                                    <div key={column} className="pgs-modal-field">
+                                        <label htmlFor={`new-${column}`}>
+                                            {column.replace(/_/g, ' ')}
+                                        </label>
+                                        <input
+                                            id={`new-${column}`}
+                                            value={newData[column] ?? ''}
+                                            onChange={(event) => {
+                                                setNewData({
+                                                    ...newData,
+                                                    [column]: event.target.value,
+                                                });
+                                            }}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setCreateDialogOpen(false);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                loading={isPending('create')}
+                                loadingText="Adding"
+                            >
+                                <Plus className="size-4" /> Add row
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <PgsConfirmationDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTarget(null);
+                }}
+                title="Delete detail row"
+                description="This action permanently removes this sector detail row."
+                confirmationTitle="Confirm detail row deletion"
+                confirmationDescription={`Detail row #${String(deleteTarget ?? '')} will be removed.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

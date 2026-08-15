@@ -50,7 +50,7 @@ final class OperationsReviewController extends Controller
         return Inertia::render('OperationsReview/Index', [
             'reviews' => $reviews,
             'fields' => self::FIELDS,
-            'uploadUrl' => '/uploads/operations-review',
+            'uploadUrl' => '/operations-review/upload',
             'userId' => $user->id,
             'canEditAny' => $user->isAdmin(),
         ]);

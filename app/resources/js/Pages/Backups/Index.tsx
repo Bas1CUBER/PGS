@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import { Database, Download, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -14,6 +15,8 @@ import {
 import { useState } from 'react';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { TableRowActions } from '@/components/table-row-actions';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface BackupRow {
     disk: string;
@@ -37,6 +40,7 @@ function formatBytes(bytes: number): string {
 
 export default function BackupsIndex({ backups }: BackupsPageProps) {
     const [creating, setCreating] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<BackupRow | null>(null);
     const { isPending, start, finish } = usePendingAction();
 
     function createBackup(): void {
@@ -48,12 +52,13 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
         });
     }
 
-    function deleteBackup(backup: BackupRow): void {
-        const action = `delete:${backup.path}`;
-        start(action);
-        router.delete(`/backups/${backup.disk}/${backup.path}`, {
+    function confirmDelete(): void {
+        if (deleteTarget === null) return;
+        start('delete');
+        router.delete(`/backups/${deleteTarget.disk}/${deleteTarget.path}`, {
             onFinish: () => {
-                finish(action);
+                finish('delete');
+                setDeleteTarget(null);
             },
         });
     }
@@ -109,33 +114,27 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
                                             {new Date(backup.date).toLocaleString()}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    asChild
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    aria-label="Download backup"
-                                                >
+                                            <TableRowActions
+                                                label={backup.path.split('/').pop() ?? backup.path}
+                                            >
+                                                <DropdownMenuItem asChild>
                                                     <a
                                                         href={`/backups/${backup.disk}/${backup.path}`}
                                                     >
-                                                        <Download className="size-4" />
+                                                        <Download className="size-4" /> Download
                                                     </a>
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-destructive hover:text-destructive"
-                                                    aria-label="Delete backup"
-                                                    loading={isPending(`delete:${backup.path}`)}
-                                                    loadingText=""
-                                                    onClick={() => {
-                                                        deleteBackup(backup);
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    variant="destructive"
+                                                    disabled={isPending('delete')}
+                                                    onSelect={() => {
+                                                        setDeleteTarget(backup);
                                                     }}
                                                 >
-                                                    <Trash2 className="size-4" />
-                                                </Button>
-                                            </div>
+                                                    <Trash2 className="size-4" /> Delete
+                                                </DropdownMenuItem>
+                                            </TableRowActions>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -154,6 +153,20 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
                     </CardContent>
                 </Card>
             </div>
+
+            <PgsConfirmationDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTarget(null);
+                }}
+                title="Delete backup"
+                description="This action permanently removes the backup file."
+                confirmationTitle="Confirm backup deletion"
+                confirmationDescription={`"${deleteTarget?.path ?? 'This backup'}" will be permanently deleted.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

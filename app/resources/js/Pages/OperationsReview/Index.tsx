@@ -1,12 +1,22 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { ClipboardCheck, Download, FileUp, Pencil, Save, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Download, FileUp, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import type { PageProps } from '@/types';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface Review {
     id: number;
@@ -59,6 +69,8 @@ export default function OperationsReviewIndex({
 }: OperationsReviewProps) {
     const [data, setData] = useState<FormData>(() => blankForm(fields));
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [formOpen, setFormOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<Review | null>(null);
     const { isPending, start, finish } = usePendingAction();
 
     function save(): void {
@@ -79,6 +91,7 @@ export default function OperationsReviewIndex({
         onSuccess: () => {
             setData(blankForm(fields));
             setEditingId(null);
+            setFormOpen(false);
         },
         onFinish: () => {
             finish('save');
@@ -88,16 +101,17 @@ export default function OperationsReviewIndex({
     function edit(review: Review): void {
         setEditingId(review.id);
         setData({ ...blankForm(fields), ...review.data });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setFormOpen(true);
     }
 
-    function remove(id: number): void {
-        const action = `delete:${String(id)}`;
-        start(action);
-        router.delete(`/operations-review/${String(id)}`, {
+    function confirmDelete(): void {
+        if (deleteTarget === null) return;
+        start('delete');
+        router.delete(`/operations-review/${String(deleteTarget.id)}`, {
             preserveScroll: true,
             onFinish: () => {
-                finish(action);
+                finish('delete');
+                setDeleteTarget(null);
             },
         });
     }
@@ -151,65 +165,24 @@ export default function OperationsReviewIndex({
                                 and recognition notes.
                             </p>
                         </div>
-                        <Button asChild variant="outline">
-                            <a href={uploadUrl}>
-                                <FileUp className="size-4" /> Upload register
-                            </a>
-                        </Button>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>
-                            {editingId === null
-                                ? 'New review'
-                                : `Edit review #${String(editingId)}`}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-5">
-                        <div className="grid gap-4 sm:grid-cols-3">
-                            {field('department')}
-                            {field('head_deputy')}
-                            {field('documenter')}
-                        </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {field('strategic_contributions', true)}
-                            {field('deliverable')}
-                            {field('deadline')}
-                            {field('status')}
-                            {field('meeting_venue_schedule', true)}
-                            {field('scoreboard_location_oic', true)}
-                        </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {field('action_point')}
-                            {field('responsible_person')}
-                            {field('target_date')}
-                            {field('action_status')}
-                        </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {field('wins_celebrated', true)}
-                            {field('best_performers_recognized', true)}
-                            {field('frequency')}
-                            {field('prepared_by')}
-                            {field('approved_by')}
-                        </div>
-                        <div className="flex justify-end">
-                            {editingId !== null && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        setEditingId(null);
-                                        setData(blankForm(fields));
-                                    }}
-                                >
-                                    Cancel
-                                </Button>
-                            )}
-                            <Button onClick={save} loading={isPending('save')} loadingText="Saving">
-                                <Save className="size-4" /> Save review
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                            <Button asChild variant="outline">
+                                <a href={uploadUrl}>
+                                    <FileUp className="size-4" /> Upload register
+                                </a>
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    setEditingId(null);
+                                    setData(blankForm(fields));
+                                    setFormOpen(true);
+                                }}
+                            >
+                                <Plus className="size-4" /> New review
                             </Button>
                         </div>
-                    </CardContent>
+                    </CardHeader>
                 </Card>
                 <section className="space-y-3">
                     <div>
@@ -258,9 +231,9 @@ export default function OperationsReviewIndex({
                                                 size="icon-sm"
                                                 aria-label="Delete review"
                                                 className="text-destructive"
-                                                loading={isPending(`delete:${String(review.id)}`)}
+                                                loading={isPending('delete')}
                                                 onClick={() => {
-                                                    remove(review.id);
+                                                    setDeleteTarget(review);
                                                 }}
                                             >
                                                 <Trash2 className="size-4" />
@@ -284,6 +257,94 @@ export default function OperationsReviewIndex({
                     ))}
                 </section>
             </div>
+
+            <Dialog
+                open={formOpen}
+                onOpenChange={(open) => {
+                    setFormOpen(open);
+                    if (!open) {
+                        setEditingId(null);
+                        setData(blankForm(fields));
+                    }
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog pgs-modal-wide">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingId === null
+                                ? 'New review'
+                                : `Edit review #${String(editingId)}`}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Capture the review meeting, action points, and recognition notes.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            save();
+                        }}
+                        className="pgs-modal-form pgs-modal-form-scroll"
+                    >
+                        <DialogBody>
+                            <div className="grid gap-4 sm:grid-cols-3">
+                                {field('department')}
+                                {field('head_deputy')}
+                                {field('documenter')}
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                {field('strategic_contributions', true)}
+                                {field('deliverable')}
+                                {field('deadline')}
+                                {field('status')}
+                                {field('meeting_venue_schedule', true)}
+                                {field('scoreboard_location_oic', true)}
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                {field('action_point')}
+                                {field('responsible_person')}
+                                {field('target_date')}
+                                {field('action_status')}
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                {field('wins_celebrated', true)}
+                                {field('best_performers_recognized', true)}
+                                {field('frequency')}
+                                {field('prepared_by')}
+                                {field('approved_by')}
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setFormOpen(false);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit" loading={isPending('save')} loadingText="Saving">
+                                <Save className="size-4" /> Save review
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <PgsConfirmationDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTarget(null);
+                }}
+                title="Delete review"
+                description="This action permanently removes the Operations Review."
+                confirmationTitle="Confirm review deletion"
+                confirmationDescription={`${deleteTarget?.data.department ?? `Operations Review #${String(deleteTarget?.id ?? '')}`} will be removed.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

@@ -3,7 +3,8 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { CalendarPlus, LoaderCircle, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -16,7 +17,9 @@ import {
 } from '@/components/ui/table';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -24,6 +27,8 @@ import {
 import { usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { TableRowActions } from '@/components/table-row-actions';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface Measure {
     id: number;
@@ -52,8 +57,11 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
     const [measure, setMeasure] = useState('');
     const [bl, setBl] = useState('');
     const [newYear, setNewYear] = useState('');
+    const [measureDialogOpen, setMeasureDialogOpen] = useState(false);
+    const [yearDialogOpen, setYearDialogOpen] = useState(false);
     const [editing, setEditing] = useState<Measure | null>(null);
-    const [drafts, setDrafts] = useState<Record<string, string>>({});
+    const [drafts, setDrafts] = useState<Partial<Record<string, string>>>({});
+    const [deleteTarget, setDeleteTarget] = useState<Year | null>(null);
     const { isPending, start, finish } = usePendingAction();
 
     function createMeasure(e: { preventDefault(): void }): void {
@@ -64,14 +72,17 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
             { impact, measure, bl },
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    setImpact('');
+                    setMeasure('');
+                    setBl('');
+                    setMeasureDialogOpen(false);
+                },
                 onFinish: () => {
                     finish('create-measure');
                 },
             },
         );
-        setImpact('');
-        setMeasure('');
-        setBl('');
     }
 
     function addYear(e: { preventDefault(): void }): void {
@@ -82,12 +93,15 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
             { year: newYear },
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    setNewYear('');
+                    setYearDialogOpen(false);
+                },
                 onFinish: () => {
                     finish('add-year');
                 },
             },
         );
-        setNewYear('');
     }
 
     function saveEdit(): void {
@@ -110,13 +124,28 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
 
     function commitValue(measureId: number, yearId: number): void {
         const key = `${String(measureId)}:${String(yearId)}`;
+        const draft = drafts[key];
+
+        // Blurring an untouched input should not overwrite its saved value.
+        // An empty string is still a valid draft when the user cleared the cell.
+        if (draft === undefined) return;
+
         const action = `value:${key}`;
         start(action);
         router.put(
             `/impact-scorecard/values/${String(measureId)}/${String(yearId)}`,
-            { value: drafts[key] ?? '' },
+            { value: draft },
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    setDrafts((prev) => {
+                        const next: Partial<Record<string, string>> = {};
+                        Object.entries(prev).forEach(([draftKey, value]) => {
+                            if (draftKey !== key) next[draftKey] = value;
+                        });
+                        return next;
+                    });
+                },
                 onFinish: () => {
                     finish(action);
                 },
@@ -124,12 +153,13 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
         );
     }
 
-    function deleteYear(id: number): void {
-        const action = `delete-year:${String(id)}`;
-        start(action);
-        router.delete(`/impact-scorecard/years/${String(id)}`, {
+    function confirmDelete(): void {
+        if (deleteTarget === null) return;
+        start('delete-year');
+        router.delete(`/impact-scorecard/years/${String(deleteTarget.id)}`, {
             onFinish: () => {
-                finish(action);
+                finish('delete-year');
+                setDeleteTarget(null);
             },
         });
     }
@@ -142,209 +172,262 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
 
             <div className="space-y-6">
                 {canManage && (
-                    <div className="grid gap-4 lg:grid-cols-2">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Add measure</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={createMeasure} className="space-y-3">
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="impact">Impact</Label>
-                                            <Input
-                                                id="impact"
-                                                value={impact}
-                                                onChange={(e) => {
-                                                    setImpact(e.target.value);
-                                                }}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="measure">Measure</Label>
-                                            <Input
-                                                id="measure"
-                                                value={measure}
-                                                onChange={(e) => {
-                                                    setMeasure(e.target.value);
-                                                }}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="bl">Baseline</Label>
-                                        <Input
-                                            id="bl"
-                                            value={bl}
-                                            onChange={(e) => {
-                                                setBl(e.target.value);
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="flex justify-end">
-                                        <Button
-                                            type="submit"
-                                            loading={isPending('create-measure')}
-                                            loadingText="Adding"
-                                        >
-                                            <Plus className="size-4" />
-                                            Add measure
-                                        </Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Add year</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form
-                                    onSubmit={addYear}
-                                    className="flex max-w-xs items-center gap-2"
-                                >
-                                    <Input
-                                        type="number"
-                                        min={2000}
-                                        max={2100}
-                                        value={newYear}
-                                        onChange={(e) => {
-                                            setNewYear(e.target.value);
-                                        }}
-                                        placeholder="e.g. 2029"
-                                        required
-                                    />
-                                    <Button
-                                        type="submit"
-                                        loading={isPending('add-year')}
-                                        loadingText="Adding"
-                                    >
-                                        <CalendarPlus className="size-4" />
-                                        Add
-                                    </Button>
-                                </form>
-                            </CardContent>
-                        </Card>
+                    <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                setMeasureDialogOpen(true);
+                            }}
+                        >
+                            <Plus className="size-4" /> Add measure
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setYearDialogOpen(true);
+                            }}
+                        >
+                            <CalendarPlus className="size-4" /> Add year
+                        </Button>
                     </div>
                 )}
 
-                <Card>
+                <Card className="pgs-scorecard-table-card">
                     <CardContent className="p-0">
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Impact</TableHead>
-                                        <TableHead>Measure</TableHead>
-                                        <TableHead>Baseline</TableHead>
-                                        {years.map((year) => (
-                                            <TableHead key={year.id} className="text-center">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    {year.year}
-                                                    {canManage && (
-                                                        <button
-                                                            type="button"
-                                                            aria-label={`Remove ${String(year.year)}`}
-                                                            disabled={isPending(
-                                                                `delete-year:${String(year.id)}`,
-                                                            )}
-                                                            aria-busy={
-                                                                isPending(
-                                                                    `delete-year:${String(year.id)}`,
-                                                                ) || undefined
-                                                            }
-                                                            onClick={() => {
-                                                                deleteYear(year.id);
-                                                            }}
-                                                            className="text-destructive hover:text-destructive"
-                                                        >
-                                                            {isPending(
-                                                                `delete-year:${String(year.id)}`,
-                                                            ) ? (
-                                                                <LoaderCircle className="loading-button-spinner size-3" />
-                                                            ) : (
-                                                                <Trash2 className="size-3" />
-                                                            )}
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </TableHead>
-                                        ))}
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {measures.map((m) => (
-                                        <TableRow key={m.id}>
-                                            <TableCell>{m.impact}</TableCell>
-                                            <TableCell className="text-muted-foreground text-sm">
-                                                {m.measure}
-                                            </TableCell>
-                                            <TableCell className="text-sm">{m.bl ?? '-'}</TableCell>
-                                            {years.map((year) => {
-                                                const key = `${String(m.id)}:${String(year.id)}`;
-                                                const current = values[key]?.value ?? '';
-
-                                                return (
-                                                    <TableCell key={key} className="text-center">
-                                                        {canManage ? (
-                                                            <Input
-                                                                value={drafts[key] ?? current}
-                                                                onChange={(e) => {
-                                                                    setDrafts((prev) => ({
-                                                                        ...prev,
-                                                                        [key]: e.target.value,
-                                                                    }));
-                                                                }}
-                                                                onBlur={() => {
-                                                                    commitValue(m.id, year.id);
-                                                                }}
-                                                                disabled={isPending(`value:${key}`)}
-                                                                className="h-8 w-24 text-center text-sm"
-                                                            />
-                                                        ) : (
-                                                            <span>{current || '-'}</span>
-                                                        )}
-                                                    </TableCell>
-                                                );
-                                            })}
-                                            <TableCell className="text-right">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Impact</TableHead>
+                                    <TableHead>Measure</TableHead>
+                                    <TableHead>Baseline</TableHead>
+                                    {years.map((year) => (
+                                        <TableHead key={year.id} className="text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                {year.year}
                                                 {canManage && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
+                                                    <button
+                                                        type="button"
+                                                        aria-label={`Remove ${String(year.year)}`}
+                                                        disabled={isPending('delete-year')}
+                                                        aria-busy={
+                                                            isPending('delete-year') || undefined
+                                                        }
                                                         onClick={() => {
+                                                            setDeleteTarget(year);
+                                                        }}
+                                                        className="text-destructive hover:text-destructive"
+                                                    >
+                                                        {isPending('delete-year') ? (
+                                                            <LoaderCircle className="loading-button-spinner size-3" />
+                                                        ) : (
+                                                            <Trash2 className="size-3" />
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </TableHead>
+                                    ))}
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {measures.map((m) => (
+                                    <TableRow key={m.id}>
+                                        <TableCell>{m.impact}</TableCell>
+                                        <TableCell className="text-muted-foreground text-sm">
+                                            {m.measure}
+                                        </TableCell>
+                                        <TableCell className="text-sm">{m.bl ?? '-'}</TableCell>
+                                        {years.map((year) => {
+                                            const key = `${String(m.id)}:${String(year.id)}`;
+                                            const current = values[key]?.value ?? '';
+
+                                            return (
+                                                <TableCell key={key} className="text-center">
+                                                    {canManage ? (
+                                                        <Input
+                                                            value={drafts[key] ?? current}
+                                                            onChange={(e) => {
+                                                                setDrafts((prev) => ({
+                                                                    ...prev,
+                                                                    [key]: e.target.value,
+                                                                }));
+                                                            }}
+                                                            onBlur={() => {
+                                                                commitValue(m.id, year.id);
+                                                            }}
+                                                            disabled={isPending(`value:${key}`)}
+                                                            className="pgs-scorecard-value-input h-8 w-24 text-center text-sm"
+                                                        />
+                                                    ) : (
+                                                        <span>{current || '-'}</span>
+                                                    )}
+                                                </TableCell>
+                                            );
+                                        })}
+                                        <TableCell className="text-right">
+                                            {canManage && (
+                                                <TableRowActions label={m.measure}>
+                                                    <DropdownMenuItem
+                                                        onSelect={() => {
                                                             setEditing(m);
                                                             setImpact(m.impact);
                                                             setMeasure(m.measure);
                                                             setBl(m.bl ?? '');
                                                         }}
                                                     >
-                                                        <Pencil className="size-4" />
-                                                    </Button>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {measures.length === 0 && (
-                                        <TableRow>
-                                            <TableCell
-                                                colSpan={3 + years.length + 1}
-                                                className="text-muted-foreground py-10 text-center"
-                                            >
-                                                No measures yet - add the first one.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                                        <Pencil className="size-4" /> Edit
+                                                    </DropdownMenuItem>
+                                                </TableRowActions>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {measures.length === 0 && (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={3 + years.length + 1}
+                                            className="text-muted-foreground py-10 text-center"
+                                        >
+                                            No measures yet - add the first one.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog
+                open={measureDialogOpen}
+                onOpenChange={(open) => {
+                    setMeasureDialogOpen(open);
+                    if (!open) {
+                        setImpact('');
+                        setMeasure('');
+                        setBl('');
+                    }
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog">
+                    <DialogHeader>
+                        <DialogTitle>Add measure</DialogTitle>
+                        <DialogDescription>
+                            Add a measure to the impact scorecard.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={createMeasure} className="pgs-modal-form pgs-modal-form-scroll">
+                        <DialogBody>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="pgs-modal-field">
+                                    <label htmlFor="impact">Impact</label>
+                                    <Input
+                                        id="impact"
+                                        value={impact}
+                                        onChange={(e) => {
+                                            setImpact(e.target.value);
+                                        }}
+                                        required
+                                    />
+                                </div>
+                                <div className="pgs-modal-field">
+                                    <label htmlFor="measure">Measure</label>
+                                    <Input
+                                        id="measure"
+                                        value={measure}
+                                        onChange={(e) => {
+                                            setMeasure(e.target.value);
+                                        }}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="bl">Baseline</label>
+                                <Input
+                                    id="bl"
+                                    value={bl}
+                                    onChange={(e) => {
+                                        setBl(e.target.value);
+                                    }}
+                                />
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setMeasureDialogOpen(false);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                loading={isPending('create-measure')}
+                                loadingText="Adding"
+                            >
+                                <Plus className="size-4" /> Add measure
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={yearDialogOpen}
+                onOpenChange={(open) => {
+                    setYearDialogOpen(open);
+                    if (!open) setNewYear('');
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog">
+                    <DialogHeader>
+                        <DialogTitle>Add year</DialogTitle>
+                        <DialogDescription>Add a target year to the scorecard.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={addYear} className="pgs-modal-form pgs-modal-form-scroll">
+                        <DialogBody>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="new-year">Year</label>
+                                <Input
+                                    id="new-year"
+                                    type="number"
+                                    min={2000}
+                                    max={2100}
+                                    value={newYear}
+                                    onChange={(e) => {
+                                        setNewYear(e.target.value);
+                                    }}
+                                    placeholder="e.g. 2029"
+                                    required
+                                />
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setYearDialogOpen(false);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                loading={isPending('add-year')}
+                                loadingText="Adding"
+                            >
+                                <CalendarPlus className="size-4" /> Add year
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             <Dialog
                 open={editing !== null}
@@ -352,11 +435,11 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                     if (!open) setEditing(null);
                 }}
             >
-                <DialogContent>
+                <DialogContent className="pgs-modal-form-dialog">
                     <DialogHeader>
                         <DialogTitle>Edit measure</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-3">
+                    <DialogBody className="space-y-3">
                         <div className="space-y-2">
                             <Label htmlFor="edit-impact">Impact</Label>
                             <Input
@@ -387,7 +470,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                                 }}
                             />
                         </div>
-                    </div>
+                    </DialogBody>
                     <DialogFooter>
                         <Button
                             variant="outline"
@@ -407,6 +490,20 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <PgsConfirmationDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTarget(null);
+                }}
+                title="Delete scorecard year"
+                description="This action permanently removes the scorecard year and its values."
+                confirmationTitle="Confirm year deletion"
+                confirmationDescription={`Year ${String(deleteTarget?.year ?? '')} and its values will be removed.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete-year')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

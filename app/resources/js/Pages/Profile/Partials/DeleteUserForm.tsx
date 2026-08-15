@@ -64,7 +64,7 @@ export default function DeleteUserForm() {
                 onOpenChange={(open) => {
                     if (!open) closeModal();
                 }}
-                title="Delete + password"
+                title="Delete account"
                 description="Require a second verification step."
                 confirmationTitle="Confirm with your password"
                 confirmationDescription="Enter your password to permanently delete your account."

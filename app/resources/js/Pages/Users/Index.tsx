@@ -1,11 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Search, UserPlus } from 'lucide-react';
+import { Pencil, Power, Search, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils';
 import type { PageProps, User } from '@/types';
 import { relativeInternalUrl } from '@/lib/relative-url';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { TableRowActions } from '@/components/table-row-actions';
 
 interface UsersPageProps extends PageProps {
     users: {
@@ -150,34 +152,34 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button asChild variant="ghost" size="sm">
+                                            <TableRowActions label={user.name ?? user.email}>
+                                                <DropdownMenuItem asChild>
                                                     <Link href={`/users/${String(user.id)}/edit`}>
-                                                        Edit
+                                                        <Pencil className="size-4" /> Edit
                                                     </Link>
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    loading={isPending(`toggle:${String(user.id)}`)}
-                                                    loadingText="Saving"
-                                                    onClick={() => {
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    disabled={isPending(
+                                                        `toggle:${String(user.id)}`,
+                                                    )}
+                                                    onSelect={() => {
                                                         toggleUser(user);
                                                     }}
                                                 >
+                                                    <Power className="size-4" />
                                                     {user.is_active ? 'Deactivate' : 'Activate'}
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-destructive hover:text-destructive"
-                                                    onClick={() => {
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    variant="destructive"
+                                                    onSelect={() => {
                                                         setDeleteTarget(user);
                                                     }}
                                                 >
-                                                    Delete
-                                                </Button>
-                                            </div>
+                                                    <Trash2 className="size-4" /> Delete
+                                                </DropdownMenuItem>
+                                            </TableRowActions>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -226,7 +228,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                 onOpenChange={(open) => {
                     if (!open) setDeleteTarget(null);
                 }}
-                title="Delete + user"
+                title="Delete user"
                 description="This action permanently removes the account."
                 confirmationTitle="Confirm user deletion"
                 confirmationDescription={`${deleteTarget?.email ?? 'This user'} will be removed from the workspace.`}

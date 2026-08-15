@@ -7,7 +7,9 @@ import {
     CircleDashed,
     CircleX,
     ListChecks,
+    Pencil,
     Plus,
+    Search,
     Table2,
     Trash2,
     XCircle,
@@ -15,6 +17,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import {
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
     Table,
@@ -30,6 +42,8 @@ import { relativeInternalUrl } from '@/lib/relative-url';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { PgsStatCard } from '@/components/pgs-stat-card';
 import { legacyImageUrl } from '@/lib/legacy-asset';
+import { TableRowActions } from '@/components/table-row-actions';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface SectorRow {
     id: number;
@@ -45,6 +59,14 @@ interface SectorProgress {
     month: string;
     status: string;
     remarks: string | null;
+    description: string | null;
+}
+
+interface PendingDecisionTarget {
+    id: number;
+    decision: 'Approved' | 'Rejected';
+    category: string;
+    year: number;
     description: string | null;
 }
 
@@ -114,7 +136,18 @@ export default function SectorShow({
     const [newCategory, setNewCategory] = useState('');
     const [newYear, setNewYear] = useState(String(new Date().getFullYear()));
     const [newDescription, setNewDescription] = useState('');
+    const [indicatorFilter, setIndicatorFilter] = useState('');
+    const [addDialogOpen, setAddDialogOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<SectorRow | null>(null);
+    const [decisionTarget, setDecisionTarget] = useState<PendingDecisionTarget | null>(null);
     const { isPending, start, finish } = usePendingAction();
+
+    const normalizedIndicatorFilter = indicatorFilter.trim().toLowerCase();
+    const filteredRows = rows.data.filter((row) =>
+        `${row.category} ${String(row.year)} ${row.description}`
+            .toLowerCase()
+            .includes(normalizedIndicatorFilter),
+    );
 
     function addRow(e: { preventDefault(): void }): void {
         e.preventDefault();
@@ -127,6 +160,7 @@ export default function SectorShow({
                 onSuccess: () => {
                     setNewCategory('');
                     setNewDescription('');
+                    setAddDialogOpen(false);
                 },
                 onFinish: () => {
                     finish('add');
@@ -135,27 +169,31 @@ export default function SectorShow({
         );
     }
 
-    function deleteRow(id: number): void {
-        const action = `delete:${String(id)}`;
-        start(action);
-        router.delete(`/sectors/${module.slug}/rows/${String(id)}`, {
+    function confirmDelete(): void {
+        if (deleteTarget === null) return;
+
+        start('delete');
+        router.delete(`/sectors/${module.slug}/rows/${String(deleteTarget.id)}`, {
             preserveScroll: true,
             onFinish: () => {
-                finish(action);
+                finish('delete');
+                setDeleteTarget(null);
             },
         });
     }
 
-    function decidePending(id: number, decision: 'Approved' | 'Rejected'): void {
-        const action = `decision:${String(id)}`;
+    function confirmDecision(): void {
+        if (decisionTarget === null) return;
+        const action = `decision:${String(decisionTarget.id)}`;
         start(action);
         router.post(
-            `/sectors/${module.slug}/pending/${String(id)}/decision`,
-            { decision },
+            `/sectors/${module.slug}/pending/${String(decisionTarget.id)}/decision`,
+            { decision: decisionTarget.decision },
             {
                 preserveScroll: true,
                 onFinish: () => {
                     finish(action);
+                    setDecisionTarget(null);
                 },
             },
         );
@@ -265,69 +303,6 @@ export default function SectorShow({
                     />
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Plus className="size-4" /> Add roadmap indicator
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form
-                            onSubmit={addRow}
-                            className="grid gap-3 md:grid-cols-[1fr_120px_2fr_auto] md:items-end"
-                        >
-                            <div className="space-y-2">
-                                <label htmlFor="new-category" className="text-sm font-medium">
-                                    Category
-                                </label>
-                                <Input
-                                    id="new-category"
-                                    value={newCategory}
-                                    onChange={(e) => {
-                                        setNewCategory(e.target.value);
-                                    }}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="new-year" className="text-sm font-medium">
-                                    Year
-                                </label>
-                                <Input
-                                    id="new-year"
-                                    type="number"
-                                    value={newYear}
-                                    onChange={(e) => {
-                                        setNewYear(e.target.value);
-                                    }}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label htmlFor="new-description" className="text-sm font-medium">
-                                    Description
-                                </label>
-                                <Input
-                                    id="new-description"
-                                    value={newDescription}
-                                    onChange={(e) => {
-                                        setNewDescription(e.target.value);
-                                    }}
-                                    required
-                                />
-                            </div>
-                            <Button type="submit" loading={isPending('add')} loadingText="Saving">
-                                <Plus className="size-4" /> Add
-                            </Button>
-                        </form>
-                        {!canManage && (
-                            <p className="text-muted-foreground mt-3 text-xs">
-                                New indicators are sent to an admin for approval.
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
-
                 {canManage && pendingChanges.length > 0 && (
                     <Card>
                         <CardHeader>
@@ -353,17 +328,31 @@ export default function SectorShow({
                                     </div>
                                     <div className="flex gap-1">
                                         <Button
+                                            className="pgs-success-action-button"
                                             onClick={() => {
-                                                decidePending(change.id, 'Approved');
+                                                setDecisionTarget({
+                                                    id: change.id,
+                                                    decision: 'Approved',
+                                                    category: change.category,
+                                                    year: change.year,
+                                                    description: change.description,
+                                                });
                                             }}
                                             loading={isPending(`decision:${String(change.id)}`)}
                                         >
                                             <CheckCircle2 className="size-4" /> Approve
                                         </Button>
                                         <Button
-                                            variant="outline"
+                                            variant="destructive"
+                                            className="pgs-destructive-action-button"
                                             onClick={() => {
-                                                decidePending(change.id, 'Rejected');
+                                                setDecisionTarget({
+                                                    id: change.id,
+                                                    decision: 'Rejected',
+                                                    category: change.category,
+                                                    year: change.year,
+                                                    description: change.description,
+                                                });
                                             }}
                                             loading={isPending(`decision:${String(change.id)}`)}
                                         >
@@ -377,8 +366,36 @@ export default function SectorShow({
                 )}
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Indicators</CardTitle>
+                    <CardHeader className="table-toolbar">
+                        <div className="table-toolbar-heading">
+                            <CardTitle>Indicators</CardTitle>
+                            <p className="table-toolbar-meta">
+                                {rows.data.length}{' '}
+                                {rows.data.length === 1 ? 'indicator' : 'indicators'}
+                            </p>
+                        </div>
+                        <div className="table-toolbar-actions">
+                            <div className="table-search-shell">
+                                <Search className="table-search-icon" aria-hidden="true" />
+                                <Input
+                                    className="table-search"
+                                    value={indicatorFilter}
+                                    onChange={(event) => {
+                                        setIndicatorFilter(event.target.value);
+                                    }}
+                                    placeholder="Filter indicators..."
+                                    aria-label="Filter indicators"
+                                />
+                            </div>
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    setAddDialogOpen(true);
+                                }}
+                            >
+                                <Plus className="size-4" /> Add indicator
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         <Table>
@@ -391,7 +408,7 @@ export default function SectorShow({
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {rows.data.map((row) => (
+                                {filteredRows.map((row) => (
                                     <TableRow key={row.id}>
                                         <TableCell className="font-medium">
                                             {row.category}
@@ -401,39 +418,41 @@ export default function SectorShow({
                                         </TableCell>
                                         <TableCell className="text-sm">{row.description}</TableCell>
                                         <TableCell className="text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => {
-                                                    openEdit(row);
-                                                }}
-                                            >
-                                                Edit
-                                            </Button>
-                                            {canManage && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    aria-label="Delete indicator"
-                                                    className="text-destructive"
-                                                    loading={isPending(`delete:${String(row.id)}`)}
-                                                    onClick={() => {
-                                                        deleteRow(row.id);
+                                            <TableRowActions label={row.description}>
+                                                <DropdownMenuItem
+                                                    onSelect={() => {
+                                                        openEdit(row);
                                                     }}
                                                 >
-                                                    <Trash2 className="size-4" />
-                                                </Button>
-                                            )}
+                                                    <Pencil className="size-4" /> Edit
+                                                </DropdownMenuItem>
+                                                {canManage && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            variant="destructive"
+                                                            disabled={isPending('delete')}
+                                                            onSelect={() => {
+                                                                setDeleteTarget(row);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="size-4" /> Delete
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                )}
+                                            </TableRowActions>
                                         </TableCell>
                                     </TableRow>
                                 ))}
-                                {rows.data.length === 0 && (
+                                {filteredRows.length === 0 && (
                                     <TableRow>
                                         <TableCell
                                             colSpan={4}
                                             className="text-muted-foreground py-10 text-center"
                                         >
-                                            No indicators yet.
+                                            {rows.data.length === 0
+                                                ? 'No indicators yet.'
+                                                : 'No indicators match your filter.'}
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -543,81 +562,188 @@ export default function SectorShow({
                 </div>
             </div>
 
-            {editTarget !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <Card className="w-full max-w-lg">
-                        <CardHeader>
-                            <CardTitle>Edit indicator</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={saveEdit} className="space-y-3">
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <label htmlFor="cat" className="text-sm font-medium">
-                                            Category
-                                        </label>
-                                        <Input
-                                            id="cat"
-                                            value={editCategory}
-                                            onChange={(e) => {
-                                                setEditCategory(e.target.value);
-                                            }}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label htmlFor="yr" className="text-sm font-medium">
-                                            Year
-                                        </label>
-                                        <Input
-                                            id="yr"
-                                            type="number"
-                                            value={editYear}
-                                            onChange={(e) => {
-                                                setEditYear(e.target.value);
-                                            }}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label htmlFor="desc" className="text-sm font-medium">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        id="desc"
-                                        value={editDescription}
-                                        onChange={(e) => {
-                                            setEditDescription(e.target.value);
-                                        }}
-                                        rows={4}
-                                        className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
-                                        required
-                                    />
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => {
-                                            setEditTarget(null);
-                                        }}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        type="submit"
-                                        loading={isPending('save')}
-                                        loadingText="Saving"
-                                    >
-                                        Save
-                                    </Button>
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                <DialogContent className="pgs-modal-form-dialog">
+                    <DialogHeader className="pgs-modal-header">
+                        <span className="pgs-modal-eyebrow">Responsive overlay</span>
+                        <DialogTitle>Add roadmap indicator</DialogTitle>
+                        <DialogDescription>
+                            Add a category, year, and description to this roadmap.
+                            {!canManage && ' New indicators are sent to an admin for approval.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={addRow} className="pgs-modal-form pgs-modal-form-scroll">
+                        <DialogBody>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="new-category">Category</label>
+                                <Input
+                                    id="new-category"
+                                    value={newCategory}
+                                    onChange={(e) => {
+                                        setNewCategory(e.target.value);
+                                    }}
+                                    required
+                                />
+                            </div>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="new-year">Year</label>
+                                <Input
+                                    id="new-year"
+                                    type="number"
+                                    value={newYear}
+                                    onChange={(e) => {
+                                        setNewYear(e.target.value);
+                                    }}
+                                    required
+                                />
+                            </div>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="new-description">Description</label>
+                                <textarea
+                                    id="new-description"
+                                    value={newDescription}
+                                    onChange={(e) => {
+                                        setNewDescription(e.target.value);
+                                    }}
+                                    rows={4}
+                                    className="pgs-modal-textarea"
+                                    required
+                                />
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setAddDialogOpen(false);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit" loading={isPending('add')} loadingText="Saving">
+                                <Plus className="size-4" /> Add
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={editTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setEditTarget(null);
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog">
+                    <DialogHeader className="pgs-modal-header">
+                        <span className="pgs-modal-eyebrow">Responsive overlay</span>
+                        <DialogTitle>Edit indicator</DialogTitle>
+                        <DialogDescription>
+                            Update the selected roadmap indicator.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={saveEdit} className="pgs-modal-form pgs-modal-form-scroll">
+                        <DialogBody>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="cat">Category</label>
+                                <Input
+                                    id="cat"
+                                    value={editCategory}
+                                    onChange={(e) => {
+                                        setEditCategory(e.target.value);
+                                    }}
+                                    required
+                                />
+                            </div>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="yr">Year</label>
+                                <Input
+                                    id="yr"
+                                    type="number"
+                                    value={editYear}
+                                    onChange={(e) => {
+                                        setEditYear(e.target.value);
+                                    }}
+                                    required
+                                />
+                            </div>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="desc">Description</label>
+                                <textarea
+                                    id="desc"
+                                    value={editDescription}
+                                    onChange={(e) => {
+                                        setEditDescription(e.target.value);
+                                    }}
+                                    rows={4}
+                                    className="pgs-modal-textarea"
+                                    required
+                                />
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setEditTarget(null);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit" loading={isPending('save')} loadingText="Saving">
+                                Save
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <PgsConfirmationDialog
+                open={decisionTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDecisionTarget(null);
+                }}
+                title={
+                    decisionTarget?.decision === 'Approved'
+                        ? 'Approve pending change'
+                        : 'Reject pending change'
+                }
+                description={
+                    decisionTarget?.decision === 'Approved'
+                        ? 'This will approve the submitted change and apply it to the roadmap.'
+                        : 'This will reject the submitted change and remove it from the pending queue.'
+                }
+                confirmationTitle={
+                    decisionTarget?.decision === 'Approved'
+                        ? 'Confirm approval'
+                        : 'Confirm rejection'
+                }
+                confirmationDescription={`${decisionTarget?.category ?? 'This change'} (${String(decisionTarget?.year ?? '')})${decisionTarget?.description ? ` — ${decisionTarget.description}` : ''}`}
+                onConfirm={confirmDecision}
+                loading={
+                    decisionTarget !== null && isPending(`decision:${String(decisionTarget.id)}`)
+                }
+                loadingText={decisionTarget?.decision === 'Approved' ? 'Approving' : 'Rejecting'}
+                confirmText={decisionTarget?.decision === 'Approved' ? 'Approve' : 'Reject'}
+                confirmVariant={decisionTarget?.decision === 'Approved' ? 'default' : 'destructive'}
+                kind={decisionTarget?.decision === 'Approved' ? 'approve' : 'reject'}
+            />
+
+            <PgsConfirmationDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTarget(null);
+                }}
+                title="Delete indicator"
+                description="This action permanently removes the roadmap indicator."
+                confirmationTitle="Confirm indicator deletion"
+                confirmationDescription={`"${deleteTarget?.description ?? 'This indicator'}" will be removed from the roadmap.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

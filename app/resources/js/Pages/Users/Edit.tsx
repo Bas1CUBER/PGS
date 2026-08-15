@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import type { PageProps, User } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface EditUserPageProps extends PageProps {
     user: User & { page_access: Record<string, boolean> | null };
@@ -29,6 +30,7 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
     const [accessState, setAccessState] = useState<Record<string, boolean>>(
         Object.fromEntries(accessModules.map((m) => [m, access[m] ?? true])),
     );
+    const [confirmingDeletion, setConfirmingDeletion] = useState(false);
 
     const { data, setData, put, processing, errors } = useForm({
         name: user.name ?? '',
@@ -73,11 +75,12 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
         );
     }
 
-    function deleteAccount(): void {
+    function confirmDelete(): void {
         start('delete');
         router.delete(`/users/${String(user.id)}`, {
             onFinish: () => {
                 finish('delete');
+                setConfirmingDeletion(false);
             },
         });
     }
@@ -291,13 +294,27 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
                             size="sm"
                             loading={isPending('delete')}
                             loadingText="Deleting"
-                            onClick={deleteAccount}
+                            onClick={() => {
+                                setConfirmingDeletion(true);
+                            }}
                         >
                             Delete user
                         </Button>
                     </CardContent>
                 </Card>
             </div>
+
+            <PgsConfirmationDialog
+                open={confirmingDeletion}
+                onOpenChange={setConfirmingDeletion}
+                title="Delete user"
+                description="This action permanently removes the user account."
+                confirmationTitle="Confirm user deletion"
+                confirmationDescription={`${user.email} will be removed from the workspace.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

@@ -133,13 +133,11 @@ function pageWidthFor(path: string): PageWidth {
         path.startsWith('/sectors/') ||
         path === '/operations-review' ||
         path === '/strategy-review' ||
+        path === '/communication-plan' ||
         path === '/opcr' ||
         path.startsWith('/annex/') ||
-        path === '/uploads/operations-review' ||
-        path === '/uploads/strategy-review' ||
-        path === '/uploads/strategy-refresh' ||
-        path === '/uploads/governance-culture' ||
-        path === '/uploads/governance-sharing'
+        path.endsWith('/upload') ||
+        path.startsWith('/uploads/')
     ) {
         return 'wide';
     }
@@ -157,6 +155,54 @@ function breadcrumbItems(
     const path = normalizedPath(url);
 
     if (path === '/dashboard') return [{ label: 'Dashboard' }];
+
+    const uploadBreadcrumbs: Record<string, { label: string; rootHref?: string } | undefined> = {
+        '/operations-review/upload': {
+            label: 'Operations Review',
+            rootHref: '/operations-review',
+        },
+        '/strategy-review/upload': {
+            label: 'Strategy Review',
+            rootHref: '/strategy-review',
+        },
+        '/communication-plan/upload': {
+            label: 'Communication Plan',
+            rootHref: '/communication-plan',
+        },
+        '/strategy-refresh/upload': { label: 'Strategy Refresh' },
+        '/cascading-activities/upload': { label: 'Cascading Activities' },
+        '/resources/upload': { label: 'Resources' },
+        '/governance-culture/upload': { label: 'Governance Culture' },
+        '/governance-sharing/upload': { label: 'Governance Sharing' },
+    };
+    const uploadBreadcrumb = uploadBreadcrumbs[path];
+
+    if (uploadBreadcrumb !== undefined) {
+        const group = groups.find(({ items }) =>
+            items.some(
+                (item) =>
+                    item.href === path ||
+                    (uploadBreadcrumb.rootHref !== undefined &&
+                        item.href === uploadBreadcrumb.rootHref),
+            ),
+        );
+
+        return [
+            ...(group === undefined
+                ? []
+                : [
+                      {
+                          label: group.title,
+                          href: group.href,
+                      },
+                  ]),
+            {
+                label: uploadBreadcrumb.label,
+                href: uploadBreadcrumb.rootHref,
+            },
+            { label: 'Upload register' },
+        ];
+    }
 
     const groupedMatches = groups
         .flatMap((group) => group.items.map((item) => ({ group, item })))

@@ -1404,31 +1404,31 @@ body:has(.pgs-command-palette) [data-slot='dialog-overlay'] {
     align-items: center;
     gap: 10px;
     padding: 11px 11px 11px 12px;
-    border: 1px solid var(--kinetic-border);
+    border: 1px solid var(--border);
     border-radius: var(--kinetic-radius-menu);
-    color: var(--kinetic-text);
+    color: var(--text);
     background: linear-gradient(
         155deg,
-        var(--kinetic-surface-top),
-        var(--kinetic-surface-mid) 52%,
-        var(--kinetic-surface-bottom)
+        var(--surface-top),
+        var(--surface-mid) 52%,
+        var(--surface-bottom)
     );
-    box-shadow: var(--kinetic-shadow-overlay);
+    box-shadow: var(--shadow-overlay);
     pointer-events: auto;
     animation: pgs-toast-enter 180ms ease-out both;
 }
 
 .pgs-toast[data-kind='success'] .pgs-toast-icon,
 .pgs-toast[data-kind='info'] .pgs-toast-icon {
-    color: var(--kinetic-accent);
+    color: var(--accent-dark);
 }
 
 .pgs-toast[data-kind='error'] .pgs-toast-icon {
-    color: var(--kinetic-danger);
+    color: var(--danger);
 }
 
 .pgs-toast[data-kind='warning'] .pgs-toast-icon {
-    color: color-mix(in srgb, var(--kinetic-accent) 56%, #f59e0b);
+    color: color-mix(in srgb, var(--accent-dark) 56%, #f59e0b);
 }
 
 .pgs-toast-icon {
@@ -1437,15 +1437,15 @@ body:has(.pgs-command-palette) [data-slot='dialog-overlay'] {
     flex: 0 0 auto;
     display: grid;
     place-items: center;
-    border: 1px solid var(--kinetic-border-soft);
+    border: 1px solid var(--border-soft);
     border-radius: var(--kinetic-radius-control);
-    background: var(--kinetic-accent-soft);
+    background: var(--accent-soft);
 }
 
 .pgs-toast-message {
     min-width: 0;
     flex: 1;
-    color: var(--kinetic-text-soft);
+    color: var(--text-soft);
     font-size: 12px;
     line-height: 1.4;
 }
@@ -1459,17 +1459,17 @@ body:has(.pgs-command-palette) [data-slot='dialog-overlay'] {
     padding: 0;
     border: 1px solid transparent;
     border-radius: var(--kinetic-radius-control);
-    color: var(--kinetic-text-muted);
+    color: var(--text-muted);
     background: transparent;
     cursor: pointer;
 }
 
 .pgs-toast-dismiss:hover,
 .pgs-toast-dismiss:focus-visible {
-    border-color: var(--kinetic-border);
+    border-color: var(--border);
     outline: 0;
-    color: var(--kinetic-text);
-    background: var(--kinetic-surface-hover);
+    color: var(--text);
+    background: var(--surface-hover);
 }
 
 @keyframes pgs-toast-enter {

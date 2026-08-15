@@ -1,10 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { type SyntheticEvent, useState } from 'react';
-import { Mail, Search } from 'lucide-react';
+import { Eye, Mail, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import type { PageProps } from '@/types';
 import { relativeInternalUrl } from '@/lib/relative-url';
+import { TableRowActions } from '@/components/table-row-actions';
 
 interface MailRow {
     id: number;
@@ -94,11 +96,13 @@ export default function MailboxIndex({ mails, filters }: MailboxPageProps) {
                                             {new Date(mail.created_at).toLocaleString()}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button asChild variant="ghost" size="sm">
-                                                <Link href={`/mailbox/${String(mail.id)}`}>
-                                                    Open
-                                                </Link>
-                                            </Button>
+                                            <TableRowActions label={mail.subject}>
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/mailbox/${String(mail.id)}`}>
+                                                        <Eye className="size-4" /> Open
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                            </TableRowActions>
                                         </TableCell>
                                     </TableRow>
                                 ))}

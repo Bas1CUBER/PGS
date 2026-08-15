@@ -34,6 +34,7 @@ final class CommPlanController extends Controller
             'rows' => $rows->map(fn (object $row): array => (array) $row)->values()->all(),
             'userId' => $user?->id,
             'canManage' => $user !== null && ($user->isAdmin() || $user->isFocal()),
+            'uploadUrl' => '/communication-plan/upload',
         ]);
     }
 

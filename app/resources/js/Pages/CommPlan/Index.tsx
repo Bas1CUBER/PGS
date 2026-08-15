@@ -1,14 +1,24 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { FileUp, Plus, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface CommPlanRow {
     id: number;
@@ -27,6 +37,7 @@ interface CommPlanPageProps extends PageProps {
     rows: CommPlanRow[];
     userId?: number;
     canManage: boolean;
+    uploadUrl: string;
 }
 
 const statusStyles: Record<string, string> = {
@@ -35,7 +46,7 @@ const statusStyles: Record<string, string> = {
     'Not Accomplished/Started': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
 };
 
-export default function CommPlanIndex({ rows, userId, canManage }: CommPlanPageProps) {
+export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: CommPlanPageProps) {
     const [objective, setObjective] = useState('');
     const [channel, setChannel] = useState('');
     const [timeframe, setTimeframe] = useState('');
@@ -44,6 +55,8 @@ export default function CommPlanIndex({ rows, userId, canManage }: CommPlanPageP
     const [audience, setAudience] = useState('');
     const [requirements, setRequirements] = useState('');
     const [editing, setEditing] = useState<CommPlanRow | null>(null);
+    const [formOpen, setFormOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<CommPlanRow | null>(null);
     const { isPending, start, finish } = usePendingAction();
     const canEdit = (row: CommPlanRow): boolean => canManage || row.created_by === userId;
 
@@ -63,22 +76,26 @@ export default function CommPlanIndex({ rows, userId, canManage }: CommPlanPageP
             },
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    setFormOpen(false);
+                    setObjective('');
+                    setChannel('');
+                    setTimeframe('');
+                    setResponsible('');
+                    setMessage('');
+                    setAudience('');
+                    setRequirements('');
+                },
                 onFinish: () => {
                     finish('create');
                 },
             },
         );
-        setObjective('');
-        setChannel('');
-        setTimeframe('');
-        setResponsible('');
-        setMessage('');
-        setAudience('');
-        setRequirements('');
     }
 
     function openEdit(row: CommPlanRow): void {
         setEditing(row);
+        setFormOpen(true);
         setObjective(row.objective);
         setChannel(row.channel ?? '');
         setTimeframe(row.timeframe ?? '');
@@ -107,6 +124,7 @@ export default function CommPlanIndex({ rows, userId, canManage }: CommPlanPageP
                 preserveScroll: true,
                 onSuccess: () => {
                     setEditing(null);
+                    setFormOpen(false);
                 },
                 onFinish: () => {
                     finish('save');
@@ -141,12 +159,14 @@ export default function CommPlanIndex({ rows, userId, canManage }: CommPlanPageP
         );
     }
 
-    function deleteRow(id: number): void {
-        const action = `delete:${String(id)}`;
-        start(action);
-        router.delete(`/communication-plan/${String(id)}`, {
+    function confirmDelete(): void {
+        if (deleteTarget === null) return;
+        start('delete');
+        router.delete(`/communication-plan/${String(deleteTarget.id)}`, {
+            preserveScroll: true,
             onFinish: () => {
-                finish(action);
+                finish('delete');
+                setDeleteTarget(null);
             },
         });
     }
@@ -242,42 +262,22 @@ export default function CommPlanIndex({ rows, userId, canManage }: CommPlanPageP
             <Head title="Communication Plan" />
 
             <div className="mx-auto max-w-4xl space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{editing === null ? 'Add a row' : 'Edit row'}</CardTitle>
-                        <CardDescription>
-                            {editing === null
-                                ? 'Define communication objectives, channels and responsibilities.'
-                                : `Editing row #${String(editing.id)}.`}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={editing === null ? create : saveEdit} className="space-y-4">
-                            {formFields}
-                            <div className="flex justify-end gap-2">
-                                {editing !== null && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => {
-                                            setEditing(null);
-                                        }}
-                                    >
-                                        Cancel
-                                    </Button>
-                                )}
-                                <Button
-                                    type="submit"
-                                    loading={isPending(editing === null ? 'create' : 'save')}
-                                    loadingText={editing === null ? 'Adding' : 'Saving'}
-                                >
-                                    <Plus className="size-4" />
-                                    {editing === null ? 'Add row' : 'Save changes'}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                <div className="flex flex-wrap justify-end gap-2">
+                    <Button asChild variant="outline">
+                        <a href={uploadUrl}>
+                            <FileUp className="size-4" /> Upload register
+                        </a>
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={() => {
+                            setEditing(null);
+                            setFormOpen(true);
+                        }}
+                    >
+                        <Plus className="size-4" /> Add row
+                    </Button>
+                </div>
 
                 <Card>
                     <CardContent className="p-0">
@@ -350,11 +350,11 @@ export default function CommPlanIndex({ rows, userId, canManage }: CommPlanPageP
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    loading={isPending(`delete:${String(row.id)}`)}
+                                                    loading={isPending('delete')}
                                                     loadingText=""
                                                     className="text-destructive hover:text-destructive"
                                                     onClick={() => {
-                                                        deleteRow(row.id);
+                                                        setDeleteTarget(row);
                                                     }}
                                                 >
                                                     <Trash2 className="size-4" />
@@ -368,6 +368,65 @@ export default function CommPlanIndex({ rows, userId, canManage }: CommPlanPageP
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog
+                open={formOpen}
+                onOpenChange={(open) => {
+                    setFormOpen(open);
+                    if (!open) setEditing(null);
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog pgs-modal-wide">
+                    <DialogHeader>
+                        <DialogTitle>{editing === null ? 'Add a row' : 'Edit row'}</DialogTitle>
+                        <DialogDescription>
+                            {editing === null
+                                ? 'Define communication objectives, channels and responsibilities.'
+                                : `Editing row #${String(editing.id)}.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={editing === null ? create : saveEdit}
+                        className="pgs-modal-form pgs-modal-form-scroll"
+                    >
+                        <DialogBody>{formFields}</DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setFormOpen(false);
+                                    setEditing(null);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                loading={isPending(editing === null ? 'create' : 'save')}
+                                loadingText={editing === null ? 'Adding' : 'Saving'}
+                            >
+                                <Plus className="size-4" />
+                                {editing === null ? 'Add row' : 'Save changes'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <PgsConfirmationDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTarget(null);
+                }}
+                title="Delete communication plan"
+                description="This action permanently removes the communication plan entry."
+                confirmationTitle="Confirm communication plan deletion"
+                confirmationDescription={`"${deleteTarget?.objective ?? 'This entry'}" will be removed from the communication plan.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

@@ -1,12 +1,15 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { Download, Plus, Save, Trash2, Target } from 'lucide-react';
+import { Download, Pencil, Plus, Save, Trash2, Target } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import type { PageProps } from '@/types';
+import { TableRowActions } from '@/components/table-row-actions';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface OpcrRow {
     id: number;
@@ -41,6 +44,7 @@ const blank: FormData = {
 export default function Opcr({ rows, exportUrl }: OpcrProps) {
     const [data, setData] = useState<FormData>(blank);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<OpcrRow | null>(null);
     const { isPending, start, finish } = usePendingAction();
 
     function save(): void {
@@ -67,13 +71,14 @@ export default function Opcr({ rows, exportUrl }: OpcrProps) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function remove(id: number): void {
-        const action = `delete:${String(id)}`;
-        start(action);
-        router.delete(`/opcr/${String(id)}`, {
+    function confirmDelete(): void {
+        if (deleteTarget === null) return;
+        start('delete');
+        router.delete(`/opcr/${String(deleteTarget.id)}`, {
             preserveScroll: true,
             onFinish: () => {
-                finish(action);
+                finish('delete');
+                setDeleteTarget(null);
             },
         });
     }
@@ -247,31 +252,27 @@ export default function Opcr({ rows, exportUrl }: OpcrProps) {
                                                 </td>
                                             ))}
                                             <td data-slot="table-cell" className="px-4 py-3">
-                                                <div className="flex gap-1">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
+                                                <TableRowActions
+                                                    label={`Target #${String(row.id)}`}
+                                                >
+                                                    <DropdownMenuItem
+                                                        onSelect={() => {
                                                             edit(row);
                                                         }}
                                                     >
-                                                        Edit
-                                                    </Button>
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="text-destructive"
-                                                        aria-label="Delete target"
-                                                        loading={isPending(
-                                                            `delete:${String(row.id)}`,
-                                                        )}
-                                                        onClick={() => {
-                                                            remove(row.id);
+                                                        <Pencil className="size-4" /> Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        disabled={isPending('delete')}
+                                                        onSelect={() => {
+                                                            setDeleteTarget(row);
                                                         }}
                                                     >
-                                                        <Trash2 className="size-4" />
-                                                    </Button>
-                                                </div>
+                                                        <Trash2 className="size-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                </TableRowActions>
                                             </td>
                                         </tr>
                                     ))}
@@ -292,6 +293,20 @@ export default function Opcr({ rows, exportUrl }: OpcrProps) {
                     </CardContent>
                 </Card>
             </div>
+
+            <PgsConfirmationDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTarget(null);
+                }}
+                title="Delete OPCR target"
+                description="This action permanently removes the OPCR target."
+                confirmationTitle="Confirm OPCR target deletion"
+                confirmationDescription={`Target #${String(deleteTarget?.id ?? '')} will be removed.`}
+                onConfirm={confirmDelete}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

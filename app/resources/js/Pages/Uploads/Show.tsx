@@ -17,6 +17,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -32,6 +42,8 @@ import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { PgsStatCard, type PgsStatTone } from '@/components/pgs-stat-card';
+import { TableRowActions } from '@/components/table-row-actions';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface UploadRow {
     id: number;
@@ -44,6 +56,11 @@ interface UploadRow {
     uploaded_at: string;
     uploader: string | null;
     uploader_id: number;
+}
+
+interface UploadStatusTarget {
+    row: UploadRow;
+    status: 'Approved' | 'Returned';
 }
 
 interface UploadsShowPageProps extends PageProps {
@@ -66,6 +83,7 @@ interface UploadsShowPageProps extends PageProps {
             source?: 'static' | 'managed';
             id?: number;
         }[];
+        upload_base_url: string;
         template_upload_url: string;
         can_manage_templates: boolean;
     };
@@ -165,7 +183,15 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
     const [file, setFile] = useState<File | null>(null);
     const [templateLabel, setTemplateLabel] = useState('');
     const [templateFile, setTemplateFile] = useState<File | null>(null);
+    const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+    const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [deleteRowTarget, setDeleteRowTarget] = useState<UploadRow | null>(null);
+    const [deleteTemplateTarget, setDeleteTemplateTarget] = useState<{
+        id: number;
+        label: string;
+    } | null>(null);
+    const [statusTarget, setStatusTarget] = useState<UploadStatusTarget | null>(null);
     const { isPending, start, finish } = usePendingAction();
 
     function submit(e: { preventDefault(): void }): void {
@@ -179,9 +205,12 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
 
         setUploading(true);
         start('upload');
-        router.post(`/uploads/${module.slug}`, form, {
+        router.post(module.upload_base_url, form, {
             forceFormData: true,
             preserveScroll: true,
+            onSuccess: () => {
+                setUploadDialogOpen(false);
+            },
             onFinish: () => {
                 setUploading(false);
                 finish('upload');
@@ -192,27 +221,30 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
         });
     }
 
-    function setStatus(id: number, status: string): void {
-        const action = `status:${String(id)}`;
+    function confirmStatus(): void {
+        if (statusTarget === null) return;
+        const action = `status:${String(statusTarget.row.id)}`;
         start(action);
         router.put(
-            `/uploads/${module.slug}/${String(id)}/status`,
-            { status },
+            `${module.upload_base_url}/${String(statusTarget.row.id)}/status`,
+            { status: statusTarget.status },
             {
                 preserveScroll: true,
                 onFinish: () => {
                     finish(action);
+                    setStatusTarget(null);
                 },
             },
         );
     }
 
-    function deleteRow(id: number): void {
-        const action = `delete:${String(id)}`;
-        start(action);
-        router.delete(`/uploads/${module.slug}/${String(id)}`, {
+    function confirmDeleteRow(): void {
+        if (deleteRowTarget === null) return;
+        start('delete');
+        router.delete(`${module.upload_base_url}/${String(deleteRowTarget.id)}`, {
             onFinish: () => {
-                finish(action);
+                finish('delete');
+                setDeleteRowTarget(null);
             },
         });
     }
@@ -228,6 +260,9 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
         router.post(module.template_upload_url, form, {
             forceFormData: true,
             preserveScroll: true,
+            onSuccess: () => {
+                setTemplateDialogOpen(false);
+            },
             onFinish: () => {
                 finish('template');
                 setTemplateLabel('');
@@ -236,13 +271,14 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
         });
     }
 
-    function deleteTemplate(id: number): void {
-        const action = `template-delete:${String(id)}`;
-        start(action);
-        router.delete(`/uploads/${module.slug}/templates/${String(id)}`, {
+    function confirmDeleteTemplate(): void {
+        if (deleteTemplateTarget === null) return;
+        start('template-delete');
+        router.delete(`${module.upload_base_url}/templates/${String(deleteTemplateTarget.id)}`, {
             preserveScroll: true,
             onFinish: () => {
-                finish(action);
+                finish('template-delete');
+                setDeleteTemplateTarget(null);
             },
         });
     }
@@ -297,12 +333,13 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                                     variant="ghost"
                                                     size="icon-sm"
                                                     aria-label={`Remove ${template.label}`}
-                                                    loading={isPending(
-                                                        `template-delete:${String(template.id)}`,
-                                                    )}
+                                                    loading={isPending('template-delete')}
                                                     onClick={() => {
                                                         if (template.id !== undefined) {
-                                                            deleteTemplate(template.id);
+                                                            setDeleteTemplateTarget({
+                                                                id: template.id,
+                                                                label: template.label,
+                                                            });
                                                         }
                                                     }}
                                                     className="text-destructive"
@@ -325,20 +362,53 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                 )}
 
                 {module.can_manage_templates && (
-                    <Card className="kinetic-template-card">
-                        <CardHeader>
-                            <CardTitle>Manage module templates</CardTitle>
-                            <p className="text-muted-foreground text-sm">
-                                Add a replacement or supplemental guide for this module. Managed
-                                files are available to every user with module access.
-                            </p>
-                        </CardHeader>
-                        <CardContent>
-                            <form
-                                onSubmit={submitTemplate}
-                                className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end"
-                            >
-                                <div className="space-y-2">
+                    <div className="flex justify-end">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setTemplateDialogOpen(true);
+                            }}
+                        >
+                            <Upload className="size-4" /> Manage module templates
+                        </Button>
+                    </div>
+                )}
+
+                <div className="flex justify-end">
+                    <Button
+                        type="button"
+                        onClick={() => {
+                            setUploadDialogOpen(true);
+                        }}
+                    >
+                        <Upload className="size-4" /> Upload {module.singular}
+                    </Button>
+                </div>
+
+                <Dialog
+                    open={templateDialogOpen}
+                    onOpenChange={(open) => {
+                        setTemplateDialogOpen(open);
+                        if (!open) {
+                            setTemplateLabel('');
+                            setTemplateFile(null);
+                        }
+                    }}
+                >
+                    <DialogContent className="pgs-modal-form-dialog">
+                        <DialogHeader>
+                            <DialogTitle>Manage module templates</DialogTitle>
+                            <DialogDescription>
+                                Add a replacement or supplemental guide for this module.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form
+                            onSubmit={submitTemplate}
+                            className="pgs-modal-form pgs-modal-form-scroll"
+                        >
+                            <DialogBody>
+                                <div className="pgs-modal-field">
                                     <Label htmlFor="template-label">Template label</Label>
                                     <Input
                                         id="template-label"
@@ -350,7 +420,7 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                         required
                                     />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="pgs-modal-field">
                                     <Label htmlFor="template-file">Template file</Label>
                                     <Input
                                         id="template-file"
@@ -362,6 +432,17 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                         required
                                     />
                                 </div>
+                            </DialogBody>
+                            <DialogFooter className="pgs-modal-footer">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setTemplateDialogOpen(false);
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
                                 <Button
                                     type="submit"
                                     loading={isPending('template')}
@@ -370,65 +451,89 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                 >
                                     <Upload className="size-4" /> Save template
                                 </Button>
-                            </form>
-                        </CardContent>
-                    </Card>
-                )}
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Upload {module.singular}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={submit} className="space-y-3">
-                            {module.has_title && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="title">Title</Label>
+                <Dialog
+                    open={uploadDialogOpen}
+                    onOpenChange={(open) => {
+                        setUploadDialogOpen(open);
+                        if (!open) {
+                            setTitle('');
+                            setDescription('');
+                            setFile(null);
+                        }
+                    }}
+                >
+                    <DialogContent className="pgs-modal-form-dialog">
+                        <DialogHeader>
+                            <DialogTitle>Upload {module.singular}</DialogTitle>
+                            <DialogDescription>Add a file to this module.</DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={submit} className="pgs-modal-form pgs-modal-form-scroll">
+                            <DialogBody>
+                                {module.has_title && (
+                                    <div className="pgs-modal-field">
+                                        <Label htmlFor="title">Title</Label>
+                                        <Input
+                                            id="title"
+                                            value={title}
+                                            onChange={(e) => {
+                                                setTitle(e.target.value);
+                                            }}
+                                            required
+                                        />
+                                    </div>
+                                )}
+                                {module.has_description && (
+                                    <div className="pgs-modal-field">
+                                        <Label htmlFor="description">Description</Label>
+                                        <textarea
+                                            id="description"
+                                            value={description}
+                                            onChange={(e) => {
+                                                setDescription(e.target.value);
+                                            }}
+                                            rows={3}
+                                            className="pgs-modal-textarea"
+                                        />
+                                    </div>
+                                )}
+                                <div className="pgs-modal-field">
+                                    <Label htmlFor="upload-file">File</Label>
                                     <Input
-                                        id="title"
-                                        value={title}
+                                        id="upload-file"
+                                        type="file"
                                         onChange={(e) => {
-                                            setTitle(e.target.value);
+                                            setFile(e.target.files?.[0] ?? null);
                                         }}
-                                        required
                                     />
                                 </div>
-                            )}
-                            {module.has_description && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="description">Description</Label>
-                                    <textarea
-                                        id="description"
-                                        value={description}
-                                        onChange={(e) => {
-                                            setDescription(e.target.value);
-                                        }}
-                                        rows={2}
-                                        className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
-                                    />
-                                </div>
-                            )}
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                <Input
-                                    type="file"
-                                    onChange={(e) => {
-                                        setFile(e.target.files?.[0] ?? null);
+                            </DialogBody>
+                            <DialogFooter className="pgs-modal-footer">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setUploadDialogOpen(false);
                                     }}
-                                    className="max-w-md"
-                                />
+                                >
+                                    Cancel
+                                </Button>
                                 <Button
                                     type="submit"
                                     loading={uploading}
                                     loadingText="Uploading"
                                     disabled={file === null}
                                 >
-                                    <Upload className="size-4" />
-                                    Upload
+                                    <Upload className="size-4" /> Upload
                                 </Button>
-                            </div>
+                            </DialogFooter>
                         </form>
-                    </CardContent>
-                </Card>
+                    </DialogContent>
+                </Dialog>
 
                 <Card>
                     <CardContent className="p-0">
@@ -478,72 +583,63 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                             </TableCell>
                                         )}
                                         <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    asChild
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    aria-label="Download"
-                                                >
+                                            <TableRowActions label={row.original_name}>
+                                                <DropdownMenuItem asChild>
                                                     <a
-                                                        href={`/uploads/${module.slug}/${String(row.id)}/download`}
+                                                        href={`${module.upload_base_url}/${String(row.id)}/download`}
                                                     >
-                                                        <Download className="size-4" />
+                                                        <Download className="size-4" /> Download
                                                     </a>
-                                                </Button>
+                                                </DropdownMenuItem>
                                                 {module.has_status && canReview && (
                                                     <>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            aria-label="Approve"
-                                                            loading={isPending(
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            disabled={isPending(
                                                                 `status:${String(row.id)}`,
                                                             )}
-                                                            loadingText=""
-                                                            onClick={() => {
-                                                                setStatus(row.id, 'Approved');
+                                                            onSelect={() => {
+                                                                setStatusTarget({
+                                                                    row,
+                                                                    status: 'Approved',
+                                                                });
                                                             }}
                                                         >
-                                                            <Check className="size-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            aria-label="Return"
-                                                            loading={isPending(
+                                                            <Check className="size-4" /> Approve
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            disabled={isPending(
                                                                 `status:${String(row.id)}`,
                                                             )}
-                                                            loadingText=""
-                                                            onClick={() => {
-                                                                setStatus(row.id, 'Returned');
+                                                            onSelect={() => {
+                                                                setStatusTarget({
+                                                                    row,
+                                                                    status: 'Returned',
+                                                                });
                                                             }}
                                                         >
-                                                            <RotateCcw className="size-4" />
-                                                        </Button>
+                                                            <RotateCcw className="size-4" /> Return
+                                                        </DropdownMenuItem>
                                                     </>
                                                 )}
                                                 {user !== null &&
                                                     (user.role === 'admin' ||
                                                         user.role === 'focal' ||
                                                         row.uploader_id === user.id) && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            aria-label="Delete"
-                                                            loading={isPending(
-                                                                `delete:${String(row.id)}`,
-                                                            )}
-                                                            loadingText=""
-                                                            className="text-destructive hover:text-destructive"
-                                                            onClick={() => {
-                                                                deleteRow(row.id);
-                                                            }}
-                                                        >
-                                                            <Trash2 className="size-4" />
-                                                        </Button>
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                variant="destructive"
+                                                                disabled={isPending('delete')}
+                                                                onSelect={() => {
+                                                                    setDeleteRowTarget(row);
+                                                                }}
+                                                            >
+                                                                <Trash2 className="size-4" /> Delete
+                                                            </DropdownMenuItem>
+                                                        </>
                                                     )}
-                                            </div>
+                                            </TableRowActions>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -562,6 +658,63 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                     </CardContent>
                 </Card>
             </div>
+
+            <PgsConfirmationDialog
+                open={statusTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setStatusTarget(null);
+                }}
+                title={
+                    statusTarget?.status === 'Approved'
+                        ? `Approve ${module.singular}`
+                        : `Return ${module.singular}`
+                }
+                description={
+                    statusTarget?.status === 'Approved'
+                        ? `This will mark the ${module.singular} as approved.`
+                        : `This will return the ${module.singular} for further work.`
+                }
+                confirmationTitle={
+                    statusTarget?.status === 'Approved' ? 'Confirm approval' : 'Confirm return'
+                }
+                confirmationDescription={`${statusTarget?.row.original_name ?? 'This file'} will be marked ${statusTarget?.status.toLowerCase() ?? 'updated'}.`}
+                onConfirm={confirmStatus}
+                loading={
+                    statusTarget !== null && isPending(`status:${String(statusTarget.row.id)}`)
+                }
+                loadingText={statusTarget?.status === 'Approved' ? 'Approving' : 'Returning'}
+                confirmText={statusTarget?.status === 'Approved' ? 'Approve' : 'Return'}
+                confirmVariant={statusTarget?.status === 'Approved' ? 'default' : 'destructive'}
+                kind={statusTarget?.status === 'Approved' ? 'approve' : 'reject'}
+            />
+
+            <PgsConfirmationDialog
+                open={deleteRowTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteRowTarget(null);
+                }}
+                title={`Delete ${module.singular}`}
+                description={`This action permanently removes the ${module.singular}.`}
+                confirmationTitle={`Confirm ${module.singular} deletion`}
+                confirmationDescription={`${deleteRowTarget?.original_name ?? 'This file'} will be removed.`}
+                onConfirm={confirmDeleteRow}
+                loading={isPending('delete')}
+                loadingText="Deleting"
+            />
+
+            <PgsConfirmationDialog
+                open={deleteTemplateTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTemplateTarget(null);
+                }}
+                title="Delete template"
+                description="This action permanently removes the managed template."
+                confirmationTitle="Confirm template deletion"
+                confirmationDescription={`"${deleteTemplateTarget?.label ?? 'This template'}" will be removed.`}
+                onConfirm={confirmDeleteTemplate}
+                loading={isPending('template-delete')}
+                loadingText="Deleting"
+            />
         </AuthenticatedLayout>
     );
 }

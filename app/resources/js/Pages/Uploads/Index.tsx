@@ -41,7 +41,7 @@ export default function UploadsIndex({ modules }: UploadsIndexPageProps) {
                             </CardHeader>
                             <CardContent>
                                 <Button asChild size="sm">
-                                    <Link href={`/uploads/${slug}`}>Open</Link>
+                                    <Link href={`/${slug}/upload`}>Open</Link>
                                 </Button>
                             </CardContent>
                         </Card>

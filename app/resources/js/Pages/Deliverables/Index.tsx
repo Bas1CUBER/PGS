@@ -1,11 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Download, Plus, Search } from 'lucide-react';
+import { Download, Pencil, Plus, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import {
     Table,
     TableBody,
@@ -17,6 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { relativeInternalUrl } from '@/lib/relative-url';
+import { TableRowActions } from '@/components/table-row-actions';
 
 interface DeliverableRow {
     id: number;
@@ -157,29 +159,33 @@ export default function DeliverablesIndex({
                                                 '-'}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1">
+                                            <TableRowActions
+                                                label={
+                                                    deliverable.title ??
+                                                    `Deliverable #${String(deliverable.id)}`
+                                                }
+                                            >
                                                 {deliverable.mov_file !== null && (
-                                                    <Button
-                                                        asChild
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        aria-label="Download MOV"
-                                                    >
-                                                        <a
-                                                            href={`/deliverables/${String(deliverable.id)}/download`}
-                                                        >
-                                                            <Download className="size-4" />
-                                                        </a>
-                                                    </Button>
+                                                    <>
+                                                        <DropdownMenuItem asChild>
+                                                            <a
+                                                                href={`/deliverables/${String(deliverable.id)}/download`}
+                                                            >
+                                                                <Download className="size-4" />{' '}
+                                                                Download
+                                                            </a>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                    </>
                                                 )}
-                                                <Button asChild variant="ghost" size="sm">
+                                                <DropdownMenuItem asChild>
                                                     <Link
                                                         href={`/deliverables/${String(deliverable.id)}/edit`}
                                                     >
-                                                        Edit
+                                                        <Pencil className="size-4" /> Edit
                                                     </Link>
-                                                </Button>
-                                            </div>
+                                                </DropdownMenuItem>
+                                            </TableRowActions>
                                         </TableCell>
                                     </TableRow>
                                 ))}

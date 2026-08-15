@@ -72,12 +72,11 @@ export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
             gate: 'performance_assessment',
             items: [
                 { title: 'Operations Review', href: '/operations-review' },
-                { title: 'Strategy Review', href: '/uploads/strategy-review' },
-                { title: 'Strategy Review Form', href: '/strategy-review' },
+                { title: 'Strategy Review', href: '/strategy-review' },
                 { title: 'Annex B — Strategy Map', href: '/annex/annex-b' },
                 { title: 'Annex D — Performance Targets', href: '/annex/annex-d' },
                 { title: 'Annex E — Quarterly Targets', href: '/annex/annex-e' },
-                { title: 'Strategy Refresh', href: '/uploads/strategy-refresh' },
+                { title: 'Strategy Refresh', href: '/strategy-refresh/upload' },
             ],
         },
         {
@@ -85,8 +84,8 @@ export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
             gate: 'cascading',
             items: [
                 { title: 'Communication Plan', href: '/communication-plan' },
-                { title: 'Cascading Activities', href: '/uploads/cascading-activities' },
-                { title: 'Resources', href: '/uploads/resources' },
+                { title: 'Cascading Activities', href: '/cascading-activities/upload' },
+                { title: 'Resources', href: '/resources/upload' },
                 { title: 'Gallery', href: '/gallery' },
             ],
         },
@@ -94,8 +93,8 @@ export function navGroupsFor(user: User, pageAccess: PageAccess): NavGroup[] {
             title: 'Governance',
             gate: 'governance',
             items: [
-                { title: 'Governance Culture', href: '/uploads/governance-culture' },
-                { title: 'Governance Sharing', href: '/uploads/governance-sharing' },
+                { title: 'Governance Culture', href: '/governance-culture/upload' },
+                { title: 'Governance Sharing', href: '/governance-sharing/upload' },
             ],
         },
         {

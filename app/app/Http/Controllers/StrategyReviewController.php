@@ -57,6 +57,7 @@ final class StrategyReviewController extends Controller
             'userId' => $user->id,
             'canEditAny' => $user->isAdmin(),
             'fields' => self::FIELDS,
+            'uploadUrl' => '/strategy-review/upload',
         ]);
     }
 

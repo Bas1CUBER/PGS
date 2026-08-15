@@ -15,6 +15,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -44,8 +45,13 @@ final class UploadModuleController extends Controller
                 ->filter(fn (array $module, string $slug): bool => $this->canAccessSlug($user, $slug))
                 ->map(fn (array $module, string $slug): array => ['slug' => $slug] + $module)
                 ->values()
-                ->all(),
+            ->all(),
         ]);
+    }
+
+    public function legacyShow(Request $request, string $slug): Response
+    {
+        return $this->show($request, $slug);
     }
 
     public function show(Request $request, string $slug): Response
@@ -116,19 +122,31 @@ final class UploadModuleController extends Controller
                 'preview' => false,
                 'source' => 'managed',
                 'id' => $this->toInt($template->id),
-                'url' => route('uploads.templates.download', ['slug' => $slug, 'template' => $template->id], absolute: false),
+                'url' => $this->uploadRouteUrl($slug, 'templates.download', ['template' => $template->id]),
             ]);
 
         return Inertia::render('Uploads/Show', [
             'module' => $module + [
                 'templates' => $staticTemplates->concat($managedTemplates)->values()->all(),
-                'template_upload_url' => route('uploads.templates.store', ['slug' => $slug], absolute: false),
+                'upload_base_url' => $this->uploadRouteUrl($slug, 'index'),
+                'template_upload_url' => $this->uploadRouteUrl($slug, 'templates.store'),
                 'can_manage_templates' => $user->isAdmin(),
             ],
             'rows' => $rows,
             'filters' => ['status' => $request->string('status')->toString()],
             'stats' => $stats,
         ]);
+    }
+
+    private function uploadRouteUrl(string $slug, string $action, array $parameters = []): string
+    {
+        $routeName = $slug.'.upload.'.$action;
+
+        if (Route::has($routeName)) {
+            return route($routeName, $parameters, absolute: false);
+        }
+
+        return route('uploads.'.$action, ['slug' => $slug] + $parameters, absolute: false);
     }
 
     public function store(Request $request, string $slug): RedirectResponse

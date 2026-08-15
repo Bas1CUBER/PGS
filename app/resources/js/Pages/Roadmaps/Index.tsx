@@ -14,7 +14,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
@@ -166,7 +174,11 @@ function RoadmapBlockPreview({ block }: { block: RoadmapBlock }) {
 export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
     const [newTitle, setNewTitle] = useState('');
     const [itemDrafts, setItemDrafts] = useState<Record<number, string>>({});
+    const [titleDialogOpen, setTitleDialogOpen] = useState(false);
+    const [itemTitleId, setItemTitleId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<RoadmapTitleRow | null>(null);
+    const [deleteItemTarget, setDeleteItemTarget] = useState<RoadmapItem | null>(null);
+    const [deleteBlockTarget, setDeleteBlockTarget] = useState<RoadmapBlock | null>(null);
     const [builderItem, setBuilderItem] = useState<RoadmapItem | null>(null);
     const [blockType, setBlockType] = useState(blockTypes[0] ?? 'paragraph');
     const [blockContent, setBlockContent] = useState('{}');
@@ -188,12 +200,15 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
             { title: newTitle },
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    setNewTitle('');
+                    setTitleDialogOpen(false);
+                },
                 onFinish: () => {
                     finish('add-title');
                 },
             },
         );
-        setNewTitle('');
     }
 
     function addItem(titleId: number): void {
@@ -206,12 +221,15 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
             { sub_label: content },
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    setItemDrafts((prev) => ({ ...prev, [titleId]: '' }));
+                    setItemTitleId(null);
+                },
                 onFinish: () => {
                     finish(action);
                 },
             },
         );
-        setItemDrafts((prev) => ({ ...prev, [titleId]: '' }));
     }
 
     function openBuilder(item: RoadmapItem): void {
@@ -283,12 +301,13 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
         );
     }
 
-    function deleteItem(id: number): void {
-        const action = `delete-item:${String(id)}`;
-        start(action);
-        router.delete(`/roadmaps/items/${String(id)}`, {
+    function confirmDeleteItem(): void {
+        if (deleteItemTarget === null) return;
+        start('delete-item');
+        router.delete(`/roadmaps/items/${String(deleteItemTarget.id)}`, {
             onFinish: () => {
-                finish(action);
+                finish('delete-item');
+                setDeleteItemTarget(null);
             },
         });
     }
@@ -304,12 +323,13 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
         });
     }
 
-    function deleteBlock(id: number): void {
-        const action = `delete-block:${String(id)}`;
-        start(action);
-        router.delete(`/roadmaps/blocks/${String(id)}`, {
+    function confirmDeleteBlock(): void {
+        if (deleteBlockTarget === null) return;
+        start('delete-block');
+        router.delete(`/roadmaps/blocks/${String(deleteBlockTarget.id)}`, {
             onFinish: () => {
-                finish(action);
+                finish('delete-block');
+                setDeleteBlockTarget(null);
             },
         });
     }
@@ -322,30 +342,17 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
 
             <div className="space-y-6">
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between gap-4">
                         <CardTitle>Roadmap sections</CardTitle>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                setTitleDialogOpen(true);
+                            }}
+                        >
+                            <Plus className="size-4" /> Add section
+                        </Button>
                     </CardHeader>
-                    <CardContent>
-                        <form onSubmit={addTitle} className="flex max-w-md items-center gap-2">
-                            <Input
-                                value={newTitle}
-                                onChange={(e) => {
-                                    setNewTitle(e.target.value);
-                                }}
-                                placeholder="New section title…"
-                                aria-label="New roadmap section"
-                            />
-                            <Button
-                                type="submit"
-                                size="sm"
-                                loading={isPending('add-title')}
-                                loadingText="Adding"
-                            >
-                                <Plus className="size-4" />
-                                Add
-                            </Button>
-                        </form>
-                    </CardContent>
                 </Card>
 
                 {statBlocks.length > 0 && (
@@ -376,10 +383,11 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                 )}
 
                 {titles.map((title) => (
-                    <Card key={title.id}>
-                        <CardHeader className="flex flex-row items-center justify-between">
+                    <Card key={title.id} className="pgs-roadmap-section-card">
+                        <CardHeader className="pgs-roadmap-section-header flex flex-row items-center justify-between">
                             <CardTitle>{title.title}</CardTitle>
                             <Button
+                                type="button"
                                 variant="ghost"
                                 size="sm"
                                 className="text-destructive hover:text-destructive"
@@ -391,12 +399,12 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                 Delete
                             </Button>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="pgs-roadmap-section-content space-y-3">
                             <ul className="space-y-2">
                                 {title.items.map((item) => (
                                     <li
                                         key={item.id}
-                                        className="flex items-center gap-2 rounded-md border p-3"
+                                        className="pgs-roadmap-item flex items-center gap-2"
                                     >
                                         <div className="min-w-0 flex-1">
                                             <p className="text-sm font-medium">
@@ -409,6 +417,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                         </div>
                                         <div className="flex shrink-0 gap-1">
                                             <Button
+                                                type="button"
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => {
@@ -418,6 +427,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                                 Blocks
                                             </Button>
                                             <Button
+                                                type="button"
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label="Move up"
@@ -430,6 +440,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                                 <ArrowUp className="size-4" />
                                             </Button>
                                             <Button
+                                                type="button"
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label="Move down"
@@ -444,16 +455,15 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                                 <ArrowDown className="size-4" />
                                             </Button>
                                             <Button
+                                                type="button"
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label="Delete item"
-                                                loading={isPending(
-                                                    `delete-item:${String(item.id)}`,
-                                                )}
+                                                loading={isPending('delete-item')}
                                                 loadingText=""
                                                 className="text-destructive hover:text-destructive"
                                                 onClick={() => {
-                                                    deleteItem(item.id);
+                                                    setDeleteItemTarget(item);
                                                 }}
                                             >
                                                 <Trash2 className="size-4" />
@@ -468,28 +478,15 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                 )}
                             </ul>
 
-                            <div className="flex max-w-md items-center gap-2">
-                                <Input
-                                    value={itemDrafts[title.id] ?? ''}
-                                    onChange={(e) => {
-                                        setItemDrafts((prev) => ({
-                                            ...prev,
-                                            [title.id]: e.target.value,
-                                        }));
-                                    }}
-                                    placeholder="New item under this section…"
-                                    aria-label={`New item for ${title.title}`}
-                                />
+                            <div className="flex justify-end">
                                 <Button
-                                    size="sm"
-                                    loading={isPending(`add-item:${String(title.id)}`)}
-                                    loadingText="Adding"
+                                    type="button"
+                                    variant="outline"
                                     onClick={() => {
-                                        addItem(title.id);
+                                        setItemTitleId(title.id);
                                     }}
                                 >
-                                    <Plus className="size-4" />
-                                    Add item
+                                    <Plus className="size-4" /> Add item
                                 </Button>
                             </div>
                         </CardContent>
@@ -502,7 +499,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                 onOpenChange={(open) => {
                     if (!open) setDeleteTarget(null);
                 }}
-                title="Delete + section"
+                title="Delete section"
                 description="This action permanently removes the section and its items."
                 confirmationTitle="Confirm section deletion"
                 confirmationDescription={`"${deleteTarget?.title ?? 'This section'}" and all of its items will be removed.`}
@@ -511,18 +508,162 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                 loadingText="Deleting"
             />
 
+            <PgsConfirmationDialog
+                open={deleteItemTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteItemTarget(null);
+                }}
+                title="Delete roadmap item"
+                description="This action permanently removes the roadmap item and its blocks."
+                confirmationTitle="Confirm roadmap item deletion"
+                confirmationDescription={`"${deleteItemTarget?.sub_label ?? 'This item'}" and its blocks will be removed.`}
+                onConfirm={confirmDeleteItem}
+                loading={isPending('delete-item')}
+                loadingText="Deleting"
+            />
+
+            <PgsConfirmationDialog
+                open={deleteBlockTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteBlockTarget(null);
+                }}
+                title="Delete roadmap block"
+                description="This action permanently removes the roadmap content block."
+                confirmationTitle="Confirm block deletion"
+                confirmationDescription={`${deleteBlockTarget?.block_type ?? 'This block'} will be removed from the roadmap item.`}
+                onConfirm={confirmDeleteBlock}
+                loading={isPending('delete-block')}
+                loadingText="Deleting"
+            />
+
+            <Dialog
+                open={titleDialogOpen}
+                onOpenChange={(open) => {
+                    setTitleDialogOpen(open);
+                    if (!open) setNewTitle('');
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog">
+                    <DialogHeader>
+                        <DialogTitle>Add roadmap section</DialogTitle>
+                        <DialogDescription>Create a new section for the roadmap.</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={addTitle} className="pgs-modal-form pgs-modal-form-scroll">
+                        <DialogBody>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="new-roadmap-section">Section title</label>
+                                <Input
+                                    id="new-roadmap-section"
+                                    value={newTitle}
+                                    onChange={(e) => {
+                                        setNewTitle(e.target.value);
+                                    }}
+                                    placeholder="e.g. Collaborative Health Care"
+                                    required
+                                />
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setTitleDialogOpen(false);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                loading={isPending('add-title')}
+                                loadingText="Adding"
+                            >
+                                <Plus className="size-4" /> Add section
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={itemTitleId !== null}
+                onOpenChange={(open) => {
+                    if (!open) setItemTitleId(null);
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog">
+                    <DialogHeader>
+                        <DialogTitle>Add roadmap item</DialogTitle>
+                        <DialogDescription>
+                            Add an item under “
+                            {titles.find((title) => title.id === itemTitleId)?.title ?? ''}”.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            if (itemTitleId !== null) addItem(itemTitleId);
+                        }}
+                        className="pgs-modal-form pgs-modal-form-scroll"
+                    >
+                        <DialogBody>
+                            <div className="pgs-modal-field">
+                                <label htmlFor="new-roadmap-item">Item title</label>
+                                <Input
+                                    id="new-roadmap-item"
+                                    value={
+                                        itemTitleId === null ? '' : (itemDrafts[itemTitleId] ?? '')
+                                    }
+                                    onChange={(e) => {
+                                        if (itemTitleId !== null) {
+                                            setItemDrafts((prev) => ({
+                                                ...prev,
+                                                [itemTitleId]: e.target.value,
+                                            }));
+                                        }
+                                    }}
+                                    placeholder="e.g. Quality of Life Index"
+                                    required
+                                />
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setItemTitleId(null);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                loading={
+                                    itemTitleId !== null &&
+                                    isPending(`add-item:${String(itemTitleId)}`)
+                                }
+                                loadingText="Adding"
+                            >
+                                <Plus className="size-4" /> Add item
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
             <Dialog
                 open={builderItem !== null}
                 onOpenChange={(open) => {
                     if (!open) setBuilderItem(null);
                 }}
             >
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="pgs-modal-form-dialog pgs-modal-wide">
                     <DialogHeader>
                         <DialogTitle>Page builder — {builderItem?.sub_label ?? ''}</DialogTitle>
                     </DialogHeader>
 
-                    <div className="space-y-4">
+                    <DialogBody className="space-y-4">
                         {(builderItem?.blocks ?? []).some(
                             (block) => block.block_type === 'dashboard_stat',
                         ) && (
@@ -548,16 +689,17 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                             {(builderItem?.blocks ?? []).map((block) => (
                                 <li
                                     key={block.id}
-                                    className="flex items-center justify-between gap-2 rounded-md border p-3"
+                                    className="pgs-roadmap-block flex items-center justify-between gap-2"
                                 >
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium">{block.block_type}</p>
-                                        <div className="mt-2 max-w-xl rounded-lg border p-3">
+                                        <div className="pgs-roadmap-block-preview mt-2 max-w-xl">
                                             <RoadmapBlockPreview block={block} />
                                         </div>
                                     </div>
                                     <div className="flex shrink-0 gap-1">
                                         <Button
+                                            type="button"
                                             variant="ghost"
                                             size="sm"
                                             loading={isPending(`update-block:${String(block.id)}`)}
@@ -569,13 +711,14 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                             <Save className="size-4" />
                                         </Button>
                                         <Button
+                                            type="button"
                                             variant="ghost"
                                             size="sm"
-                                            loading={isPending(`delete-block:${String(block.id)}`)}
+                                            loading={isPending('delete-block')}
                                             loadingText=""
                                             className="text-destructive hover:text-destructive"
                                             onClick={() => {
-                                                deleteBlock(block.id);
+                                                setDeleteBlockTarget(block);
                                             }}
                                         >
                                             <Trash2 className="size-4" />
@@ -590,7 +733,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                             )}
                         </ul>
 
-                        <div className="space-y-3 rounded-md border p-3">
+                        <div className="pgs-roadmap-block-form space-y-3">
                             <p className="text-sm font-medium">Add block</p>
                             <div className="flex flex-col gap-3 sm:flex-row">
                                 <select
@@ -627,7 +770,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                 Add block
                             </Button>
                         </div>
-                    </div>
+                    </DialogBody>
                 </DialogContent>
             </Dialog>
         </AuthenticatedLayout>
