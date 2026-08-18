@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\CacheInvalidationService;
 use App\Services\NotificationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
@@ -24,23 +25,36 @@ final class NotificationController extends Controller
     {
         $user = $this->userOrFail($request);
 
-        $notifications = Notification::query()
-            ->where('user_id', $user->id)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
+        $notifications = CacheInvalidationService::remember('notification', "index:{$user->id}", function () use ($user): array {
+            return Notification::query()
+                ->where('user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->paginate(20)
+                ->withQueryString()
+                ->toArray();
+        }, 60);
+
+        $unreadCount = CacheInvalidationService::remember('notification', "unread:{$user->id}", function () use ($user): int {
+            return $this->notifications->unreadCount($user->id);
+        }, 30);
 
         return Inertia::render('Notifications/Index', [
             'notifications' => $notifications,
-            'unreadCount' => $this->notifications->unreadCount($user->id),
+            'unreadCount' => $unreadCount,
         ]);
     }
 
     public function unreadCount(Request $request): JsonResponse
     {
+        $userId = $this->userOrFail($request)->id;
+
+        $count = CacheInvalidationService::remember('notification', "unread:{$userId}", function () use ($userId): int {
+            return $this->notifications->unreadCount($userId);
+        }, 30);
+
         return response()->json([
-            'unread' => $this->notifications->unreadCount($this->userOrFail($request)->id),
+            'unread' => $count,
         ]);
     }
 
@@ -48,34 +62,43 @@ final class NotificationController extends Controller
     {
         $user = $this->userOrFail($request);
 
-        $items = Notification::query()
-            ->where('user_id', $user->id)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->limit(10)
-            ->get()
-            ->map(static fn (Notification $notification): array => [
-                'id' => $notification->id,
-                'type' => $notification->type->value,
-                'title' => $notification->title,
-                'message' => $notification->message,
-                'is_read' => $notification->is_read,
-                'created_at' => $notification->created_at->toIso8601String(),
-            ]);
+        $items = CacheInvalidationService::remember('notification', "feed:{$user->id}", function () use ($user): array {
+            return Notification::query()
+                ->where('user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit(10)
+                ->get()
+                ->map(static fn (Notification $notification): array => [
+                    'id' => $notification->id,
+                    'type' => $notification->type->value,
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'is_read' => $notification->is_read,
+                    'created_at' => $notification->created_at->toIso8601String(),
+                ])
+                ->all();
+        }, 60);
 
         return response()->json(['data' => $items]);
     }
 
     public function markAsRead(Request $request, int $notification): RedirectResponse
     {
-        $this->notifications->markAsRead($notification, $this->userOrFail($request)->id);
+        $userId = $this->userOrFail($request)->id;
+        $this->notifications->markAsRead($notification, $userId);
+
+        CacheInvalidationService::onNotificationChange($userId);
 
         return back();
     }
 
     public function markAllAsRead(Request $request): RedirectResponse
     {
-        $this->notifications->markAllAsRead($this->userOrFail($request)->id);
+        $userId = $this->userOrFail($request)->id;
+        $this->notifications->markAllAsRead($userId);
+
+        CacheInvalidationService::onNotificationChange($userId);
 
         return back();
     }

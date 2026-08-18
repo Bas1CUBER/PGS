@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Modules\SectorDetailRegistry;
 use App\Modules\SectorModuleRegistry;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,34 +46,44 @@ final class SectorDetailController extends Controller
         $columns = array_merge($module['columns'], $module['year_columns']);
 
         $lockColumn = $this->lockColumn($module['table']);
-        $rows = DB::table($module['table'])
-            ->orderBy('id')
-            ->paginate(50)
-            ->withQueryString();
-        $rows->setCollection($rows->getCollection()->map(function (\stdClass $row) use ($columns, $lockColumn): array {
-            $rowArray = (array) $row;
-            $data = ['id' => is_numeric($rowArray['id'] ?? null) ? (int) $rowArray['id'] : 0];
-            foreach ($columns as $column) {
-                $data[$column] = $rowArray[$column] ?? null;
-            }
-            if ($lockColumn !== null) {
-                $data['locked'] = (bool) ($rowArray[$lockColumn] ?? false);
-            }
 
-            return $data;
-        }));
+        [$rows, $stats] = CacheInvalidationService::remember(
+            'sector_detail',
+            "{$pillar}:{$slug}",
+            function () use ($module, $columns, $lockColumn, $slug): array {
+                $rows = DB::table($module['table'])
+                    ->orderBy('id')
+                    ->paginate(50)
+                    ->withQueryString();
+                $rows->setCollection($rows->getCollection()->map(function (\stdClass $row) use ($columns, $lockColumn): array {
+                    $rowArray = (array) $row;
+                    $data = ['id' => is_numeric($rowArray['id'] ?? null) ? (int) $rowArray['id'] : 0];
+                    foreach ($columns as $column) {
+                        $data[$column] = $rowArray[$column] ?? null;
+                    }
+                    if ($lockColumn !== null) {
+                        $data['locked'] = (bool) ($rowArray[$lockColumn] ?? false);
+                    }
 
-        $stats = null;
-        if ($slug === 'research-outputs') {
-            $stats = [
-                'ongoing' => DB::table($module['table'])
-                    ->whereIn('phase_status', ['Planning', 'Data Gathering', 'Analyzing', 'Writing'])
-                    ->count(),
-                'completed' => DB::table($module['table'])->where('outcome_status', 'Submitted')->count(),
-                'presented' => DB::table($module['table'])->where('outcome_status', 'Presented')->count(),
-                'published' => DB::table($module['table'])->where('outcome_status', 'Published')->count(),
-            ];
-        }
+                    return $data;
+                }));
+
+                $stats = null;
+                if ($slug === 'research-outputs') {
+                    $stats = [
+                        'ongoing' => DB::table($module['table'])
+                            ->whereIn('phase_status', ['Planning', 'Data Gathering', 'Analyzing', 'Writing'])
+                            ->count(),
+                        'completed' => DB::table($module['table'])->where('outcome_status', 'Submitted')->count(),
+                        'presented' => DB::table($module['table'])->where('outcome_status', 'Presented')->count(),
+                        'published' => DB::table($module['table'])->where('outcome_status', 'Published')->count(),
+                    ];
+                }
+
+                return [$rows, $stats];
+            },
+            60,
+        );
 
         return Inertia::render('SectorDetails/Show', [
             'module' => $module + [
@@ -133,6 +144,8 @@ final class SectorDetailController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onSectorChange();
+
         return back()->with('success', 'Row updated.');
     }
 
@@ -152,6 +165,8 @@ final class SectorDetailController extends Controller
         $id = DB::table($module['table'])->insertGetId($data);
         $this->audit->record($this->userId($request), "sector_detail.{$pillar}.{$slug}.row_created", $module['table'], (string) $id, request: $request);
 
+        CacheInvalidationService::onSectorChange();
+
         return back()->with('success', 'Roadmap row added.');
     }
 
@@ -162,6 +177,8 @@ final class SectorDetailController extends Controller
         abort_unless($this->canManage($request), 403);
         abort_unless(DB::table($module['table'])->where('id', $id)->delete() > 0, 404);
         $this->audit->record($this->userId($request), "sector_detail.{$pillar}.{$slug}.row_deleted", $module['table'], (string) $id, request: $request);
+
+        CacheInvalidationService::onSectorChange();
 
         return back()->with('success', 'Roadmap row deleted.');
     }
@@ -178,6 +195,8 @@ final class SectorDetailController extends Controller
         $rowArray = (array) $row;
         DB::table($module['table'])->where('id', $id)->update([$lockColumn => ! (bool) ($rowArray[$lockColumn] ?? false)]);
         $this->audit->record($this->userId($request), "sector_detail.{$pillar}.{$slug}.row_lock_toggled", $module['table'], (string) $id, request: $request);
+
+        CacheInvalidationService::onSectorChange();
 
         return back()->with('success', 'Roadmap row lock updated.');
     }

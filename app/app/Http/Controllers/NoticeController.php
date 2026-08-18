@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Notice;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,15 +24,19 @@ final class NoticeController extends Controller
 
     public function index(): Response
     {
-        $notices = Notice::query()
-            ->orderByDesc('created_at')
-            ->paginate(20)
-            ->withQueryString();
+        $paginated = CacheInvalidationService::remember('notice', 'index', function (): array {
+            $notices = Notice::query()
+                ->orderByDesc('created_at')
+                ->paginate(20)
+                ->withQueryString();
 
-        $notices->getCollection()->transform(fn (Notice $notice): array => $this->present($notice));
+            $notices->getCollection()->transform(fn (Notice $notice): array => $this->present($notice));
+
+            return $notices->toArray();
+        }, 60);
 
         return Inertia::render('Notices/Index', [
-            'notices' => $notices,
+            'notices' => $paginated,
         ]);
     }
 
@@ -60,6 +65,8 @@ final class NoticeController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onNoticeChange();
+
         return back()->with('success', 'Notice published.');
     }
 
@@ -87,6 +94,8 @@ final class NoticeController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onNoticeChange();
+
         return back()->with('success', 'Notice updated.');
     }
 
@@ -103,6 +112,8 @@ final class NoticeController extends Controller
             before: ['title' => $notice->title],
             request: $request,
         );
+
+        CacheInvalidationService::onNoticeChange();
 
         return back()->with('success', 'Notice deleted.');
     }

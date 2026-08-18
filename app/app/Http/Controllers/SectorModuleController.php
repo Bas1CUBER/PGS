@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Modules\SectorDetailRegistry;
 use App\Modules\SectorModuleRegistry;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use App\Services\NotificationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
@@ -45,43 +46,54 @@ final class SectorModuleController extends Controller
             abort(404);
         }
 
-        $rows = DB::table($module['table'])
-            ->orderByDesc('year')
-            ->orderBy('id')
-            ->paginate(25)
-            ->withQueryString();
+        $data = CacheInvalidationService::remember('sector', "sector:{$slug}", function () use ($module, $slug, $request) {
+            $rows = DB::table($module['table'])
+                ->orderByDesc('year')
+                ->orderBy('id')
+                ->paginate(25)
+                ->withQueryString();
 
-        $progress = DB::table($module['progress_table'])
-            ->orderByDesc('year')
-            ->orderBy('month')
-            ->limit(50)
-            ->get();
-
-        $schedule = $module['schedule_table'] !== null
-            ? DB::table($module['schedule_table'])
+            $progress = DB::table($module['progress_table'])
                 ->orderByDesc('year')
                 ->orderBy('month')
                 ->limit(50)
-                ->get()
-            : null;
+                ->get();
 
-        $details = SectorDetailRegistry::forPillar($module['slug']);
-        $progressSummary = DB::table($module['progress_table'])
-            ->select('status', DB::raw('COUNT(*) as total'))
-            ->groupBy('status')
-            ->pluck('total', 'status');
-        $pendingChanges = (($request->user()?->isAdmin() ?? false) || ($request->user()?->isFocal() ?? false))
-            ? DB::table('progress_pending_changes')->where('module', $slug)->where('decision', 'Pending')->orderByDesc('submitted_at')->limit(25)->get()
-            : collect();
+            $schedule = $module['schedule_table'] !== null
+                ? DB::table($module['schedule_table'])
+                    ->orderByDesc('year')
+                    ->orderBy('month')
+                    ->limit(50)
+                    ->get()
+                : null;
+
+            $details = SectorDetailRegistry::forPillar($module['slug']);
+            $progressSummary = DB::table($module['progress_table'])
+                ->select('status', DB::raw('COUNT(*) as total'))
+                ->groupBy('status')
+                ->pluck('total', 'status');
+            $pendingChanges = (($request->user()?->isAdmin() ?? false) || ($request->user()?->isFocal() ?? false))
+                ? DB::table('progress_pending_changes')->where('module', $slug)->where('decision', 'Pending')->orderByDesc('submitted_at')->limit(25)->get()
+                : collect();
+
+            return [
+                'rows' => $rows,
+                'progress' => $progress,
+                'schedule' => $schedule,
+                'details' => $details,
+                'progressSummary' => $progressSummary,
+                'pendingChanges' => $pendingChanges,
+            ];
+        }, 60);
 
         return Inertia::render('Sectors/Show', [
             'module' => $module,
-            'rows' => $rows,
-            'progress' => $progress,
-            'schedule' => $schedule,
-            'details' => $details,
-            'progressSummary' => $progressSummary,
-            'pendingChanges' => $pendingChanges,
+            'rows' => $data['rows'],
+            'progress' => $data['progress'],
+            'schedule' => $data['schedule'],
+            'details' => $data['details'],
+            'progressSummary' => $data['progressSummary'],
+            'pendingChanges' => $data['pendingChanges'],
             'canManage' => ($request->user()?->isAdmin() ?? false) || ($request->user()?->isFocal() ?? false),
         ]);
     }
@@ -108,6 +120,7 @@ final class SectorModuleController extends Controller
 
         if ($user->isAdmin() || $user->isFocal()) {
             DB::table($module['table'])->insert($data);
+            CacheInvalidationService::onSectorChange();
 
             return back()->with('success', 'Indicator added.');
         }
@@ -121,6 +134,7 @@ final class SectorModuleController extends Controller
         ]);
 
         $this->notifyReviewers($user, 'Indicator change submitted', "{$user->email} submitted a new {$module['label']} indicator for approval.");
+        CacheInvalidationService::onSectorChange();
 
         return back()->with('success', 'Indicator submitted for approval.');
     }
@@ -164,6 +178,8 @@ final class SectorModuleController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onSectorChange();
+
         return back()->with('success', 'Indicator updated.');
     }
 
@@ -202,6 +218,8 @@ final class SectorModuleController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onSectorChange();
+
         return back()->with('success', 'Progress updated.');
     }
 
@@ -213,6 +231,8 @@ final class SectorModuleController extends Controller
         }
         abort_unless(($user = $this->userOrFail($request))->isAdmin() || $user->isFocal(), 403);
         abort_unless(DB::table($module['table'])->where('id', $id)->delete() > 0, 404);
+
+        CacheInvalidationService::onSectorChange();
 
         return back()->with('success', 'Indicator deleted.');
     }
@@ -258,6 +278,8 @@ final class SectorModuleController extends Controller
                 'progress_pending_changes',
             );
         }
+
+        CacheInvalidationService::onSectorChange();
 
         return back()->with('success', 'Pending roadmap change reviewed.');
     }

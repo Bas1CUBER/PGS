@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Enums\NotificationType;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use App\Services\NotificationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
@@ -25,13 +26,19 @@ final class CommPlanController extends Controller
 
     public function index(Request $request): Response
     {
-        $rows = DB::table('communication_plan_roadmap')
-            ->orderBy('id')
-            ->get();
         $user = $request->user();
 
+        $rows = CacheInvalidationService::remember('comm_plan', 'index', function (): array {
+            return DB::table('communication_plan_roadmap')
+                ->orderBy('id')
+                ->get()
+                ->map(fn (object $row): array => (array) $row)
+                ->values()
+                ->all();
+        }, 60);
+
         return Inertia::render('CommPlan/Index', [
-            'rows' => $rows->map(fn (object $row): array => (array) $row)->values()->all(),
+            'rows' => $rows,
             'userId' => $user?->id,
             'canManage' => $user !== null && ($user->isAdmin() || $user->isFocal()),
             'uploadUrl' => '/communication-plan/upload',
@@ -81,6 +88,8 @@ final class CommPlanController extends Controller
             'communication_plan_roadmap',
         );
 
+        CacheInvalidationService::onCommPlanChange();
+
         return back()->with('success', 'Communication plan row added.');
     }
 
@@ -125,6 +134,8 @@ final class CommPlanController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onCommPlanChange();
+
         return back()->with('success', 'Communication plan row updated.');
     }
 
@@ -143,6 +154,8 @@ final class CommPlanController extends Controller
             (string) $row,
             request: $request,
         );
+
+        CacheInvalidationService::onCommPlanChange();
 
         return back()->with('success', 'Communication plan row deleted.');
     }

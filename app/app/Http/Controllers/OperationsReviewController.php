@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Enums\NotificationType;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use App\Services\NotificationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
@@ -33,19 +34,23 @@ final class OperationsReviewController extends Controller
     public function index(Request $request): Response
     {
         $user = $this->userOrFail($request);
-        $reviews = DB::table('operations_review as o')
-            ->join('users as u', 'u.id', '=', 'o.employee_id')
-            ->when(! $user->isAdmin() && ! $user->isFocal(), fn ($query) => $query->where('o.employee_id', $user->id))
-            ->orderByDesc('o.created_at')
-            ->get(['o.id', 'o.employee_id', 'o.form_data', 'o.pdf_file', 'o.created_at', 'u.email as employee_email'])
-            ->map(fn (\stdClass $review): array => [
-                'id' => $this->idValue($review->id),
-                'employee_id' => $this->idValue($review->employee_id),
-                'employee_email' => is_scalar($review->employee_email) ? (string) $review->employee_email : '',
-                'data' => $this->decodeFormData($review->form_data),
-                'pdf_file' => $review->pdf_file,
-                'created_at' => $review->created_at,
-            ])->values()->all();
+        $scope = $user->isAdmin() || $user->isFocal() ? 'all' : "user:{$user->id}";
+
+        $reviews = CacheInvalidationService::remember('ops_review', "index:{$scope}", function () use ($user): array {
+            return DB::table('operations_review as o')
+                ->join('users as u', 'u.id', '=', 'o.employee_id')
+                ->when(! $user->isAdmin() && ! $user->isFocal(), fn ($query) => $query->where('o.employee_id', $user->id))
+                ->orderByDesc('o.created_at')
+                ->get(['o.id', 'o.employee_id', 'o.form_data', 'o.pdf_file', 'o.created_at', 'u.email as employee_email'])
+                ->map(fn (\stdClass $review): array => [
+                    'id' => $this->idValue($review->id),
+                    'employee_id' => $this->idValue($review->employee_id),
+                    'employee_email' => is_scalar($review->employee_email) ? (string) $review->employee_email : '',
+                    'data' => $this->decodeFormData($review->form_data),
+                    'pdf_file' => $review->pdf_file,
+                    'created_at' => $review->created_at,
+                ])->values()->all();
+        }, 60);
 
         return Inertia::render('OperationsReview/Index', [
             'reviews' => $reviews,
@@ -77,6 +82,8 @@ final class OperationsReviewController extends Controller
             'operations_review',
         );
 
+        CacheInvalidationService::onOpsReviewChange();
+
         return back()->with('success', 'Operations Review saved.');
     }
 
@@ -93,6 +100,8 @@ final class OperationsReviewController extends Controller
         ]);
         $this->audit->record($user->id, 'operations_review.form_updated', 'operations_review', (string) $review, request: $request);
 
+        CacheInvalidationService::onOpsReviewChange();
+
         return back()->with('success', 'Operations Review updated.');
     }
 
@@ -104,6 +113,8 @@ final class OperationsReviewController extends Controller
         abort_unless($user->isAdmin() || $this->idValue($existing->employee_id) === $user->id, 403);
         DB::table('operations_review')->where('id', $review)->delete();
         $this->audit->record($user->id, 'operations_review.form_deleted', 'operations_review', (string) $review, request: $request);
+
+        CacheInvalidationService::onOpsReviewChange();
 
         return back()->with('success', 'Operations Review deleted.');
     }

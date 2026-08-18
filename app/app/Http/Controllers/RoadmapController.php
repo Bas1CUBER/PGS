@@ -10,8 +10,10 @@ use App\Models\RoadmapItem;
 use App\Models\RoadmapTitle;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use App\Services\DeadlineService;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,10 +30,12 @@ final class RoadmapController extends Controller
 
     public function index(): Response
     {
-        $titles = RoadmapTitle::query()
-            ->with('items.blocks')
-            ->orderBy('sort_order')
-            ->get();
+        $titles = CacheInvalidationService::remember('roadmap', 'tree', function (): Collection {
+            return RoadmapTitle::query()
+                ->with('items.blocks')
+                ->orderBy('sort_order')
+                ->get();
+        }, 60);
 
         return Inertia::render('Roadmaps/Index', [
             'titles' => $titles,
@@ -63,6 +67,8 @@ final class RoadmapController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onRoadmapChange();
+
         return back()->with('success', 'Roadmap section added.');
     }
 
@@ -85,6 +91,8 @@ final class RoadmapController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onRoadmapChange();
+
         return back()->with('success', 'Roadmap section updated.');
     }
 
@@ -103,6 +111,8 @@ final class RoadmapController extends Controller
             before: ['title' => $title->title],
             request: $request,
         );
+
+        CacheInvalidationService::onRoadmapChange();
 
         return back()->with('success', 'Roadmap section deleted.');
     }
@@ -138,6 +148,8 @@ final class RoadmapController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onRoadmapChange();
+
         return back()->with('success', 'Roadmap item added.');
     }
 
@@ -163,6 +175,8 @@ final class RoadmapController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onRoadmapChange();
+
         return back()->with('success', 'Roadmap item updated.');
     }
 
@@ -181,6 +195,8 @@ final class RoadmapController extends Controller
             null,
             request: $request,
         );
+
+        CacheInvalidationService::onRoadmapChange();
 
         return back()->with('success', 'Roadmap item deleted.');
     }
@@ -212,6 +228,8 @@ final class RoadmapController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onRoadmapChange();
+
         return back()->with('success', 'Block added.');
     }
 
@@ -234,6 +252,8 @@ final class RoadmapController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onRoadmapChange();
+
         return back()->with('success', 'Block updated.');
     }
 
@@ -251,6 +271,8 @@ final class RoadmapController extends Controller
             null,
             request: $request,
         );
+
+        CacheInvalidationService::onRoadmapChange();
 
         return back()->with('success', 'Block deleted.');
     }
@@ -292,6 +314,8 @@ final class RoadmapController extends Controller
             $a->update(['sort_order' => $b->sort_order]);
             $b->update(['sort_order' => $orderA]);
         });
+
+        CacheInvalidationService::onRoadmapChange();
 
         return back();
     }

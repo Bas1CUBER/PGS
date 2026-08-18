@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use App\Models\UserPageAccess;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -34,24 +35,30 @@ final class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::query()
-            ->with('pageAccess')
-            ->when($request->string('search')->toString() !== '', fn ($q) => $q->where(
-                fn ($q) => $q
-                    ->where('name', 'like', '%'.$request->string('search')->toString().'%')
-                    ->orWhere('email', 'like', '%'.$request->string('search')->toString().'%')
-                    ->orWhere('office', 'like', '%'.$request->string('search')->toString().'%'),
-            ))
-            ->when(in_array($request->string('role')->toString(), Role::values(), true), fn ($q) => $q->where('role', $request->string('role')->toString()))
-            ->orderBy('id')
-            ->paginate(20)
-            ->withQueryString();
+        $search = $request->string('search')->toString();
+        $role = $request->string('role')->toString();
+
+        $users = CacheInvalidationService::remember('user', "index:{$search}:{$role}", function () use ($search, $role): array {
+            return User::query()
+                ->with('pageAccess')
+                ->when($search !== '', fn ($q) => $q->where(
+                    fn ($q) => $q
+                        ->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('email', 'like', '%'.$search.'%')
+                        ->orWhere('office', 'like', '%'.$search.'%'),
+                ))
+                ->when(in_array($role, Role::values(), true), fn ($q) => $q->where('role', $role))
+                ->orderBy('id')
+                ->paginate(20)
+                ->withQueryString()
+                ->toArray();
+        }, 60);
 
         return Inertia::render('Users/Index', [
             'users' => $users,
             'filters' => [
-                'search' => $request->string('search')->toString(),
-                'role' => $request->string('role')->toString(),
+                'search' => $search,
+                'role' => $role,
             ],
         ]);
     }
@@ -99,6 +106,8 @@ final class UserController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onUserChange();
+
         return redirect()->route('users.index')->with('success', 'User created.');
     }
 
@@ -144,6 +153,8 @@ final class UserController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onUserChange();
+
         return redirect()->route('users.index')->with('success', 'User updated.');
     }
 
@@ -169,6 +180,8 @@ final class UserController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onUserChange();
+
         return redirect()->route('users.edit', $user)->with('success', 'Page access updated.');
     }
 
@@ -186,6 +199,8 @@ final class UserController extends Controller
             after: ['is_active' => $user->is_active],
             request: $request,
         );
+
+        CacheInvalidationService::onUserChange();
 
         return redirect()->route('users.index')->with('success', 'User '.($user->is_active ? 'activated' : 'deactivated').'.');
     }
@@ -207,6 +222,8 @@ final class UserController extends Controller
             before: ['email' => $email],
             request: $request,
         );
+
+        CacheInvalidationService::onUserChange();
 
         return redirect()->route('users.index')->with('success', 'User deleted.');
     }
@@ -277,6 +294,10 @@ final class UserController extends Controller
             after: ['total' => $report['total'], 'created' => $report['created'], 'errors' => count($report['errors'])],
             request: $request,
         );
+
+        if ($report['created'] > 0) {
+            CacheInvalidationService::onUserChange();
+        }
 
         if ($request->wantsJson()) {
             return response()->json($report);

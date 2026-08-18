@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,19 +22,23 @@ final class ImpactScorecardController extends Controller
 
     public function index(): Response
     {
-        $measures = DB::table('impact_scorecard_measures')
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get();
+        [$measures, $years, $values] = CacheInvalidationService::remember('scorecard', 'index', function (): array {
+            $measures = DB::table('impact_scorecard_measures')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
 
-        $years = DB::table('impact_scorecard_years')
-            ->orderBy('sort_order')
-            ->orderBy('year')
-            ->get();
+            $years = DB::table('impact_scorecard_years')
+                ->orderBy('sort_order')
+                ->orderBy('year')
+                ->get();
 
-        $values = collect(DB::table('impact_scorecard_values')->get())
-            ->map(static fn (object $v): array => (array) $v)
-            ->keyBy(fn (array $v): string => $this->toStr($v['measure_id'] ?? null).':'.$this->toStr($v['year_id'] ?? null));
+            $values = collect(DB::table('impact_scorecard_values')->get())
+                ->map(static fn (object $v): array => (array) $v)
+                ->keyBy(fn (array $v): string => $this->toStr($v['measure_id'] ?? null).':'.$this->toStr($v['year_id'] ?? null));
+
+            return [$measures, $years, $values];
+        }, 60);
 
         return Inertia::render('Scorecard/Index', [
             'measures' => $measures,
@@ -69,6 +74,8 @@ final class ImpactScorecardController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onScorecardChange();
+
         return back()->with('success', 'Measure added.');
     }
 
@@ -96,6 +103,8 @@ final class ImpactScorecardController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onScorecardChange();
+
         return back()->with('success', 'Measure updated.');
     }
 
@@ -115,6 +124,8 @@ final class ImpactScorecardController extends Controller
             (string) $measure,
             request: $request,
         );
+
+        CacheInvalidationService::onScorecardChange();
 
         return back()->with('success', 'Measure deleted.');
     }
@@ -148,6 +159,8 @@ final class ImpactScorecardController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onScorecardChange();
+
         return back()->with('success', 'Year added.');
     }
 
@@ -168,6 +181,8 @@ final class ImpactScorecardController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onScorecardChange();
+
         return back()->with('success', 'Year removed.');
     }
 
@@ -185,6 +200,8 @@ final class ImpactScorecardController extends Controller
             ['measure_id' => $measure, 'year_id' => $year],
             ['value' => $value, 'updated_at' => now()],
         );
+
+        CacheInvalidationService::onScorecardChange();
 
         return back();
     }

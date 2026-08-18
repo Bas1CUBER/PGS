@@ -9,6 +9,7 @@ use App\Enums\NotificationType;
 use App\Models\Deliverable;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use App\Services\DeadlineService;
 use App\Services\NotificationService;
 use App\Services\TransitionsWorkflowService;
@@ -38,24 +39,33 @@ final class DeliverableController extends Controller
     {
         $this->authorize('viewAny', Deliverable::class);
 
-        $query = Deliverable::query()
-            ->with('uploader:id,name,email')
-            ->when($request->string('search')->toString() !== '', fn ($q) => $q->where(
-                fn ($q) => $q
-                    ->where('title', 'like', '%'.$request->string('search')->toString().'%')
-                    ->orWhere('division', 'like', '%'.$request->string('search')->toString().'%'),
-            ))
-            ->when(in_array($request->string('status')->toString(), DeliverableStatus::values(), true), fn ($q) => $q->where('status', $request->string('status')->toString()))
-            ->when($request->user()?->isEmployee() === true, fn ($q) => $q->where('uploaded_by', $request->user()?->id))
-            ->orderByDesc('target_date')
-            ->paginate(20)
-            ->withQueryString();
+        $user = $request->user();
+        $search = $request->string('search')->toString();
+        $status = $request->string('status')->toString();
+        $isEmployee = $user?->isEmployee() === true;
+        $cacheKey = ($isEmployee ? "emp:{$user->id}:" : '').$search.':'.$status;
+
+        $query = CacheInvalidationService::remember('deliverable', "index:{$cacheKey}", function () use ($search, $status, $isEmployee, $user): array {
+            return Deliverable::query()
+                ->with('uploader:id,name,email')
+                ->when($search !== '', fn ($q) => $q->where(
+                    fn ($q) => $q
+                        ->where('title', 'like', '%'.$search.'%')
+                        ->orWhere('division', 'like', '%'.$search.'%'),
+                ))
+                ->when(in_array($status, DeliverableStatus::values(), true), fn ($q) => $q->where('status', $status))
+                ->when($isEmployee, fn ($q) => $q->where('uploaded_by', $user?->id))
+                ->orderByDesc('target_date')
+                ->paginate(20)
+                ->withQueryString()
+                ->toArray();
+        }, 60);
 
         return Inertia::render('Deliverables/Index', [
             'deliverables' => $query,
             'filters' => [
-                'search' => $request->string('search')->toString(),
-                'status' => $request->string('status')->toString(),
+                'search' => $search,
+                'status' => $status,
             ],
             'statuses' => DeliverableStatus::values(),
         ]);
@@ -117,6 +127,8 @@ final class DeliverableController extends Controller
             'p_deliverables',
         );
 
+        CacheInvalidationService::onDeliverableChange();
+
         return redirect()->route('deliverables.index')->with('success', 'Deliverable created.');
     }
 
@@ -165,6 +177,8 @@ final class DeliverableController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onDeliverableChange();
+
         return redirect()->route('deliverables.index')->with('success', 'Deliverable updated.');
     }
 
@@ -190,6 +204,8 @@ final class DeliverableController extends Controller
             before: ['title' => $deliverable->title],
             request: $request,
         );
+
+        CacheInvalidationService::onDeliverableChange();
 
         return redirect()->route('deliverables.index')->with('success', 'Deliverable deleted.');
     }
@@ -244,6 +260,8 @@ final class DeliverableController extends Controller
                 'p_deliverables',
             );
         }
+
+        CacheInvalidationService::onDeliverableChange();
 
         return back()->with('success', 'Deliverable status updated.');
     }

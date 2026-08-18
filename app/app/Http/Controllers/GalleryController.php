@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,19 +24,23 @@ final class GalleryController extends Controller
 
     public function index(): Response
     {
-        $albums = DB::table('gallery_albums as a')
-            ->leftJoin('gallery_photos as p', 'p.album_id', '=', 'a.id')
-            ->select('a.id', 'a.name', 'a.description', 'a.created_at', 'a.updated_at', DB::raw('COUNT(p.id) as photo_count'))
-            ->groupBy('a.id', 'a.name', 'a.description', 'a.created_at', 'a.updated_at')
-            ->orderByDesc('a.created_at')
-            ->get();
+        $data = CacheInvalidationService::remember('gallery', 'index', function (): array {
+            $albums = DB::table('gallery_albums as a')
+                ->leftJoin('gallery_photos as p', 'p.album_id', '=', 'a.id')
+                ->select('a.id', 'a.name', 'a.description', 'a.created_at', 'a.updated_at', DB::raw('COUNT(p.id) as photo_count'))
+                ->groupBy('a.id', 'a.name', 'a.description', 'a.created_at', 'a.updated_at')
+                ->orderByDesc('a.created_at')
+                ->get();
 
-        $photos = DB::table('gallery_photos')->orderByDesc('uploaded_at')->get();
+            $photos = DB::table('gallery_photos')->orderByDesc('uploaded_at')->get();
 
-        return Inertia::render('Gallery/Index', [
-            'albums' => $albums,
-            'photos' => $photos->groupBy('album_id'),
-        ]);
+            return [
+                'albums' => $albums,
+                'photos' => $photos->groupBy('album_id'),
+            ];
+        }, 60);
+
+        return Inertia::render('Gallery/Index', $data);
     }
 
     public function storeAlbum(Request $request): RedirectResponse
@@ -57,6 +62,8 @@ final class GalleryController extends Controller
             (string) $id,
             request: $request,
         );
+
+        CacheInvalidationService::onGalleryChange();
 
         return back()->with('success', 'Album created.');
     }
@@ -83,6 +90,8 @@ final class GalleryController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onGalleryChange();
+
         return back()->with('success', 'Album deleted.');
     }
 
@@ -101,6 +110,8 @@ final class GalleryController extends Controller
         ]);
 
         $this->audit->record($this->userId($request), 'gallery.album_updated', 'gallery_albums', (string) $album, request: $request);
+
+        CacheInvalidationService::onGalleryChange();
 
         return back()->with('success', 'Album updated.');
     }
@@ -157,6 +168,8 @@ final class GalleryController extends Controller
             request: $request,
         );
 
+        CacheInvalidationService::onGalleryChange();
+
         return back()->with('success', $created === 1 ? 'Photo uploaded.' : "{$created} photos uploaded.");
     }
 
@@ -196,6 +209,8 @@ final class GalleryController extends Controller
             (string) $photo,
             request: $request,
         );
+
+        CacheInvalidationService::onGalleryChange();
 
         return back()->with('success', 'Photo deleted.');
     }

@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Modules\UploadModuleRegistry;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use App\Services\UploadModuleService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
@@ -49,20 +50,25 @@ final class UploadModuleController extends Controller
         $this->assertModuleAccess($user, $slug);
 
         $statusFilter = $request->string('status')->toString();
-        $rows = $this->uploads->listRows($module, $slug, $statusFilter !== '' ? $statusFilter : null);
-        $stats = $this->uploads->governanceStats($module, $slug);
-        $templates = $this->uploads->templates($slug, $module);
+
+        $data = CacheInvalidationService::remember('upload', "show:{$slug}", function () use ($module, $slug, $statusFilter) {
+            return [
+                'rows' => $this->uploads->listRows($module, $slug, $statusFilter !== '' ? $statusFilter : null),
+                'stats' => $this->uploads->governanceStats($module, $slug),
+                'templates' => $this->uploads->templates($slug, $module),
+            ];
+        }, 60);
 
         return Inertia::render('Uploads/Show', [
             'module' => $module + [
-                'templates' => $templates,
+                'templates' => $data['templates'],
                 'upload_base_url' => $this->uploads->uploadRouteUrl($slug, 'index'),
                 'template_upload_url' => $this->uploads->uploadRouteUrl($slug, 'templates.store'),
                 'can_manage_templates' => $user->isAdmin(),
             ],
-            'rows' => $rows,
-            'filters' => ['status' => $request->string('status')->toString()],
-            'stats' => $stats,
+            'rows' => $data['rows'],
+            'filters' => ['status' => $statusFilter],
+            'stats' => $data['stats'],
         ]);
     }
 
@@ -103,6 +109,8 @@ final class UploadModuleController extends Controller
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
+
+        CacheInvalidationService::onUploadChange($slug);
 
         return back()->with('success', ucfirst((string) $module['singular']).' uploaded.');
     }
@@ -147,6 +155,8 @@ final class UploadModuleController extends Controller
 
         $this->uploads->deleteUpload($module, $user, $id, $slug);
 
+        CacheInvalidationService::onUploadChange($slug);
+
         return back()->with('success', ucfirst((string) $module['singular']).' deleted.');
     }
 
@@ -171,6 +181,8 @@ final class UploadModuleController extends Controller
 
         $this->uploads->updateStatus($module, $user, $id, $request->string('status')->toString(), $slug);
 
+        CacheInvalidationService::onUploadChange($slug);
+
         return back()->with('success', 'Status updated.');
     }
 
@@ -186,6 +198,8 @@ final class UploadModuleController extends Controller
         ])->validate();
 
         $this->uploads->storeTemplate($user, $slug, $request->string('label')->toString(), $request->file('file'));
+
+        CacheInvalidationService::onUploadChange($slug);
 
         return back()->with('success', 'Template saved.');
     }
@@ -217,6 +231,8 @@ final class UploadModuleController extends Controller
         abort_unless($user->isAdmin(), 403);
 
         $this->uploads->deleteTemplate($slug, $template);
+
+        CacheInvalidationService::onUploadChange($slug);
 
         return back()->with('success', 'Template removed.');
     }

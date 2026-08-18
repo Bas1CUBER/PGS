@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Modules\LegacyFormRegistry;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,9 +25,13 @@ final class LegacyFormController extends Controller
         $definition = LegacyFormRegistry::findAnnex($slug);
         abort_if($definition === null, 404);
 
+        $rows = CacheInvalidationService::remember('legacy_form', "annex:{$slug}", function () use ($definition): array {
+            return $this->annexViewRows($definition);
+        }, 60);
+
         return Inertia::render('LegacyForms/Show', [
             'form' => $definition,
-            'rows' => $this->annexViewRows($definition),
+            'rows' => $rows,
             'downloadUrl' => "/annex/{$slug}/download",
             'canManage' => ($request->user()?->isAdmin() ?? false) || ($request->user()?->isFocal() ?? false),
         ]);
@@ -47,6 +52,8 @@ final class LegacyFormController extends Controller
         ]);
         $this->audit->record($this->userId($request), 'annex.row_created', 'annex_workspace_rows', (string) $id, request: $request);
 
+        CacheInvalidationService::onLegacyFormChange();
+
         return back()->with('success', 'Annex row added.');
     }
 
@@ -62,6 +69,8 @@ final class LegacyFormController extends Controller
         ]) > 0, 404);
         $this->audit->record($this->userId($request), 'annex.row_updated', 'annex_workspace_rows', (string) $id, request: $request);
 
+        CacheInvalidationService::onLegacyFormChange();
+
         return back()->with('success', 'Annex row updated.');
     }
 
@@ -72,6 +81,8 @@ final class LegacyFormController extends Controller
         $this->assertEditable($request, $definition);
         abort_unless(DB::table('annex_workspace_rows')->where('id', $id)->where('slug', $slug)->delete() > 0, 404);
         $this->audit->record($this->userId($request), 'annex.row_deleted', 'annex_workspace_rows', (string) $id, request: $request);
+
+        CacheInvalidationService::onLegacyFormChange();
 
         return back()->with('success', 'Annex row deleted.');
     }
@@ -88,18 +99,20 @@ final class LegacyFormController extends Controller
 
     public function opcr(Request $request): InertiaResponse
     {
-        $rows = DB::table('performance_targets')->orderBy('id')->get()->map(fn (\stdClass $row): array => [
-            'id' => $this->rowId($row),
-            'strategic_goal' => $this->nullableString($row->strategic_goal),
-            'success_indicator' => $this->string($row->success_indicator),
-            'division_accountable' => $this->string($row->division_accountable),
-            'annual_target' => $this->nullableString($row->annual_target),
-            'quarter1_target' => $this->nullableString($row->quarter1_target),
-            'quarter2_target' => $this->nullableString($row->quarter2_target),
-            'quarter3_target' => $this->nullableString($row->quarter3_target),
-            'quarter4_target' => $this->nullableString($row->quarter4_target),
-            'remarks' => $this->nullableString($row->remarks),
-        ])->values()->all();
+        $rows = CacheInvalidationService::remember('legacy_form', 'opcr', function (): array {
+            return DB::table('performance_targets')->orderBy('id')->get()->map(fn (\stdClass $row): array => [
+                'id' => $this->rowId($row),
+                'strategic_goal' => $this->nullableString($row->strategic_goal),
+                'success_indicator' => $this->string($row->success_indicator),
+                'division_accountable' => $this->string($row->division_accountable),
+                'annual_target' => $this->nullableString($row->annual_target),
+                'quarter1_target' => $this->nullableString($row->quarter1_target),
+                'quarter2_target' => $this->nullableString($row->quarter2_target),
+                'quarter3_target' => $this->nullableString($row->quarter3_target),
+                'quarter4_target' => $this->nullableString($row->quarter4_target),
+                'remarks' => $this->nullableString($row->remarks),
+            ])->values()->all();
+        }, 60);
 
         return Inertia::render('LegacyForms/Opcr', [
             'rows' => $rows,
@@ -113,6 +126,8 @@ final class LegacyFormController extends Controller
         $id = DB::table('performance_targets')->insertGetId($data);
         $this->audit->record($this->userId($request), 'opcr.row_created', 'performance_targets', (string) $id, request: $request);
 
+        CacheInvalidationService::onLegacyFormChange();
+
         return back()->with('success', 'OPCR target added.');
     }
 
@@ -122,6 +137,8 @@ final class LegacyFormController extends Controller
         abort_unless(DB::table('performance_targets')->where('id', $id)->update($data) > 0, 404);
         $this->audit->record($this->userId($request), 'opcr.row_updated', 'performance_targets', (string) $id, request: $request);
 
+        CacheInvalidationService::onLegacyFormChange();
+
         return back()->with('success', 'OPCR target updated.');
     }
 
@@ -129,6 +146,8 @@ final class LegacyFormController extends Controller
     {
         abort_unless(DB::table('performance_targets')->where('id', $id)->delete() > 0, 404);
         $this->audit->record($this->userId($request), 'opcr.row_deleted', 'performance_targets', (string) $id, request: $request);
+
+        CacheInvalidationService::onLegacyFormChange();
 
         return back()->with('success', 'OPCR target removed.');
     }

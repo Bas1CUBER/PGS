@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Enums\NotificationType;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use App\Services\NotificationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
@@ -35,21 +36,25 @@ final class StrategyReviewController extends Controller
     public function index(Request $request): Response
     {
         $user = $this->userOrFail($request);
-        $forms = DB::table('strategy_review_forms as f')
-            ->join('users as u', 'u.id', '=', 'f.employee_id')
-            ->when($user->isEmployee(), fn ($query) => $query->where('f.employee_id', $user->id))
-            ->orderByDesc('f.updated_at')
-            ->get(['f.id', 'f.employee_id', 'f.form_data', 'f.pdf_filename', 'f.status', 'f.created_at', 'f.updated_at', 'u.email as employee_email'])
-            ->map(fn (\stdClass $form): array => [
-                'id' => $this->idValue($form->id),
-                'employee_id' => $this->idValue($form->employee_id),
-                'employee_email' => is_scalar($form->employee_email) ? (string) $form->employee_email : '',
-                'data' => $this->decodeFormData($form->form_data),
-                'pdf_filename' => $form->pdf_filename,
-                'status' => $form->status,
-                'created_at' => $form->created_at,
-                'updated_at' => $form->updated_at,
-            ])->values()->all();
+        $scope = $user->isEmployee() ? "user:{$user->id}" : 'all';
+
+        $forms = CacheInvalidationService::remember('strat_review', "index:{$scope}", function () use ($user): array {
+            return DB::table('strategy_review_forms as f')
+                ->join('users as u', 'u.id', '=', 'f.employee_id')
+                ->when($user->isEmployee(), fn ($query) => $query->where('f.employee_id', $user->id))
+                ->orderByDesc('f.updated_at')
+                ->get(['f.id', 'f.employee_id', 'f.form_data', 'f.pdf_filename', 'f.status', 'f.created_at', 'f.updated_at', 'u.email as employee_email'])
+                ->map(fn (\stdClass $form): array => [
+                    'id' => $this->idValue($form->id),
+                    'employee_id' => $this->idValue($form->employee_id),
+                    'employee_email' => is_scalar($form->employee_email) ? (string) $form->employee_email : '',
+                    'data' => $this->decodeFormData($form->form_data),
+                    'pdf_filename' => $form->pdf_filename,
+                    'status' => $form->status,
+                    'created_at' => $form->created_at,
+                    'updated_at' => $form->updated_at,
+                ])->values()->all();
+        }, 60);
 
         return Inertia::render('StrategyReview/Index', [
             'forms' => $forms,
@@ -89,6 +94,8 @@ final class StrategyReviewController extends Controller
             );
         }
 
+        CacheInvalidationService::onStratReviewChange();
+
         return back()->with('success', $status === 'Submitted' ? 'Strategy Review submitted.' : 'Strategy Review draft saved.');
     }
 
@@ -105,6 +112,8 @@ final class StrategyReviewController extends Controller
             'status' => $status,
             'updated_at' => now(),
         ]);
+
+        CacheInvalidationService::onStratReviewChange();
 
         return back()->with('success', $status === 'Submitted' ? 'Strategy Review submitted.' : 'Strategy Review draft saved.');
     }
@@ -131,6 +140,8 @@ final class StrategyReviewController extends Controller
                 'strategy_review_forms',
             );
         }
+
+        CacheInvalidationService::onStratReviewChange();
 
         return back()->with('success', 'Strategy Review status updated.');
     }
