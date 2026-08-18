@@ -35,7 +35,7 @@ final class SecurityHeadersMiddleware
         // lands with the enforced header (docs/Security.md §4).
         $response->headers->set(
             'Content-Security-Policy',
-            "default-src 'self'; script-src 'self' 'nonce-{$nonce}'; style-src 'self' 'nonce-{$nonce}'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+            "default-src 'self'; script-src 'self' 'nonce-{$nonce}'; style-src 'self' 'unsafe-inline' 'nonce-{$nonce}'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
         );
 
         return $response;
