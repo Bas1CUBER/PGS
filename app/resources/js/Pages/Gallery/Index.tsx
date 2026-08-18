@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Camera, ImagePlus, LoaderCircle, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
@@ -46,17 +45,16 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
     const user = auth.user;
     const canManage = user !== null && (user.role === 'admin' || user.role === 'focal');
 
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
+    const albumForm = useForm({ name: '', description: '' });
+    const albumEditForm = useForm({ name: '', description: '' });
+    const photoForm = useForm({ caption: '' });
+    const photoEditForm = useForm({ caption: '' });
+
     const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
     const [uploadTarget, setUploadTarget] = useState<Album | null>(null);
-    const [caption, setCaption] = useState('');
     const [photoFiles, setPhotoFiles] = useState<File[]>([]);
     const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
-    const [albumEditName, setAlbumEditName] = useState('');
-    const [albumEditDescription, setAlbumEditDescription] = useState('');
     const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
-    const [photoEditCaption, setPhotoEditCaption] = useState('');
     const [deleteAlbumTarget, setDeleteAlbumTarget] = useState<Album | null>(null);
     const [deletePhotoTarget, setDeletePhotoTarget] = useState<Photo | null>(null);
     const { isPending, start, finish } = usePendingAction();
@@ -64,44 +62,36 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
     function createAlbum(e: { preventDefault(): void }): void {
         e.preventDefault();
         start('create-album');
-        router.post(
-            '/gallery/albums',
-            {
-                name,
-                description,
+        albumForm.post('/gallery/albums', {
+            preserveScroll: true,
+            onSuccess: () => {
+                setAlbumDialogOpen(false);
+                albumForm.reset();
             },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setAlbumDialogOpen(false);
-                },
-                onFinish: () => {
-                    finish('create-album');
-                },
+            onFinish: () => {
+                finish('create-album');
             },
-        );
-        setName('');
-        setDescription('');
+        });
     }
 
     function uploadPhoto(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (uploadTarget === null || photoFiles.length === 0) return;
 
-        const form = new FormData();
+        const formData = new FormData();
         photoFiles.forEach((photo) => {
-            form.append('photos[]', photo);
+            formData.append('photos[]', photo);
         });
-        form.append('caption', caption);
+        photoForm.setData('caption', photoForm.data.caption);
 
         start('upload-photo');
-        router.post(`/gallery/albums/${String(uploadTarget.id)}/photos`, form, {
+        photoForm.post(`/gallery/albums/${String(uploadTarget.id)}/photos`, {
             forceFormData: true,
             preserveScroll: true,
             onFinish: () => {
                 finish('upload-photo');
                 setUploadTarget(null);
-                setCaption('');
+                photoForm.reset();
                 setPhotoFiles([]);
             },
         });
@@ -109,50 +99,38 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
 
     function openAlbumEdit(album: Album): void {
         setEditingAlbum(album);
-        setAlbumEditName(album.name);
-        setAlbumEditDescription(album.description ?? '');
+        albumEditForm.setData({ name: album.name, description: album.description ?? '' });
     }
 
     function saveAlbum(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (editingAlbum === null) return;
         start(`edit-album:${String(editingAlbum.id)}`);
-        router.put(
-            `/gallery/albums/${String(editingAlbum.id)}`,
-            {
-                name: albumEditName,
-                description: albumEditDescription,
+        albumEditForm.put(`/gallery/albums/${String(editingAlbum.id)}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                finish(`edit-album:${String(editingAlbum.id)}`);
+                setEditingAlbum(null);
             },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    finish(`edit-album:${String(editingAlbum.id)}`);
-                    setEditingAlbum(null);
-                },
-            },
-        );
+        });
     }
 
     function openPhotoEdit(photo: Photo): void {
         setEditingPhoto(photo);
-        setPhotoEditCaption(photo.caption ?? '');
+        photoEditForm.setData({ caption: photo.caption ?? '' });
     }
 
     function savePhoto(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (editingPhoto === null) return;
         start(`edit-photo:${String(editingPhoto.id)}`);
-        router.put(
-            `/gallery/photos/${String(editingPhoto.id)}`,
-            { caption: photoEditCaption },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    finish(`edit-photo:${String(editingPhoto.id)}`);
-                    setEditingPhoto(null);
-                },
+        photoEditForm.put(`/gallery/photos/${String(editingPhoto.id)}`, {
+            preserveScroll: true,
+            onFinish: () => {
+                finish(`edit-photo:${String(editingPhoto.id)}`);
+                setEditingPhoto(null);
             },
-        );
+        });
     }
 
     function confirmDeletePhoto(): void {
@@ -323,8 +301,7 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                 onOpenChange={(open) => {
                     setAlbumDialogOpen(open);
                     if (!open) {
-                        setName('');
-                        setDescription('');
+                        albumForm.reset();
                     }
                 }}
             >
@@ -339,23 +316,29 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                                 <Label htmlFor="album-name">Album name</Label>
                                 <Input
                                     id="album-name"
-                                    value={name}
+                                    value={albumForm.data.name}
                                     onChange={(e) => {
-                                        setName(e.target.value);
+                                        albumForm.setData('name', e.target.value);
                                     }}
                                     required
                                 />
+                                {albumForm.errors.name && (
+                                    <p className="text-destructive text-sm">{albumForm.errors.name}</p>
+                                )}
                             </div>
                             <div className="pgs-modal-field">
                                 <Label htmlFor="album-description">Description</Label>
                                 <Input
                                     id="album-description"
-                                    value={description}
+                                    value={albumForm.data.description}
                                     onChange={(e) => {
-                                        setDescription(e.target.value);
+                                        albumForm.setData('description', e.target.value);
                                     }}
                                     placeholder="Optional"
                                 />
+                                {albumForm.errors.description && (
+                                    <p className="text-destructive text-sm">{albumForm.errors.description}</p>
+                                )}
                             </div>
                         </DialogBody>
                         <DialogFooter className="pgs-modal-footer">
@@ -370,7 +353,7 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                             </Button>
                             <Button
                                 type="submit"
-                                loading={isPending('create-album')}
+                                loading={albumForm.processing}
                                 loadingText="Creating"
                             >
                                 <Plus className="size-4" /> Create album
@@ -398,11 +381,14 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                                 <Label htmlFor="caption">Caption (optional)</Label>
                                 <Input
                                     id="caption"
-                                    value={caption}
+                                    value={photoForm.data.caption}
                                     onChange={(e) => {
-                                        setCaption(e.target.value);
+                                        photoForm.setData('caption', e.target.value);
                                     }}
                                 />
+                                {photoForm.errors.caption && (
+                                    <p className="text-destructive text-sm">{photoForm.errors.caption}</p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="photo">Photos (JPG/PNG/WebP, max 10 MB each)</Label>
@@ -429,7 +415,7 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                             </Button>
                             <Button
                                 type="submit"
-                                loading={isPending('upload-photo')}
+                                loading={photoForm.processing}
                                 loadingText="Uploading"
                                 disabled={photoFiles.length === 0}
                             >
@@ -456,31 +442,34 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                                 <Label htmlFor="edit-album-name">Name</Label>
                                 <Input
                                     id="edit-album-name"
-                                    value={albumEditName}
+                                    value={albumEditForm.data.name}
                                     onChange={(e) => {
-                                        setAlbumEditName(e.target.value);
+                                        albumEditForm.setData('name', e.target.value);
                                     }}
                                     required
                                 />
+                                {albumEditForm.errors.name && (
+                                    <p className="text-destructive text-sm">{albumEditForm.errors.name}</p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="edit-album-description">Description</Label>
                                 <Input
                                     id="edit-album-description"
-                                    value={albumEditDescription}
+                                    value={albumEditForm.data.description}
                                     onChange={(e) => {
-                                        setAlbumEditDescription(e.target.value);
+                                        albumEditForm.setData('description', e.target.value);
                                     }}
                                 />
+                                {albumEditForm.errors.description && (
+                                    <p className="text-destructive text-sm">{albumEditForm.errors.description}</p>
+                                )}
                             </div>
                         </DialogBody>
                         <DialogFooter>
                             <Button
                                 type="submit"
-                                loading={
-                                    editingAlbum !== null &&
-                                    isPending(`edit-album:${String(editingAlbum.id)}`)
-                                }
+                                loading={albumEditForm.processing}
                                 loadingText="Saving"
                             >
                                 <Save className="size-4" /> Save album
@@ -506,20 +495,20 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                                 <Label htmlFor="edit-photo-caption">Caption</Label>
                                 <Input
                                     id="edit-photo-caption"
-                                    value={photoEditCaption}
+                                    value={photoEditForm.data.caption}
                                     onChange={(e) => {
-                                        setPhotoEditCaption(e.target.value);
+                                        photoEditForm.setData('caption', e.target.value);
                                     }}
                                 />
+                                {photoEditForm.errors.caption && (
+                                    <p className="text-destructive text-sm">{photoEditForm.errors.caption}</p>
+                                )}
                             </div>
                         </DialogBody>
                         <DialogFooter>
                             <Button
                                 type="submit"
-                                loading={
-                                    editingPhoto !== null &&
-                                    isPending(`edit-photo:${String(editingPhoto.id)}`)
-                                }
+                                loading={photoEditForm.processing}
                                 loadingText="Saving"
                             >
                                 <Save className="size-4" /> Save caption

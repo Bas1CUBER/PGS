@@ -235,9 +235,12 @@ final class UserController extends Controller
             'errors' => [],
         ];
 
+        $emails = array_column($rows, 'email');
+        $existingEmails = User::query()->whereIn('email', $emails)->pluck('email')->flip()->all();
+
         foreach ($rows as $index => $row) {
             $line = $index + 2; // +1 for header, +1 for zero-based
-            $error = $this->validateImportRow($row);
+            $error = $this->validateImportRow($row, $existingEmails);
 
             if ($error !== null) {
                 $report['errors'][] = ['line' => $line, 'message' => $error];
@@ -284,8 +287,9 @@ final class UserController extends Controller
 
     /**
      * @param  array<string, string>  $row
+     * @param  array<string, int>  $existingEmails
      */
-    private function validateImportRow(array $row): ?string
+    private function validateImportRow(array $row, array $existingEmails = []): ?string
     {
         foreach (['email', 'password', 'role', 'name'] as $required) {
             if (trim($row[$required] ?? '') === '') {
@@ -297,7 +301,7 @@ final class UserController extends Controller
             return 'Invalid email format';
         }
 
-        if (User::query()->where('email', $row['email'])->exists()) {
+        if (isset($existingEmails[$row['email']])) {
             return 'Email already exists';
         }
 
@@ -307,6 +311,13 @@ final class UserController extends Controller
 
         if (strlen($row['password']) < 12) {
             return 'Password must be at least 12 characters';
+        }
+
+        if (preg_match('/[A-Z]/', $row['password']) === 0
+            || preg_match('/[a-z]/', $row['password']) === 0
+            || preg_match('/[0-9]/', $row['password']) === 0
+            || preg_match('/[^A-Za-z0-9]/', $row['password']) === 0) {
+            return 'Password must contain uppercase, lowercase, numbers, and symbols';
         }
 
         return null;

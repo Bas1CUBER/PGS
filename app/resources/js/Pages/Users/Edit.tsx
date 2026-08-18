@@ -141,7 +141,10 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
                                         id="role"
                                         value={data.role}
                                         onChange={(e) => {
-                                            setData('role', e.target.value as User['role']);
+                                            const val = e.target.value;
+                                            if (roles.includes(val)) {
+                                                setData('role', val as User['role']);
+                                            }
                                         }}
                                         className="border-input bg-background flex h-10 w-full rounded-md border px-3 py-2 text-sm"
                                     >

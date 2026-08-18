@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Download, FileSpreadsheet, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +34,9 @@ interface LegacyFormsProps extends PageProps {
 }
 
 export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: LegacyFormsProps) {
-    const [values, setValues] = useState<string[]>(() => form.columns.map(() => ''));
+    const { data, setData, post, put, processing, errors, reset } = useForm({
+        values: form.columns.map(() => '') as (string | null)[],
+    });
     const [editingId, setEditingId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<AnnexRow | null>(null);
     const { isPending, start, finish } = usePendingAction();
@@ -43,17 +45,17 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
         const options = {
             preserveScroll: true,
             onSuccess: () => {
-                setValues(form.columns.map(() => ''));
+                reset();
                 setEditingId(null);
             },
         };
-        if (editingId === null) router.post(`/annex/${form.slug}`, { values }, options);
-        else router.put(`/annex/${form.slug}/${String(editingId)}`, { values }, options);
+        if (editingId === null) post(`/annex/${form.slug}`, options);
+        else put(`/annex/${form.slug}/${String(editingId)}`, options);
     }
 
     function editRow(row: AnnexRow): void {
         setEditingId(row.id);
-        setValues(row.values.map((value) => value ?? ''));
+        setData({ values: row.values });
     }
 
     function confirmDelete(): void {
@@ -108,6 +110,13 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {Object.keys(errors).length > 0 && (
+                                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                                    {Object.entries(errors).map(([key, message]) => (
+                                        <p key={key}>{message}</p>
+                                    ))}
+                                </div>
+                            )}
                             <div className="grid gap-3 md:grid-cols-2">
                                 {form.columns.map((column, index) => (
                                     <div className="space-y-2" key={column}>
@@ -119,11 +128,11 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                         </label>
                                         <Input
                                             id={`annex-${String(index)}`}
-                                            value={values[index] ?? ''}
+                                            value={data.values[index] ?? ''}
                                             onChange={(event) => {
-                                                const next = [...values];
+                                                const next = [...data.values];
                                                 next[index] = event.target.value;
-                                                setValues(next);
+                                                setData({ values: next });
                                             }}
                                         />
                                     </div>
@@ -135,14 +144,14 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                         variant="outline"
                                         onClick={() => {
                                             setEditingId(null);
-                                            setValues(form.columns.map(() => ''));
+                                            reset();
                                         }}
                                     >
                                         Cancel
                                     </Button>
                                 )}
-                                <Button onClick={saveRow}>
-                                    <Save className="size-4" /> Save row
+                                <Button onClick={saveRow} disabled={processing}>
+                                    <Save className="size-4" /> {processing ? 'Saving...' : 'Save row'}
                                 </Button>
                             </div>
                         </CardContent>
@@ -185,10 +194,11 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                 </thead>
                                 <tbody data-slot="table-body">
                                     {rows.map((row, rowIndex) => {
-                                        const rowValues = form.editable
+                                        const isAnnexRow = form.editable && row !== null && typeof row === 'object' && !Array.isArray(row) && 'values' in row && 'id' in row;
+                                        const rowValues = isAnnexRow
                                             ? (row as AnnexRow).values
                                             : (row as (string | null)[]);
-                                        const rowId = form.editable
+                                        const rowId = isAnnexRow
                                             ? (row as AnnexRow).id
                                             : rowIndex;
 
@@ -217,7 +227,7 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                                         >
                                                             <DropdownMenuItem
                                                                 onSelect={() => {
-                                                                    editRow(row as AnnexRow);
+                                                                    if (isAnnexRow) editRow(row as AnnexRow);
                                                                 }}
                                                             >
                                                                 <Pencil className="size-4" /> Edit

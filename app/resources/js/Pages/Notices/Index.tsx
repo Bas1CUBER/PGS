@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Megaphone, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
-import { usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
 import { relativeInternalUrl } from '@/lib/relative-url';
 import { usePendingAction } from '@/hooks/use-pending-action';
@@ -42,8 +41,8 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
     const user = auth.user;
     const canManage = user !== null && (user.role === 'admin' || user.role === 'focal');
 
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
+    const createForm = useForm({ title: '', description: '' });
+    const editForm = useForm({ title: '', description: '' });
     const [image, setImage] = useState<File | null>(null);
     const [video, setVideo] = useState<File | null>(null);
     const [editing, setEditing] = useState<NoticeRow | null>(null);
@@ -53,36 +52,32 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
     function createNotice(e: { preventDefault(): void }): void {
         e.preventDefault();
         const form = new FormData();
-        form.append('title', title);
-        form.append('description', description);
+        form.append('title', createForm.data.title);
+        form.append('description', createForm.data.description);
         if (image !== null) form.append('image', image);
         if (video !== null) form.append('video', video);
 
-        start('create');
-        router.post('/notices', form, {
+        createForm.post('/notices', {
             forceFormData: true,
             preserveScroll: true,
-            onFinish: () => {
-                finish('create');
+            onSuccess: () => {
+                createForm.reset('title', 'description');
                 setImage(null);
                 setVideo(null);
             },
         });
-        setTitle('');
-        setDescription('');
     }
 
     function saveEdit(): void {
         if (editing === null) return;
         const form = new FormData();
         form.append('_method', 'PUT');
-        form.append('title', title);
-        form.append('description', description);
+        form.append('title', editForm.data.title);
+        form.append('description', editForm.data.description);
         if (image !== null) form.append('image', image);
         if (video !== null) form.append('video', video);
 
-        start('save');
-        router.post(`/notices/${String(editing.notice_id)}`, form, {
+        editForm.post(`/notices/${String(editing.notice_id)}`, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -90,16 +85,13 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                 setImage(null);
                 setVideo(null);
             },
-            onFinish: () => {
-                finish('save');
-            },
         });
     }
 
     function deleteNotice(): void {
         if (deleteTarget === null) return;
         start('delete');
-        router.delete(`/notices/${String(deleteTarget.notice_id)}`, {
+        useForm({}).delete(`/notices/${String(deleteTarget.notice_id)}`, {
             onFinish: () => {
                 finish('delete');
                 setDeleteTarget(null);
@@ -125,24 +117,30 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                     <Label htmlFor="title">Title</Label>
                                     <Input
                                         id="title"
-                                        value={title}
+                                        value={createForm.data.title}
                                         onChange={(e) => {
-                                            setTitle(e.target.value);
+                                            createForm.setData('title', e.target.value);
                                         }}
                                         required
                                     />
+                                    {createForm.errors.title && (
+                                        <p className="text-destructive text-sm">{createForm.errors.title}</p>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="description">Description</Label>
                                     <textarea
                                         id="description"
-                                        value={description}
+                                        value={createForm.data.description}
                                         onChange={(e) => {
-                                            setDescription(e.target.value);
+                                            createForm.setData('description', e.target.value);
                                         }}
                                         rows={3}
                                         className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                                     />
+                                    {createForm.errors.description && (
+                                        <p className="text-destructive text-sm">{createForm.errors.description}</p>
+                                    )}
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="space-y-2">
@@ -212,7 +210,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                             {notice.image_url !== null && (
                                                 <img
                                                     src={notice.image_url}
-                                                    alt=""
+                                                    alt={notice.title ?? 'Notice image'}
                                                     className="max-h-56 w-full rounded-lg object-cover"
                                                 />
                                             )}
@@ -234,8 +232,10 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                             aria-label="Edit notice"
                                             onClick={() => {
                                                 setEditing(notice);
-                                                setTitle(notice.title ?? '');
-                                                setDescription(notice.description ?? '');
+                                                editForm.setData({
+                                                    title: notice.title ?? '',
+                                                    description: notice.description ?? '',
+                                                });
                                                 setImage(null);
                                                 setVideo(null);
                                             }}
@@ -300,23 +300,29 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                             <Label htmlFor="edit-title">Title</Label>
                             <Input
                                 id="edit-title"
-                                value={title}
+                                value={editForm.data.title}
                                 onChange={(e) => {
-                                    setTitle(e.target.value);
+                                    editForm.setData('title', e.target.value);
                                 }}
                             />
+                            {editForm.errors.title && (
+                                <p className="text-destructive text-sm">{editForm.errors.title}</p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="edit-description">Description</Label>
                             <textarea
                                 id="edit-description"
-                                value={description}
+                                value={editForm.data.description}
                                 onChange={(e) => {
-                                    setDescription(e.target.value);
+                                    editForm.setData('description', e.target.value);
                                 }}
                                 rows={3}
                                 className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                             />
+                            {editForm.errors.description && (
+                                <p className="text-destructive text-sm">{editForm.errors.description}</p>
+                            )}
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="space-y-2">
@@ -352,7 +358,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                         >
                             Cancel
                         </Button>
-                        <Button onClick={saveEdit} loading={isPending('save')} loadingText="Saving">
+                        <Button onClick={saveEdit} loading={editForm.processing} loadingText="Saving">
                             Save
                         </Button>
                     </DialogFooter>

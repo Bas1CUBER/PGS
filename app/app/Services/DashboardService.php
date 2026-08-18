@@ -131,11 +131,7 @@ final class DashboardService
 
     private function pendingApprovalsCount(): int
     {
-        return array_reduce(
-            $this->pendingApprovalQueries(),
-            static fn (int $carry, mixed $query): int => $carry + $query->count(),
-            0,
-        );
+        return $this->pendingApprovalUnionQuery()->count();
     }
 
     /**
@@ -143,68 +139,57 @@ final class DashboardService
      */
     private function pendingApprovals(int $limit): array
     {
-        $items = [];
+        $rows = $this->pendingApprovalUnionQuery()
+            ->orderByDesc('time')
+            ->limit($limit)
+            ->get();
 
-        foreach ($this->pendingApprovalQueries() as $label => $query) {
-            foreach ($query->limit($limit)->get() as $row) {
-                $items[] = [
-                    'page' => $label,
-                    'time' => $this->stringify($row->submitted_at ?? $row->uploaded_at ?? null),
-                    'user' => $this->uploaderName($row->uploader_email ?? null),
-                    'module' => $this->stringify($row->module ?? null) ?? '',
-                ];
-            }
-        }
-
-        usort($items, static fn (array $a, array $b): int => strcmp((string) $b['time'], (string) $a['time']));
-
-        return array_slice($items, 0, $limit);
+        /** @var list<array{page: string, time: string|null, user: string, module: string}> */
+        return $rows->map(fn (object $row): array => [
+            'page' => $this->stringify($row->page) ?? '',
+            'time' => $this->stringify($row->time),
+            'user' => $this->uploaderName($row->uploader_email),
+            'module' => $this->stringify($row->module) ?? '',
+        ])->values()->all();
     }
 
-    /**
-     * Pending-approval sources mirroring the legacy admin dashboard.
-     *
-     * @return array<string, Builder>
-     */
-    private function pendingApprovalQueries(): array
+    private function pendingApprovalUnionQuery(): Builder
     {
-        $queries = [];
-
-        $queries['Operations Review'] = DB::table('operations_review_uploads as o')
+        $a = DB::table('operations_review_uploads as o')
             ->join('users as u', 'o.employee_id', '=', 'u.id')
             ->where('o.status', 'Pending')
-            ->select('o.uploaded_at', 'u.email as uploader_email');
+            ->select(DB::raw("'Operations Review' as page"), 'o.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
 
-        $queries['Strategy Review'] = DB::table('strategy_review_uploads as o')
+        $b = DB::table('strategy_review_uploads as o')
             ->join('users as u', 'o.employee_id', '=', 'u.id')
             ->where('o.status', 'Pending')
-            ->select('o.uploaded_at', 'u.email as uploader_email');
+            ->select(DB::raw("'Strategy Review' as page"), 'o.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
 
-        $queries['Communication Plan'] = DB::table('communication_plan_uploads as o')
+        $c = DB::table('communication_plan_uploads as o')
             ->join('users as u', 'o.employee_id', '=', 'u.id')
             ->where('o.status', 'Pending')
-            ->select('o.uploaded_at', 'u.email as uploader_email');
+            ->select(DB::raw("'Communication Plan' as page"), 'o.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
 
-        $queries['Cascading Activities'] = DB::table('cascading_activities as c')
+        $d = DB::table('cascading_activities as c')
             ->join('users as u', 'c.uploaded_by', '=', 'u.id')
-            ->select('c.uploaded_at', 'u.email as uploader_email');
+            ->select(DB::raw("'Cascading Activities' as page"), 'c.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
 
-        $queries['Roadmap Changes'] = DB::table('progress_pending_changes as p')
+        $e = DB::table('progress_pending_changes as p')
             ->join('users as u', 'p.submitted_by', '=', 'u.id')
             ->where('p.decision', 'Pending')
-            ->select('p.submitted_at', 'p.module', 'u.email as uploader_email');
+            ->select(DB::raw("'Roadmap Changes' as page"), 'p.submitted_at as time', 'u.email as uploader_email', 'p.module');
 
-        $queries['Governance: Culture'] = DB::table('governance_culture_uploads as g')
+        $f = DB::table('governance_culture_uploads as g')
             ->join('users as u', 'g.employee_id', '=', 'u.id')
             ->where('g.status', 'In Progress')
-            ->select('g.uploaded_at', 'u.email as uploader_email');
+            ->select(DB::raw("'Governance: Culture' as page"), 'g.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
 
-        $queries['Governance: Sharing'] = DB::table('governance_sharing_uploads as g')
+        $g = DB::table('governance_sharing_uploads as g')
             ->join('users as u', 'g.employee_id', '=', 'u.id')
             ->where('g.status', 'In Progress')
-            ->select('g.uploaded_at', 'u.email as uploader_email');
+            ->select(DB::raw("'Governance: Sharing' as page"), 'g.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
 
-        return $queries;
+        return $a->unionAll($b)->unionAll($c)->unionAll($d)->unionAll($e)->unionAll($f)->unionAll($g);
     }
 
     /**
@@ -214,33 +199,34 @@ final class DashboardService
      */
     private function recentUploads(int $limit = 8): array
     {
-        $items = [];
+        $a = DB::table('operations_review_uploads as t')
+            ->join('users as u', 't.employee_id', '=', 'u.id')
+            ->select(DB::raw("'Operations Review' as page"), 't.original_name as file', 't.uploaded_at as time', 'u.email as uploader_email');
 
-        $sources = [
-            ['table' => 'operations_review_uploads', 'label' => 'Operations Review', 'file' => 'original_name', 'time' => 'uploaded_at', 'fk' => 'employee_id'],
-            ['table' => 'strategy_review_uploads', 'label' => 'Strategy Review', 'file' => 'original_name', 'time' => 'uploaded_at', 'fk' => 'employee_id'],
-            ['table' => 'communication_plan_uploads', 'label' => 'Communication Plan', 'file' => 'original_name', 'time' => 'uploaded_at', 'fk' => 'employee_id'],
-            ['table' => 'resources_uploads', 'label' => 'Resources', 'file' => 'original_name', 'time' => 'uploaded_at', 'fk' => 'uploaded_by'],
-        ];
+        $b = DB::table('strategy_review_uploads as t')
+            ->join('users as u', 't.employee_id', '=', 'u.id')
+            ->select(DB::raw("'Strategy Review' as page"), 't.original_name as file', 't.uploaded_at as time', 'u.email as uploader_email');
 
-        foreach ($sources as $source) {
-            foreach (DB::table("{$source['table']} as t")
-                ->join('users as u', "t.{$source['fk']}", '=', 'u.id')
-                ->orderByDesc("t.{$source['time']}")
-                ->limit($limit)
-                ->get(["t.{$source['file']} as file", "t.{$source['time']} as time", 'u.email as uploader_email']) as $row) {
-                $items[] = [
-                    'page' => $source['label'],
-                    'file' => $this->stringify($row->file ?? null) ?? '',
-                    'time' => $this->stringify($row->time ?? null),
-                    'user' => $this->uploaderName($row->uploader_email ?? null),
-                ];
-            }
-        }
+        $c = DB::table('communication_plan_uploads as t')
+            ->join('users as u', 't.employee_id', '=', 'u.id')
+            ->select(DB::raw("'Communication Plan' as page"), 't.original_name as file', 't.uploaded_at as time', 'u.email as uploader_email');
 
-        usort($items, static fn (array $a, array $b): int => strcmp((string) $b['time'], (string) $a['time']));
+        $d = DB::table('resources_uploads as t')
+            ->join('users as u', 't.uploaded_by', '=', 'u.id')
+            ->select(DB::raw("'Resources' as page"), 't.original_name as file', 't.uploaded_at as time', 'u.email as uploader_email');
 
-        return array_slice($items, 0, $limit);
+        $rows = $a->unionAll($b)->unionAll($c)->unionAll($d)
+            ->orderByDesc('time')
+            ->limit($limit)
+            ->get();
+
+        /** @var list<array{page: string, file: string, time: string|null, user: string}> */
+        return $rows->map(fn (object $row): array => [
+            'page' => $this->stringify($row->page) ?? '',
+            'file' => $this->stringify($row->file) ?? '',
+            'time' => $this->stringify($row->time),
+            'user' => $this->uploaderName($row->uploader_email),
+        ])->values()->all();
     }
 
     private function stringify(mixed $value): ?string

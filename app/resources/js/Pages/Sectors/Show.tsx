@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     CalendarClock,
@@ -130,17 +130,14 @@ export default function SectorShow({
     canManage,
 }: SectorShowPageProps) {
     const [editTarget, setEditTarget] = useState<SectorRow | null>(null);
-    const [editCategory, setEditCategory] = useState('');
-    const [editYear, setEditYear] = useState('');
-    const [editDescription, setEditDescription] = useState('');
-    const [newCategory, setNewCategory] = useState('');
-    const [newYear, setNewYear] = useState(String(new Date().getFullYear()));
-    const [newDescription, setNewDescription] = useState('');
     const [indicatorFilter, setIndicatorFilter] = useState('');
     const [addDialogOpen, setAddDialogOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<SectorRow | null>(null);
     const [decisionTarget, setDecisionTarget] = useState<PendingDecisionTarget | null>(null);
     const { isPending, start, finish } = usePendingAction();
+
+    const addForm = useForm({ category: '', year: String(new Date().getFullYear()), description: '' });
+    const editForm = useForm({ category: '', year: '', description: '' });
 
     const normalizedIndicatorFilter = indicatorFilter.trim().toLowerCase();
     const filteredRows = rows.data.filter((row) =>
@@ -151,22 +148,13 @@ export default function SectorShow({
 
     function addRow(e: { preventDefault(): void }): void {
         e.preventDefault();
-        start('add');
-        router.post(
-            `/sectors/${module.slug}/rows`,
-            { category: newCategory, year: newYear, description: newDescription },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setNewCategory('');
-                    setNewDescription('');
-                    setAddDialogOpen(false);
-                },
-                onFinish: () => {
-                    finish('add');
-                },
+        addForm.post(`/sectors/${module.slug}/rows`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                addForm.reset();
+                setAddDialogOpen(false);
             },
-        );
+        });
     }
 
     function confirmDelete(): void {
@@ -201,28 +189,22 @@ export default function SectorShow({
 
     function openEdit(row: SectorRow): void {
         setEditTarget(row);
-        setEditCategory(row.category);
-        setEditYear(String(row.year));
-        setEditDescription(row.description);
+        editForm.setData({
+            category: row.category,
+            year: String(row.year),
+            description: row.description,
+        });
     }
 
     function saveEdit(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (editTarget === null) return;
-        start('save');
-        router.put(
-            `/sectors/${module.slug}/rows/${String(editTarget.id)}`,
-            { category: editCategory, year: editYear, description: editDescription },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setEditTarget(null);
-                },
-                onFinish: () => {
-                    finish('save');
-                },
+        editForm.put(`/sectors/${module.slug}/rows/${String(editTarget.id)}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditTarget(null);
             },
-        );
+        });
     }
 
     return (
@@ -562,7 +544,10 @@ export default function SectorShow({
                 </div>
             </div>
 
-            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <Dialog open={addDialogOpen} onOpenChange={(open) => {
+                setAddDialogOpen(open);
+                if (!open) addForm.reset();
+            }}>
                 <DialogContent className="pgs-modal-form-dialog">
                     <DialogHeader className="pgs-modal-header">
                         <span className="pgs-modal-eyebrow">Responsive overlay</span>
@@ -578,37 +563,46 @@ export default function SectorShow({
                                 <label htmlFor="new-category">Category</label>
                                 <Input
                                     id="new-category"
-                                    value={newCategory}
+                                    value={addForm.data.category}
                                     onChange={(e) => {
-                                        setNewCategory(e.target.value);
+                                        addForm.setData('category', e.target.value);
                                     }}
                                     required
                                 />
+                                {addForm.errors.category && (
+                                    <p className="text-destructive text-sm">{addForm.errors.category}</p>
+                                )}
                             </div>
                             <div className="pgs-modal-field">
                                 <label htmlFor="new-year">Year</label>
                                 <Input
                                     id="new-year"
                                     type="number"
-                                    value={newYear}
+                                    value={addForm.data.year}
                                     onChange={(e) => {
-                                        setNewYear(e.target.value);
+                                        addForm.setData('year', e.target.value);
                                     }}
                                     required
                                 />
+                                {addForm.errors.year && (
+                                    <p className="text-destructive text-sm">{addForm.errors.year}</p>
+                                )}
                             </div>
                             <div className="pgs-modal-field">
                                 <label htmlFor="new-description">Description</label>
                                 <textarea
                                     id="new-description"
-                                    value={newDescription}
+                                    value={addForm.data.description}
                                     onChange={(e) => {
-                                        setNewDescription(e.target.value);
+                                        addForm.setData('description', e.target.value);
                                     }}
                                     rows={4}
                                     className="pgs-modal-textarea"
                                     required
                                 />
+                                {addForm.errors.description && (
+                                    <p className="text-destructive text-sm">{addForm.errors.description}</p>
+                                )}
                             </div>
                         </DialogBody>
                         <DialogFooter className="pgs-modal-footer">
@@ -621,7 +615,7 @@ export default function SectorShow({
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" loading={isPending('add')} loadingText="Saving">
+                            <Button type="submit" loading={addForm.processing} loadingText="Saving">
                                 <Plus className="size-4" /> Add
                             </Button>
                         </DialogFooter>
@@ -632,7 +626,10 @@ export default function SectorShow({
             <Dialog
                 open={editTarget !== null}
                 onOpenChange={(open) => {
-                    if (!open) setEditTarget(null);
+                    if (!open) {
+                        setEditTarget(null);
+                        editForm.reset();
+                    }
                 }}
             >
                 <DialogContent className="pgs-modal-form-dialog">
@@ -649,37 +646,46 @@ export default function SectorShow({
                                 <label htmlFor="cat">Category</label>
                                 <Input
                                     id="cat"
-                                    value={editCategory}
+                                    value={editForm.data.category}
                                     onChange={(e) => {
-                                        setEditCategory(e.target.value);
+                                        editForm.setData('category', e.target.value);
                                     }}
                                     required
                                 />
+                                {editForm.errors.category && (
+                                    <p className="text-destructive text-sm">{editForm.errors.category}</p>
+                                )}
                             </div>
                             <div className="pgs-modal-field">
                                 <label htmlFor="yr">Year</label>
                                 <Input
                                     id="yr"
                                     type="number"
-                                    value={editYear}
+                                    value={editForm.data.year}
                                     onChange={(e) => {
-                                        setEditYear(e.target.value);
+                                        editForm.setData('year', e.target.value);
                                     }}
                                     required
                                 />
+                                {editForm.errors.year && (
+                                    <p className="text-destructive text-sm">{editForm.errors.year}</p>
+                                )}
                             </div>
                             <div className="pgs-modal-field">
                                 <label htmlFor="desc">Description</label>
                                 <textarea
                                     id="desc"
-                                    value={editDescription}
+                                    value={editForm.data.description}
                                     onChange={(e) => {
-                                        setEditDescription(e.target.value);
+                                        editForm.setData('description', e.target.value);
                                     }}
                                     rows={4}
                                     className="pgs-modal-textarea"
                                     required
                                 />
+                                {editForm.errors.description && (
+                                    <p className="text-destructive text-sm">{editForm.errors.description}</p>
+                                )}
                             </div>
                         </DialogBody>
                         <DialogFooter className="pgs-modal-footer">
@@ -692,7 +698,7 @@ export default function SectorShow({
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" loading={isPending('save')} loadingText="Saving">
+                            <Button type="submit" loading={editForm.processing} loadingText="Saving">
                                 Save
                             </Button>
                         </DialogFooter>

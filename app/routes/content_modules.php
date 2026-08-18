@@ -175,6 +175,6 @@ Route::middleware('web')->group(function (): void {
             }
 
             return response()->file($path);
-        })->where('name', '.*')->name('legacy-img');
+        })->where('name', '[A-Za-z0-9_.%-]+')->name('legacy-img');
     });
 });

@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Download, FilePenLine, FileUp, Save, Send, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -82,7 +82,7 @@ export default function StrategyReviewIndex({
     fields,
     uploadUrl,
 }: StrategyReviewProps) {
-    const [data, setData] = useState<Record<string, string | undefined>>(() => blankForm(fields));
+    const form = useForm<Record<string, string>>(blankForm(fields));
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formOpen, setFormOpen] = useState(false);
     const [reviewTarget, setReviewTarget] = useState<ReviewDecisionTarget | null>(null);
@@ -95,20 +95,21 @@ export default function StrategyReviewIndex({
             preserveScroll: true,
             onSuccess: () => {
                 setEditingId(null);
-                setData(blankForm(fields));
+                form.reset();
                 setFormOpen(false);
             },
             onFinish: () => {
                 finish(action);
             },
         };
-        if (editingId === null) router.post('/strategy-review', { ...data, status }, options);
-        else router.put(`/strategy-review/${String(editingId)}`, { ...data, status }, options);
+        form.setData('status', status);
+        if (editingId === null) form.post('/strategy-review', options);
+        else form.put(`/strategy-review/${String(editingId)}`, options);
     }
 
     function openForm(review: ReviewForm): void {
         setEditingId(review.id);
-        setData({ ...blankForm(fields), ...review.data });
+        form.setData({ ...blankForm(fields), ...review.data });
         setFormOpen(true);
     }
 
@@ -153,7 +154,7 @@ export default function StrategyReviewIndex({
                                 type="button"
                                 onClick={() => {
                                     setEditingId(null);
-                                    setData(blankForm(fields));
+                                    form.reset();
                                     setFormOpen(true);
                                 }}
                             >
@@ -253,7 +254,7 @@ export default function StrategyReviewIndex({
                     setFormOpen(open);
                     if (!open) {
                         setEditingId(null);
-                        setData(blankForm(fields));
+                        form.reset();
                     }
                 }}
             >
@@ -273,26 +274,29 @@ export default function StrategyReviewIndex({
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <Field
                                     label="Review date"
-                                    value={data.review_date ?? ''}
+                                    value={form.data.review_date}
                                     type="date"
+                                    error={form.errors.review_date}
                                     onChange={(value) => {
-                                        setData({ ...data, review_date: value });
+                                        form.setData('review_date', value);
                                     }}
                                 />
                                 <Field
                                     label="Objective"
-                                    value={data.objective ?? ''}
+                                    value={form.data.objective}
                                     area
+                                    error={form.errors.objective}
                                     onChange={(value) => {
-                                        setData({ ...data, objective: value });
+                                        form.setData('objective', value);
                                     }}
                                 />
                                 <Field
                                     label="Directly contributing units"
-                                    value={data.directly_contributing_units ?? ''}
+                                    value={form.data.directly_contributing_units}
                                     area
+                                    error={form.errors.directly_contributing_units}
                                     onChange={(value) => {
-                                        setData({ ...data, directly_contributing_units: value });
+                                        form.setData('directly_contributing_units', value);
                                     }}
                                 />
                             </div>
@@ -306,9 +310,10 @@ export default function StrategyReviewIndex({
                                     <Field
                                         key={field}
                                         label={fieldLabels[field] ?? field}
-                                        value={data[field] ?? ''}
+                                        value={form.data[field]}
+                                        error={form.errors[field]}
                                         onChange={(value) => {
-                                            setData({ ...data, [field]: value });
+                                            form.setData(field, value);
                                         }}
                                     />
                                 ))}
@@ -332,10 +337,11 @@ export default function StrategyReviewIndex({
                                                     <Field
                                                         key={field}
                                                         label={fieldLabels[field] ?? field}
-                                                        value={data[field] ?? ''}
+                                                        value={form.data[field]}
                                                         area={suffix === 'key_results_area'}
+                                                        error={form.errors[field]}
                                                         onChange={(value) => {
-                                                            setData({ ...data, [field]: value });
+                                                            form.setData(field, value);
                                                         }}
                                                     />
                                                 );
@@ -349,10 +355,11 @@ export default function StrategyReviewIndex({
                                     <Field
                                         key={field}
                                         label={fieldLabels[field] ?? field}
-                                        value={data[field] ?? ''}
+                                        value={form.data[field]}
                                         area
+                                        error={form.errors[field]}
                                         onChange={(value) => {
-                                            setData({ ...data, [field]: value });
+                                            form.setData(field, value);
                                         }}
                                     />
                                 ))}
@@ -360,16 +367,18 @@ export default function StrategyReviewIndex({
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <Field
                                     label="Prepared by"
-                                    value={data.prepared_by ?? ''}
+                                    value={form.data.prepared_by}
+                                    error={form.errors.prepared_by}
                                     onChange={(value) => {
-                                        setData({ ...data, prepared_by: value });
+                                        form.setData('prepared_by', value);
                                     }}
                                 />
                                 <Field
                                     label="Approved by (unit head)"
-                                    value={data.approved_by ?? ''}
+                                    value={form.data.approved_by}
+                                    error={form.errors.approved_by}
                                     onChange={(value) => {
-                                        setData({ ...data, approved_by: value });
+                                        form.setData('approved_by', value);
                                     }}
                                 />
                             </div>
@@ -449,12 +458,14 @@ function Field({
     onChange,
     area = false,
     type = 'text',
+    error,
 }: {
     label: string;
     value: string;
     onChange: (value: string) => void;
     area?: boolean;
     type?: string;
+    error?: string;
 }) {
     return (
         <div className="space-y-2">
@@ -477,6 +488,7 @@ function Field({
                     }}
                 />
             )}
+            {error && <p className="text-destructive text-sm">{error}</p>}
         </div>
     );
 }

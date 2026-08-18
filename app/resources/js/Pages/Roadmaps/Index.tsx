@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     ArrowDown,
@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/components/pgs-toast';
 import {
     Dialog,
     DialogBody,
@@ -172,7 +173,11 @@ function RoadmapBlockPreview({ block }: { block: RoadmapBlock }) {
 }
 
 export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
-    const [newTitle, setNewTitle] = useState('');
+    const titleForm = useForm({ title: '' });
+    const itemForm = useForm({ sub_label: '' });
+    const blockForm = useForm({ block_type: blockTypes[0] ?? 'paragraph', content: '{}' });
+    const blockUpdateForm = useForm({ content: '{}' });
+    const reorderForm = useForm({ direction: 'up' as 'up' | 'down' });
     const [itemDrafts, setItemDrafts] = useState<Record<number, string>>({});
     const [titleDialogOpen, setTitleDialogOpen] = useState(false);
     const [itemTitleId, setItemTitleId] = useState<number | null>(null);
@@ -180,9 +185,8 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
     const [deleteItemTarget, setDeleteItemTarget] = useState<RoadmapItem | null>(null);
     const [deleteBlockTarget, setDeleteBlockTarget] = useState<RoadmapBlock | null>(null);
     const [builderItem, setBuilderItem] = useState<RoadmapItem | null>(null);
-    const [blockType, setBlockType] = useState(blockTypes[0] ?? 'paragraph');
-    const [blockContent, setBlockContent] = useState('{}');
     const { isPending, start, finish } = usePendingAction();
+    const { showToast } = useToast();
     const statBlocks = titles.flatMap((title) =>
         title.items.flatMap((item) =>
             (item.blocks ?? [])
@@ -191,24 +195,16 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
         ),
     );
 
-    function addTitle(e: { preventDefault(): void }): void {
+    function addTitle(e: React.FormEvent): void {
         e.preventDefault();
-        if (newTitle.trim() === '') return;
-        start('add-title');
-        router.post(
-            '/roadmaps/titles',
-            { title: newTitle },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setNewTitle('');
-                    setTitleDialogOpen(false);
-                },
-                onFinish: () => {
-                    finish('add-title');
-                },
+        if (titleForm.data.title.trim() === '') return;
+        titleForm.post('/roadmaps/titles', {
+            preserveScroll: true,
+            onSuccess: () => {
+                titleForm.reset();
+                setTitleDialogOpen(false);
             },
-        );
+        });
     }
 
     function addItem(titleId: number): void {
@@ -216,50 +212,51 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
         if (content === '') return;
         const action = `add-item:${String(titleId)}`;
         start(action);
-        router.post(
-            `/roadmaps/titles/${String(titleId)}/items`,
-            { sub_label: content },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setItemDrafts((prev) => ({ ...prev, [titleId]: '' }));
-                    setItemTitleId(null);
-                },
-                onFinish: () => {
-                    finish(action);
-                },
+        itemForm.setData('sub_label', content);
+        itemForm.post(`/roadmaps/titles/${String(titleId)}/items`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setItemDrafts((prev) => ({ ...prev, [titleId]: '' }));
+                setItemTitleId(null);
             },
-        );
+            onFinish: () => {
+                finish(action);
+            },
+        });
     }
 
     function openBuilder(item: RoadmapItem): void {
         setBuilderItem(item);
-        setBlockType(blockTypes[0] ?? 'paragraph');
-        setBlockContent('{}');
+        blockForm.reset();
+    }
+
+    function isRecordOfStrings(val: unknown): val is Record<string, string> {
+        return (
+            typeof val === 'object' &&
+            val !== null &&
+            !Array.isArray(val) &&
+            Object.values(val).every((v) => typeof v === 'string')
+        );
     }
 
     function addBlock(): void {
         if (builderItem === null) return;
 
         try {
-            const parsed = JSON.parse(blockContent) as Record<string, string>;
-            start('add-block');
-
-            router.post(
-                `/roadmaps/items/${String(builderItem.id)}/blocks`,
-                { block_type: blockType, content: parsed },
-                {
-                    preserveScroll: true,
-                    onSuccess: () => {
-                        setBlockContent('{}');
-                    },
-                    onFinish: () => {
-                        finish('add-block');
-                    },
+            const parsed = JSON.parse(blockForm.data.content);
+            if (!isRecordOfStrings(parsed)) {
+                showToast('error', 'Block content must be a flat JSON object with string values.');
+                return;
+            }
+            blockForm.setData({ block_type: blockForm.data.block_type, content: JSON.stringify(parsed) });
+            blockForm.post(`/roadmaps/items/${String(builderItem.id)}/blocks`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    blockForm.reset('content');
                 },
-            );
+            });
         } catch {
-            return;
+            showToast('error', 'Invalid JSON — please check the block content.');
         }
     }
 
@@ -268,37 +265,30 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
         if (raw === null) return;
 
         try {
-            const parsed = JSON.parse(raw) as Record<string, string>;
-            const action = `update-block:${String(block.id)}`;
-            start(action);
-            router.put(
-                `/roadmaps/blocks/${String(block.id)}`,
-                { content: parsed },
-                {
-                    preserveScroll: true,
-                    onFinish: () => {
-                        finish(action);
-                    },
-                },
-            );
+            const parsed = JSON.parse(raw);
+            if (!isRecordOfStrings(parsed)) {
+                showToast('error', 'Block content must be a flat JSON object with string values.');
+                return;
+            }
+            blockUpdateForm.setData({ content: JSON.stringify(parsed) });
+            blockUpdateForm.put(`/roadmaps/blocks/${String(block.id)}`, {
+                preserveScroll: true,
+            });
         } catch {
-            // Invalid JSON: do nothing.
+            showToast('error', 'Invalid JSON — please check the block content.');
         }
     }
 
     function reorderItem(id: number, direction: 'up' | 'down'): void {
         const action = `reorder:${String(id)}:${direction}`;
         start(action);
-        router.post(
-            `/roadmaps/items/${String(id)}/reorder`,
-            { direction },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    finish(action);
-                },
+        reorderForm.setData({ direction });
+        reorderForm.post(`/roadmaps/items/${String(id)}/reorder`, {
+            preserveScroll: true,
+            onFinish: () => {
+                finish(action);
             },
-        );
+        });
     }
 
     function confirmDeleteItem(): void {
@@ -540,7 +530,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                 open={titleDialogOpen}
                 onOpenChange={(open) => {
                     setTitleDialogOpen(open);
-                    if (!open) setNewTitle('');
+                    if (!open) titleForm.reset();
                 }}
             >
                 <DialogContent className="pgs-modal-form-dialog">
@@ -554,13 +544,18 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                 <label htmlFor="new-roadmap-section">Section title</label>
                                 <Input
                                     id="new-roadmap-section"
-                                    value={newTitle}
+                                    value={titleForm.data.title}
                                     onChange={(e) => {
-                                        setNewTitle(e.target.value);
+                                        titleForm.setData('title', e.target.value);
                                     }}
                                     placeholder="e.g. Collaborative Health Care"
                                     required
                                 />
+                                {titleForm.errors.title && (
+                                    <p className="text-destructive text-sm">
+                                        {titleForm.errors.title}
+                                    </p>
+                                )}
                             </div>
                         </DialogBody>
                         <DialogFooter className="pgs-modal-footer">
@@ -575,7 +570,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                             </Button>
                             <Button
                                 type="submit"
-                                loading={isPending('add-title')}
+                                loading={titleForm.processing}
                                 loadingText="Adding"
                             >
                                 <Plus className="size-4" /> Add section
@@ -595,8 +590,8 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                     <DialogHeader>
                         <DialogTitle>Add roadmap item</DialogTitle>
                         <DialogDescription>
-                            Add an item under “
-                            {titles.find((title) => title.id === itemTitleId)?.title ?? ''}”.
+                            Add an item under "
+                            {titles.find((title) => title.id === itemTitleId)?.title ?? ''}".
                         </DialogDescription>
                     </DialogHeader>
                     <form
@@ -625,6 +620,11 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                     placeholder="e.g. Quality of Life Index"
                                     required
                                 />
+                                {itemForm.errors.sub_label && (
+                                    <p className="text-destructive text-sm">
+                                        {itemForm.errors.sub_label}
+                                    </p>
+                                )}
                             </div>
                         </DialogBody>
                         <DialogFooter className="pgs-modal-footer">
@@ -737,9 +737,9 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                             <p className="text-sm font-medium">Add block</p>
                             <div className="flex flex-col gap-3 sm:flex-row">
                                 <select
-                                    value={blockType}
+                                    value={blockForm.data.block_type}
                                     onChange={(e) => {
-                                        setBlockType(e.target.value);
+                                        blockForm.setData('block_type', e.target.value);
                                     }}
                                     className="border-input bg-background h-10 rounded-md border px-3 text-sm"
                                     aria-label="Block type"
@@ -751,18 +751,28 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                                     ))}
                                 </select>
                                 <Input
-                                    value={blockContent}
+                                    value={blockForm.data.content}
                                     onChange={(e) => {
-                                        setBlockContent(e.target.value);
+                                        blockForm.setData('content', e.target.value);
                                     }}
                                     placeholder='{"label":"...", "value":"..."}'
                                     className="font-sans"
                                     aria-label="Block content JSON"
                                 />
                             </div>
+                            {blockForm.errors.block_type && (
+                                <p className="text-destructive text-sm">
+                                    {blockForm.errors.block_type}
+                                </p>
+                            )}
+                            {blockForm.errors.content && (
+                                <p className="text-destructive text-sm">
+                                    {blockForm.errors.content}
+                                </p>
+                            )}
                             <Button
                                 size="sm"
-                                loading={isPending('add-block')}
+                                loading={blockForm.processing}
                                 loadingText="Adding"
                                 onClick={addBlock}
                             >

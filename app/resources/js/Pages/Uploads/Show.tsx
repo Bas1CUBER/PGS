@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     Check,
@@ -37,7 +37,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { usePage } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
@@ -178,14 +177,13 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
     const user = auth.user;
     const canReview = user !== null && (user.role === 'focal' || user.role === 'admin');
 
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
+    const uploadForm = useForm({ title: '', description: '' });
+    const templateForm = useForm({ label: '' });
+
     const [file, setFile] = useState<File | null>(null);
-    const [templateLabel, setTemplateLabel] = useState('');
     const [templateFile, setTemplateFile] = useState<File | null>(null);
     const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-    const [uploading, setUploading] = useState(false);
     const [deleteRowTarget, setDeleteRowTarget] = useState<UploadRow | null>(null);
     const [deleteTemplateTarget, setDeleteTemplateTarget] = useState<{
         id: number;
@@ -198,24 +196,21 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
         e.preventDefault();
         if (file === null) return;
 
-        const form = new FormData();
-        form.append('file', file);
-        if (module.has_title) form.append('title', title);
-        if (module.has_description) form.append('description', description);
+        const formData = new FormData();
+        formData.append('file', file);
+        if (module.has_title) formData.append('title', uploadForm.data.title);
+        if (module.has_description) formData.append('description', uploadForm.data.description);
 
-        setUploading(true);
         start('upload');
-        router.post(module.upload_base_url, form, {
+        uploadForm.post(module.upload_base_url, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
                 setUploadDialogOpen(false);
             },
             onFinish: () => {
-                setUploading(false);
                 finish('upload');
-                setTitle('');
-                setDescription('');
+                uploadForm.reset();
                 setFile(null);
             },
         });
@@ -251,13 +246,13 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
 
     function submitTemplate(e: { preventDefault(): void }): void {
         e.preventDefault();
-        if (templateFile === null || templateLabel.trim() === '') return;
+        if (templateFile === null || templateForm.data.label.trim() === '') return;
 
-        const form = new FormData();
-        form.append('label', templateLabel);
-        form.append('file', templateFile);
+        const formData = new FormData();
+        formData.append('label', templateForm.data.label);
+        formData.append('file', templateFile);
         start('template');
-        router.post(module.template_upload_url, form, {
+        templateForm.post(module.template_upload_url, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -265,7 +260,7 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
             },
             onFinish: () => {
                 finish('template');
-                setTemplateLabel('');
+                templateForm.reset();
                 setTemplateFile(null);
             },
         });
@@ -391,7 +386,7 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                     onOpenChange={(open) => {
                         setTemplateDialogOpen(open);
                         if (!open) {
-                            setTemplateLabel('');
+                            templateForm.reset();
                             setTemplateFile(null);
                         }
                     }}
@@ -412,13 +407,18 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                     <Label htmlFor="template-label">Template label</Label>
                                     <Input
                                         id="template-label"
-                                        value={templateLabel}
+                                        value={templateForm.data.label}
                                         onChange={(e) => {
-                                            setTemplateLabel(e.target.value);
+                                            templateForm.setData('label', e.target.value);
                                         }}
                                         placeholder="e.g. 2026 review form"
                                         required
                                     />
+                                    {templateForm.errors.label && (
+                                        <p className="text-destructive text-sm">
+                                            {templateForm.errors.label}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="pgs-modal-field">
                                     <Label htmlFor="template-file">Template file</Label>
@@ -445,9 +445,9 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                 </Button>
                                 <Button
                                     type="submit"
-                                    loading={isPending('template')}
+                                    loading={templateForm.processing}
                                     loadingText="Saving"
-                                    disabled={templateFile === null || templateLabel.trim() === ''}
+                                    disabled={templateFile === null || templateForm.data.label.trim() === ''}
                                 >
                                     <Upload className="size-4" /> Save template
                                 </Button>
@@ -461,8 +461,7 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                     onOpenChange={(open) => {
                         setUploadDialogOpen(open);
                         if (!open) {
-                            setTitle('');
-                            setDescription('');
+                            uploadForm.reset();
                             setFile(null);
                         }
                     }}
@@ -479,12 +478,17 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                         <Label htmlFor="title">Title</Label>
                                         <Input
                                             id="title"
-                                            value={title}
+                                            value={uploadForm.data.title}
                                             onChange={(e) => {
-                                                setTitle(e.target.value);
+                                                uploadForm.setData('title', e.target.value);
                                             }}
                                             required
                                         />
+                                        {uploadForm.errors.title && (
+                                            <p className="text-destructive text-sm">
+                                                {uploadForm.errors.title}
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                                 {module.has_description && (
@@ -492,13 +496,18 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                         <Label htmlFor="description">Description</Label>
                                         <textarea
                                             id="description"
-                                            value={description}
+                                            value={uploadForm.data.description}
                                             onChange={(e) => {
-                                                setDescription(e.target.value);
+                                                uploadForm.setData('description', e.target.value);
                                             }}
                                             rows={3}
                                             className="pgs-modal-textarea"
                                         />
+                                        {uploadForm.errors.description && (
+                                            <p className="text-destructive text-sm">
+                                                {uploadForm.errors.description}
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                                 <div className="pgs-modal-field">
@@ -524,7 +533,7 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                                 </Button>
                                 <Button
                                     type="submit"
-                                    loading={uploading}
+                                    loading={uploadForm.processing}
                                     loadingText="Uploading"
                                     disabled={file === null}
                                 >

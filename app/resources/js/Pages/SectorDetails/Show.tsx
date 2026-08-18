@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     Activity,
@@ -126,20 +126,23 @@ export default function SectorDetailShow({
     const newColumns = [...new Set([...module.columns, ...module.year_columns])].filter(
         (column) => column !== 'is_head',
     );
-    const [newData, setNewData] = useState<Record<string, string>>(() =>
-        Object.fromEntries(newColumns.map((column) => [column, ''])),
-    );
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
     const { isPending, start, finish } = usePendingAction();
     const editableColumns = [...new Set([...module.editable, ...module.year_columns])];
 
+    const createForm = useForm<Record<string, string>>(
+        Object.fromEntries(newColumns.map((column) => [column, ''])),
+    );
+
+    const editForm = useForm({ _method: 'PUT' as const });
+
     function create(): void {
         start('create');
-        router.post(`/sectors/${module.pillar}/${module.slug}`, newData, {
+        createForm.post(`/sectors/${module.pillar}/${module.slug}`, {
             preserveScroll: true,
             onSuccess: () => {
-                setNewData(Object.fromEntries(newColumns.map((column) => [column, ''])));
+                createForm.reset();
                 setCreateDialogOpen(false);
             },
             onFinish: () => {
@@ -154,7 +157,8 @@ export default function SectorDetailShow({
         const action = `save:${String(id)}`;
         start(action);
 
-        router.put(`/sectors/${module.pillar}/${module.slug}/${String(id)}`, rowDraft, {
+        editForm.setData(rowDraft);
+        editForm.put(`/sectors/${module.pillar}/${module.slug}/${String(id)}`, {
             preserveScroll: true,
             onSuccess: () => {
                 setDrafts((prev) => {
@@ -433,7 +437,7 @@ export default function SectorDetailShow({
                 onOpenChange={(open) => {
                     setCreateDialogOpen(open);
                     if (!open) {
-                        setNewData(Object.fromEntries(newColumns.map((column) => [column, ''])));
+                        createForm.reset();
                     }
                 }}
             >
@@ -460,14 +464,16 @@ export default function SectorDetailShow({
                                         </label>
                                         <input
                                             id={`new-${column}`}
-                                            value={newData[column] ?? ''}
+                                            value={createForm.data[column] ?? ''}
                                             onChange={(event) => {
-                                                setNewData({
-                                                    ...newData,
-                                                    [column]: event.target.value,
-                                                });
+                                                createForm.setData(column, event.target.value);
                                             }}
                                         />
+                                        {createForm.errors[column] && (
+                                            <p className="text-destructive text-sm">
+                                                {createForm.errors[column]}
+                                            </p>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -484,7 +490,7 @@ export default function SectorDetailShow({
                             </Button>
                             <Button
                                 type="submit"
-                                loading={isPending('create')}
+                                loading={createForm.processing}
                                 loadingText="Adding"
                             >
                                 <Plus className="size-4" /> Add row

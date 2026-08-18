@@ -44,6 +44,8 @@ final class ImpactScorecardController extends Controller
 
     public function storeMeasure(Request $request): RedirectResponse
     {
+        $this->assertAdminOrFocal($request);
+
         Validator::make($request->all(), [
             'impact' => ['required', 'string', 'max:255'],
             'measure' => ['required', 'string', 'max:255'],
@@ -72,6 +74,8 @@ final class ImpactScorecardController extends Controller
 
     public function updateMeasure(Request $request, int $measure): RedirectResponse
     {
+        $this->assertAdminOrFocal($request);
+
         Validator::make($request->all(), [
             'impact' => ['required', 'string', 'max:255'],
             'measure' => ['required', 'string', 'max:255'],
@@ -97,8 +101,12 @@ final class ImpactScorecardController extends Controller
 
     public function destroyMeasure(Request $request, int $measure): RedirectResponse
     {
-        DB::table('impact_scorecard_values')->where('measure_id', $measure)->delete();
-        DB::table('impact_scorecard_measures')->where('id', $measure)->delete();
+        $this->assertAdminOrFocal($request);
+
+        DB::transaction(function () use ($measure): void {
+            DB::table('impact_scorecard_values')->where('measure_id', $measure)->delete();
+            DB::table('impact_scorecard_measures')->where('id', $measure)->delete();
+        });
 
         $this->audit->record(
             $this->userId($request),
@@ -113,6 +121,8 @@ final class ImpactScorecardController extends Controller
 
     public function storeYear(Request $request): RedirectResponse
     {
+        $this->assertAdminOrFocal($request);
+
         Validator::make($request->all(), [
             'year' => ['required', 'integer', 'min:2000', 'max:2100'],
         ])->validate();
@@ -143,8 +153,12 @@ final class ImpactScorecardController extends Controller
 
     public function destroyYear(Request $request, int $year): RedirectResponse
     {
-        DB::table('impact_scorecard_values')->where('year_id', $year)->delete();
-        DB::table('impact_scorecard_years')->where('id', $year)->delete();
+        $this->assertAdminOrFocal($request);
+
+        DB::transaction(function () use ($year): void {
+            DB::table('impact_scorecard_values')->where('year_id', $year)->delete();
+            DB::table('impact_scorecard_years')->where('id', $year)->delete();
+        });
 
         $this->audit->record(
             $this->userId($request),
@@ -159,6 +173,12 @@ final class ImpactScorecardController extends Controller
 
     public function updateValue(Request $request, int $measure, int $year): RedirectResponse
     {
+        $this->assertAdminOrFocal($request);
+
+        Validator::make($request->all(), [
+            'value' => ['nullable', 'string', 'max:255'],
+        ])->validate();
+
         $value = $request->filled('value') ? $request->string('value')->toString() : null;
 
         DB::table('impact_scorecard_values')->updateOrInsert(
@@ -186,5 +206,11 @@ final class ImpactScorecardController extends Controller
     private function toStr(mixed $value): string
     {
         return $value === null ? '' : (string) $value;
+    }
+
+    private function assertAdminOrFocal(Request $request): void
+    {
+        $user = $request->user();
+        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
     }
 }

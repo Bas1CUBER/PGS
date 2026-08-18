@@ -15,6 +15,7 @@ use App\Services\TransitionsWorkflowService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -171,11 +172,15 @@ final class DeliverableController extends Controller
     {
         $this->authorize('delete', $deliverable);
 
-        if ($deliverable->mov_file !== null) {
-            Storage::disk('local')->delete($deliverable->mov_file);
-        }
+        $filePath = $deliverable->mov_file;
 
-        $deliverable->delete();
+        DB::transaction(function () use ($deliverable, $filePath): void {
+            $deliverable->delete();
+
+            if ($filePath !== null) {
+                Storage::disk('local')->delete($filePath);
+            }
+        });
 
         $this->audit->record(
             $this->userId($request),
@@ -206,10 +211,11 @@ final class DeliverableController extends Controller
         );
 
         $filename = Str::slug($deliverable->title ?? 'deliverable');
+        $extension = pathinfo($deliverable->mov_file, PATHINFO_EXTENSION) !== '' ? pathinfo($deliverable->mov_file, PATHINFO_EXTENSION) : 'pdf';
 
         return Storage::disk('local')->download(
             $deliverable->mov_file,
-            $filename !== '' ? $filename.'.pdf' : 'deliverable.pdf',
+            $filename !== '' ? $filename.'.'.$extension : 'deliverable.'.$extension,
         );
     }
 

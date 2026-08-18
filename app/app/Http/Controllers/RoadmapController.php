@@ -40,6 +40,9 @@ final class RoadmapController extends Controller
 
     public function storeTitle(Request $request): RedirectResponse
     {
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],
         ])->validate();
@@ -65,6 +68,9 @@ final class RoadmapController extends Controller
 
     public function updateTitle(Request $request, RoadmapTitle $title): RedirectResponse
     {
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],
         ])->validate();
@@ -84,6 +90,9 @@ final class RoadmapController extends Controller
 
     public function destroyTitle(Request $request, RoadmapTitle $title): RedirectResponse
     {
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         $title->delete();
 
         $this->audit->record(
@@ -100,7 +109,10 @@ final class RoadmapController extends Controller
 
     public function storeItem(Request $request, RoadmapTitle $title): RedirectResponse
     {
-        app(DeadlineService::class)->enforce($this->userOrFail($request));
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
+        app(DeadlineService::class)->enforce($user);
 
         Validator::make($request->all(), [
             'sub_label' => ['required', 'string', 'max:500'],
@@ -131,6 +143,9 @@ final class RoadmapController extends Controller
 
     public function updateItem(Request $request, RoadmapItem $item): RedirectResponse
     {
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         Validator::make($request->all(), [
             'sub_label' => ['required', 'string', 'max:500'],
         ])->validate();
@@ -153,6 +168,9 @@ final class RoadmapController extends Controller
 
     public function destroyItem(Request $request, RoadmapItem $item): RedirectResponse
     {
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         $item->blocks()->delete();
         $item->delete();
 
@@ -169,6 +187,9 @@ final class RoadmapController extends Controller
 
     public function storeBlock(Request $request, RoadmapItem $item): RedirectResponse
     {
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         Validator::make($request->all(), [
             'block_type' => ['required', 'in:'.implode(',', RoadmapBlockType::values())],
             'content' => ['nullable', 'array'],
@@ -196,6 +217,9 @@ final class RoadmapController extends Controller
 
     public function updateBlock(Request $request, RoadmapBlock $block): RedirectResponse
     {
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         Validator::make($request->all(), [
             'content' => ['nullable', 'array'],
         ])->validate();
@@ -215,6 +239,9 @@ final class RoadmapController extends Controller
 
     public function destroyBlock(Request $request, RoadmapBlock $block): RedirectResponse
     {
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         $block->delete();
 
         $this->audit->record(
@@ -230,26 +257,30 @@ final class RoadmapController extends Controller
 
     public function reorderItem(Request $request, RoadmapItem $item): RedirectResponse
     {
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         Validator::make($request->all(), [
             'direction' => ['required', 'in:up,down'],
         ])->validate();
 
         $direction = $request->string('direction')->toString();
-        $items = RoadmapItem::query()->where('title_id', $item->title_id)->orderBy('sort_order')->get();
-        $keys = $items->map(fn (RoadmapItem $i): int => (int) $i->getKey())->all();
-        $index = array_search((int) $item->getKey(), $keys, true);
 
-        if ($index === false) {
-            abort(404);
-        }
+        DB::transaction(function () use ($item, $direction): void {
+            $items = RoadmapItem::query()->where('title_id', $item->title_id)->orderBy('sort_order')->lockForUpdate()->get();
+            $keys = $items->map(fn (RoadmapItem $i): int => (int) $i->getKey())->all();
+            $index = array_search((int) $item->getKey(), $keys, true);
 
-        $swapIndex = $direction === 'up' ? $index - 1 : $index + 1;
+            if ($index === false) {
+                abort(404);
+            }
 
-        if ($swapIndex < 0 || $swapIndex >= count($keys)) {
-            return back();
-        }
+            $swapIndex = $direction === 'up' ? $index - 1 : $index + 1;
 
-        DB::transaction(function () use ($items, $index, $swapIndex): void {
+            if ($swapIndex < 0 || $swapIndex >= count($keys)) {
+                return;
+            }
+
             $a = $items->get($index);
             $b = $items->get($swapIndex);
 

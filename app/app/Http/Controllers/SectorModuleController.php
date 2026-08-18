@@ -133,6 +133,9 @@ final class SectorModuleController extends Controller
             abort(404);
         }
 
+        $user = $this->userOrFail($request);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
+
         Validator::make($request->all(), [
             'category' => ['required', 'string', 'max:255'],
             'year' => ['required', 'integer', 'min:2000', 'max:2100'],
@@ -228,18 +231,20 @@ final class SectorModuleController extends Controller
             abort(404);
         }
 
-        if ($request->string('decision')->toString() === 'Approved') {
-            if ($pending->change_type === 'add_row') {
-                DB::table($module['table'])->insert(['category' => $pending->category, 'year' => $pending->year, 'description' => $pending->description]);
-            } else {
-                DB::table($module['progress_table'])->updateOrInsert(
-                    ['category' => $pending->category, 'year' => $pending->year, 'month' => $pending->month],
-                    ['status' => $pending->status, 'remarks' => $pending->remarks, 'description' => $pending->description, 'updated_by' => $this->userId($request), 'updated_at' => now()],
-                );
+        DB::transaction(function () use ($request, $pending, $module, $change, $user): void {
+            if ($request->string('decision')->toString() === 'Approved') {
+                if ($pending->change_type === 'add_row') {
+                    DB::table($module['table'])->insert(['category' => $pending->category, 'year' => $pending->year, 'description' => $pending->description]);
+                } else {
+                    DB::table($module['progress_table'])->updateOrInsert(
+                        ['category' => $pending->category, 'year' => $pending->year, 'month' => $pending->month],
+                        ['status' => $pending->status, 'remarks' => $pending->remarks, 'description' => $pending->description, 'updated_by' => $user->id, 'updated_at' => now()],
+                    );
+                }
             }
-        }
 
-        DB::table('progress_pending_changes')->where('id', $change)->update(['decision' => $request->string('decision')->toString()]);
+            DB::table('progress_pending_changes')->where('id', $change)->update(['decision' => $request->string('decision')->toString()]);
+        });
 
         $submittedBy = $this->idValue($pending->submitted_by);
         $decision = $request->string('decision')->toString();

@@ -4,36 +4,24 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Enums\NotificationType;
 use App\Models\User;
 use App\Modules\UploadModuleRegistry;
 use App\Services\AuditLogService;
-use App\Services\DeadlineService;
-use App\Services\NotificationService;
-use App\Services\PageAccessService;
+use App\Services\UploadModuleService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
-/**
- * One controller serves every upload module from UploadModuleRegistry:
- * list (with status filter), upload, download, delete, and focal
- * approve/return transitions.
- */
 final class UploadModuleController extends Controller
 {
     public function __construct(
-        private readonly AuditLogService $audit,
-        private readonly NotificationService $notifications,
-        private readonly PageAccessService $access,
+        private readonly UploadModuleService $uploads,
     ) {}
 
     public function index(Request $request): Response
@@ -42,10 +30,10 @@ final class UploadModuleController extends Controller
 
         return Inertia::render('Uploads/Index', [
             'modules' => collect(UploadModuleRegistry::modules())
-                ->filter(fn (array $module, string $slug): bool => $this->canAccessSlug($user, $slug))
+                ->filter(fn (array $module, string $slug): bool => $this->uploads->canAccessSlug($user, $slug))
                 ->map(fn (array $module, string $slug): array => ['slug' => $slug] + $module)
                 ->values()
-            ->all(),
+                ->all(),
         ]);
     }
 
@@ -56,80 +44,20 @@ final class UploadModuleController extends Controller
 
     public function show(Request $request, string $slug): Response
     {
-        $module = UploadModuleRegistry::find($slug);
-
-        if ($module === null) {
-            abort(404);
-        }
-
+        $module = $this->resolveModule($slug);
         $user = $this->userOrFail($request);
-        $this->authorizeModule($user, $slug);
+        $this->assertModuleAccess($user, $slug);
 
-        $table = $module['table'];
-
-        $query = DB::table($table)
-            ->when($module['has_status'], fn ($q) => $q
-                ->when($module['status_values'] !== null && in_array($request->string('status')->toString(), $module['status_values'], true), fn ($q) => $q->where('status', $request->string('status')->toString())))
-            ->orderByDesc('uploaded_at')
-            ->paginate(20)
-            ->withQueryString();
-
-        $rowsRaw = collect($query->items())->map(static fn (object $r): array => (array) $r)->values()->all();
-        $uploaderIds = collect($rowsRaw)->pluck($module['uploader_fk'])->unique()->all();
-        $uploaders = $uploaderIds !== []
-            ? DB::table('users')->whereIn('id', $uploaderIds)->pluck('email', 'id')->all()
-            : [];
-
-        $rows = collect($rowsRaw)->map(function (array $row) use ($module, $uploaders): array {
-            $uploaderId = $this->toInt($row[$module['uploader_fk']] ?? 0);
-
-            return [
-                'id' => $this->toInt($row['id'] ?? 0),
-                'title' => $module['has_title'] ? $this->toNullableStr($row['title'] ?? null) : null,
-                'description' => $module['has_description'] ? $this->toNullableStr($row['description'] ?? null) : null,
-                'filename' => $this->toStr($row['filename'] ?? null),
-                'original_name' => $this->toStr($row['original_name'] ?? null),
-                'file_size' => $this->toInt($row['file_size'] ?? 0),
-                'status' => $module['has_status'] ? $this->toNullableStr($row['status'] ?? null) : null,
-                'uploaded_at' => $this->toStr($row['uploaded_at'] ?? null),
-                'uploader' => $uploaders[$uploaderId] ?? null,
-                'uploader_id' => $uploaderId,
-            ];
-        })->values()->all();
-
-        $stats = null;
-        if (in_array($slug, ['governance-culture', 'governance-sharing'], true)) {
-            $stats = [
-                'total' => DB::table($table)->count(),
-                'pdf' => DB::table($table)->where('doc_type', 'PDF')->count(),
-                'image' => DB::table($table)->where('doc_type', 'Image')->count(),
-                'approved' => DB::table($table)->where('status', 'Approved')->count(),
-                'in_progress' => DB::table($table)->where('status', 'In Progress')->count(),
-                'returned' => DB::table($table)->where('status', 'Returned')->count(),
-            ];
-        }
-
-        $staticTemplates = collect($module['templates'] ?? [])
-            ->filter(fn (array $template): bool => is_file(base_path('../img/'.$template['file'])))
-            ->map(fn (array $template): array => $template + ['source' => 'static', 'url' => route('legacy-img', ['name' => $template['file']], absolute: false)]);
-        $managedTemplates = DB::table('upload_module_templates')
-            ->where('slug', $slug)
-            ->orderBy('label')
-            ->get()
-            ->map(fn (object $template): array => [
-                'label' => $this->toStr($template->label),
-                'file' => $this->toStr($template->original_name),
-                'preview' => false,
-                'source' => 'managed',
-                'id' => $this->toInt($template->id),
-                'url' => $this->uploadRouteUrl($slug, 'templates.download', ['template' => $template->id]),
-            ]);
+        $statusFilter = $request->string('status')->toString();
+        $rows = $this->uploads->listRows($module, $slug, $statusFilter !== '' ? $statusFilter : null);
+        $stats = $this->uploads->governanceStats($module, $slug);
+        $templates = $this->uploads->templates($slug, $module);
 
         return Inertia::render('Uploads/Show', [
             'module' => $module + [
-                'templates' => $staticTemplates->concat($managedTemplates)->values()->all(),
-                'upload_base_url' => $this->uploadRouteUrl($slug, 'index'),
-                'template_upload_url' => $this->uploadRouteUrl($slug, 'templates.store'),
+                'templates' => $templates,
+                'upload_base_url' => $this->uploads->uploadRouteUrl($slug, 'index'),
+                'template_upload_url' => $this->uploads->uploadRouteUrl($slug, 'templates.store'),
                 'can_manage_templates' => $user->isAdmin(),
             ],
             'rows' => $rows,
@@ -138,27 +66,11 @@ final class UploadModuleController extends Controller
         ]);
     }
 
-    private function uploadRouteUrl(string $slug, string $action, array $parameters = []): string
-    {
-        $routeName = $slug.'.upload.'.$action;
-
-        if (Route::has($routeName)) {
-            return route($routeName, $parameters, absolute: false);
-        }
-
-        return route('uploads.'.$action, ['slug' => $slug] + $parameters, absolute: false);
-    }
-
     public function store(Request $request, string $slug): RedirectResponse
     {
-        $module = UploadModuleRegistry::find($slug);
-
-        if ($module === null) {
-            abort(404);
-        }
-
+        $module = $this->resolveModule($slug);
         $user = $this->userOrFail($request);
-        $this->authorizeModule($user, $slug);
+        $this->assertModuleAccess($user, $slug);
 
         Validator::make($request->all(), [
             'title' => $module['has_title'] ? ['required', 'string', 'max:255'] : ['nullable'],
@@ -172,113 +84,56 @@ final class UploadModuleController extends Controller
             ],
         ])->validate();
 
-        app(DeadlineService::class)->enforce($user);
-
         $file = $request->file('file');
 
         if ($file->getMimeType() !== 'application/zip' && (int) $file->getSize() > 25600 * 1024) {
             return back()->withErrors(['file' => 'Non-ZIP uploads must be 25 MB or smaller.']);
         }
 
-        $stored = $file->store('uploads/'.$slug, 'local');
-
-        if ($stored === false) {
-            return back()->with('error', 'Could not store the file.');
-        }
-
-        $data = [
-            'filename' => $stored,
-            'original_name' => $file->getClientOriginalName(),
-            'file_size' => $file->getSize(),
-            'mime_type' => $file->getMimeType(),
-            'uploaded_at' => now(),
-            $module['uploader_fk'] => $user->id,
-        ];
-
+        $data = [];
         if ($module['has_title']) {
             $data['title'] = $request->string('title')->toString();
         }
-
         if ($module['has_description']) {
             $data['description'] = $request->filled('description') ? $request->string('description')->toString() : null;
         }
 
-        if ($module['has_status']) {
-            $data['status'] = $this->initialStatus($module);
+        try {
+            $this->uploads->storeUpload($module, $user, $file, $data, $slug);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        if (Schema::hasColumn($module['table'], 'doc_type')) {
-            $data['doc_type'] = str_starts_with((string) $file->getMimeType(), 'image/') ? 'Image' : 'PDF';
-        }
-
-        $id = DB::table($module['table'])->insertGetId($data);
-
-        $this->audit->record(
-            $user->id,
-            "upload.{$slug}.created",
-            $module['table'],
-            (string) $id,
-            request: $request,
-        );
-
-        $this->notifications->createForRolesExcept(
-            ['admin', 'focal'],
-            $user->id,
-            NotificationType::Upload,
-            'New upload submitted',
-            $user->email.' submitted a new '.$module['singular'].' in '.$module['label'].'.',
-            $id,
-            $module['table'],
-        );
-
-        return back()->with('success', ucfirst($module['singular']).' uploaded.');
+        return back()->with('success', ucfirst((string) $module['singular']).' uploaded.');
     }
 
     public function download(Request $request, string $slug, int $id): SymfonyResponse
     {
-        $module = UploadModuleRegistry::find($slug);
-
-        if ($module === null) {
-            abort(404);
-        }
-
-        $this->authorizeModule($this->userOrFail($request), $slug);
+        $module = $this->resolveModule($slug);
+        $this->assertModuleAccess($this->userOrFail($request), $slug);
 
         $row = DB::table($module['table'])->where('id', $id)->first();
-
         if ($row === null) {
             abort(404);
         }
 
-        $disk = Storage::disk('local');
         $rowArr = (array) $row;
-        $name = $this->toStr($rowArr['original_name'] ?? 'file');
-        $path = $this->toStr($rowArr['filename'] ?? '');
+        $name = (string) ($rowArr['original_name'] ?? 'file');
+        $path = (string) ($rowArr['filename'] ?? '');
+        $safe = $this->uploads->safeFilename($name);
 
+        $disk = Storage::disk('local');
         if ($path !== '' && $disk->exists($path)) {
-            $this->audit->record(
-                $this->userOrFail($request)->id,
-                "upload.{$slug}.downloaded",
-                $module['table'],
-                (string) $id,
-                request: $request,
-            );
+            $this->recordAudit($request, $slug, $id, 'downloaded', $module['table']);
 
-            return $disk->download($path, $this->safeFilename($name));
+            return $disk->download($path, $safe);
         }
 
-        // Legacy files live outside the app storage (repo ../uploads).
-        $legacy = $this->legacyPath($path);
+        $legacy = $this->uploads->legacyPath($path);
         if ($legacy !== null) {
-            $this->audit->record(
-                $this->userOrFail($request)->id,
-                "upload.{$slug}.downloaded",
-                $module['table'],
-                (string) $id,
-                request: $request,
-            );
+            $this->recordAudit($request, $slug, $id, 'downloaded', $module['table']);
 
-            return response()->download($legacy, $this->safeFilename($name));
+            return response()->download($legacy, $safe);
         }
 
         abort(404);
@@ -286,100 +141,43 @@ final class UploadModuleController extends Controller
 
     public function destroy(Request $request, string $slug, int $id): RedirectResponse
     {
-        $module = UploadModuleRegistry::find($slug);
-
-        if ($module === null) {
-            abort(404);
-        }
-
-        $this->authorizeModule($this->userOrFail($request), $slug);
-
-        $row = DB::table($module['table'])->where('id', $id)->first();
-
-        if ($row === null) {
-            abort(404);
-        }
-
-        $rowArr = (array) $row;
+        $module = $this->resolveModule($slug);
         $user = $this->userOrFail($request);
-        $ownerId = $this->toInt($rowArr[$module['uploader_fk']] ?? 0);
+        $this->assertModuleAccess($user, $slug);
 
-        if (! $user->isAdmin() && ! $user->isFocal() && $ownerId !== $user->id) {
-            abort(403);
-        }
+        $this->uploads->deleteUpload($module, $user, $id, $slug);
 
-        if ($this->toStr($rowArr['filename'] ?? null) !== '') {
-            Storage::disk('local')->delete($this->toStr($rowArr['filename'] ?? null));
-        }
-
-        DB::table($module['table'])->where('id', $id)->delete();
-
-        $this->audit->record(
-            $this->userOrFail($request)->id,
-            "upload.{$slug}.deleted",
-            $module['table'],
-            (string) $id,
-            request: $request,
-        );
-
-        return back()->with('success', ucfirst($module['singular']).' deleted.');
+        return back()->with('success', ucfirst((string) $module['singular']).' deleted.');
     }
 
     public function updateStatus(Request $request, string $slug, int $id): RedirectResponse
     {
-        $module = UploadModuleRegistry::find($slug);
+        $module = $this->resolveModule($slug);
 
-        if ($module === null || ! $module['has_status']) {
+        if (! $module['has_status']) {
             abort(404);
         }
 
         $user = $this->userOrFail($request);
-        $this->authorizeModule($user, $slug);
+        $this->assertModuleAccess($user, $slug);
 
         if (! $user->isAdmin() && ! $user->isFocal()) {
             abort(403);
         }
 
         Validator::make($request->all(), [
-            'status' => ['required', 'in:'.implode(',', $module['status_values'] ?? [])],
+            'status' => ['required', 'in:'.implode(',', (array) ($module['status_values'] ?? []))],
         ])->validate();
 
-        $row = DB::table($module['table'])->where('id', $id)->first();
-
-        if ($row === null) {
-            abort(404);
-        }
-
-        $status = $request->string('status')->toString();
-        DB::table($module['table'])->where('id', $id)->update([
-            'status' => $status,
-            'status_updated_at' => now(),
-        ]);
-
-        $this->audit->record(
-            $this->userOrFail($request)->id,
-            "upload.{$slug}.status",
-            $module['table'],
-            (string) $id,
-            before: ['status' => $row->status ?? null],
-            after: ['status' => $request->string('status')->toString()],
-            request: $request,
-        );
-
-        $ownerId = $this->toInt(((array) $row)[$module['uploader_fk']] ?? 0);
-        $type = $status === 'Approved' ? NotificationType::Approved : ($status === 'Returned' ? NotificationType::Returned : NotificationType::Edit);
-        if ($ownerId > 0 && $ownerId !== $user->id) {
-            $this->notifications->create($ownerId, $type, 'Upload status updated', "Your {$module['singular']} in {$module['label']} is now {$status}.", $id, $module['table']);
-        }
+        $this->uploads->updateStatus($module, $user, $id, $request->string('status')->toString(), $slug);
 
         return back()->with('success', 'Status updated.');
     }
 
     public function templateStore(Request $request, string $slug): RedirectResponse
     {
-        $module = UploadModuleRegistry::find($slug);
+        $module = $this->resolveModule($slug);
         $user = $this->userOrFail($request);
-        abort_if($module === null, 404);
         abort_unless($user->isAdmin(), 403);
 
         Validator::make($request->all(), [
@@ -387,79 +185,68 @@ final class UploadModuleController extends Controller
             'file' => ['required', 'file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx', 'max:51200'],
         ])->validate();
 
-        $existing = DB::table('upload_module_templates')->where('slug', $slug)->where('label', $request->string('label')->toString())->first();
-        if ($existing !== null) {
-            Storage::disk('local')->delete($this->toStr($existing->filename));
-        }
-
-        $path = $request->file('file')->store('templates/'.$slug, 'local');
-        abort_if($path === false, 500, 'Could not store the template.');
-
-        DB::table('upload_module_templates')->updateOrInsert(
-            ['slug' => $slug, 'label' => $request->string('label')->toString()],
-            [
-                'filename' => $path,
-                'original_name' => $request->file('file')->getClientOriginalName(),
-                'uploaded_by' => $user->id,
-                'updated_at' => now(),
-                'created_at' => $existing !== null && isset($existing->created_at) ? $existing->created_at : now(),
-            ],
-        );
+        $this->uploads->storeTemplate($user, $slug, $request->string('label')->toString(), $request->file('file'));
 
         return back()->with('success', 'Template saved.');
     }
 
     public function templateDownload(Request $request, string $slug, int $template): SymfonyResponse
     {
-        $module = UploadModuleRegistry::find($slug);
-        $user = $this->userOrFail($request);
-        abort_if($module === null, 404);
-        $this->authorizeModule($user, $slug);
-        $row = DB::table('upload_module_templates')->where('id', $template)->where('slug', $slug)->first();
-        abort_if($row === null || ! Storage::disk('local')->exists($this->toStr($row->filename)), 404);
+        $module = $this->resolveModule($slug);
+        $this->assertModuleAccess($this->userOrFail($request), $slug);
 
-        return Storage::disk('local')->download($this->toStr($row->filename), $this->safeFilename($this->toStr($row->original_name)));
+        $row = $this->uploads->findTemplate($slug, $template);
+        if ($row === null) {
+            abort(404);
+        }
+        $rowFilename = (string) $row->filename;
+        if (! Storage::disk('local')->exists($rowFilename)) {
+            abort(404);
+        }
+
+        return Storage::disk('local')->download(
+            $rowFilename,
+            $this->uploads->safeFilename((string) $row->original_name),
+        );
     }
 
     public function templateDestroy(Request $request, string $slug, int $template): RedirectResponse
     {
-        $module = UploadModuleRegistry::find($slug);
+        $module = $this->resolveModule($slug);
         $user = $this->userOrFail($request);
-        abort_if($module === null, 404);
         abort_unless($user->isAdmin(), 403);
-        $row = DB::table('upload_module_templates')->where('id', $template)->where('slug', $slug)->first();
-        abort_if($row === null, 404);
-        Storage::disk('local')->delete($this->toStr($row->filename));
-        DB::table('upload_module_templates')->where('id', $template)->delete();
+
+        $this->uploads->deleteTemplate($slug, $template);
 
         return back()->with('success', 'Template removed.');
     }
 
-    private function authorizeModule(User $user, string $slug): void
+    private function resolveModule(string $slug): array
     {
-        abort_unless($this->canAccessSlug($user, $slug), 403);
-    }
+        $module = UploadModuleRegistry::find($slug);
 
-    private function canAccessSlug(User $user, string $slug): bool
-    {
-        $gate = match ($slug) {
-            'resources', 'cascading-activities', 'communication-plan' => 'cascading',
-            'governance-culture', 'governance-sharing' => 'governance',
-            'operations-review', 'strategy-review', 'strategy-refresh' => 'performance_assessment',
-            default => null,
-        };
-
-        return $gate === null || ! $this->access->hasMatrix($user) || $this->access->can($user, $gate);
-    }
-
-    /** @param array{status_values: list<string>|null, slug?: string} $module */
-    private function initialStatus(array $module): string
-    {
-        if (($module['slug'] ?? '') === 'governance-culture' || ($module['slug'] ?? '') === 'governance-sharing') {
-            return 'In Progress';
+        if ($module === null) {
+            abort(404);
         }
 
-        return in_array('Pending', $module['status_values'] ?? [], true) ? 'Pending' : (($module['status_values'] ?? [])[0] ?? 'Pending');
+        return $module;
+    }
+
+    private function assertModuleAccess(User $user, string $slug): void
+    {
+        abort_unless($this->uploads->canAccessSlug($user, $slug), 403);
+    }
+
+    private function recordAudit(Request $request, string $slug, int $id, string $action, string $table): void
+    {
+        $user = $this->userOrFail($request);
+        app(AuditLogService::class)->record(
+            $user->id,
+            "upload.{$slug}.{$action}",
+            $table,
+            (string) $id,
+            request: $request,
+        );
     }
 
     /**
@@ -474,46 +261,5 @@ final class UploadModuleController extends Controller
         }
 
         return $user;
-    }
-
-    private function toStr(mixed $value): string
-    {
-        return $value === null ? '' : (string) $value;
-    }
-
-    private function toNullableStr(mixed $value): ?string
-    {
-        return $value === null ? null : (string) $value;
-    }
-
-    private function toInt(mixed $value): int
-    {
-        return (int) $value;
-    }
-
-    private function safeFilename(string $name): string
-    {
-        $name = basename(str_replace(["\r", "\n"], '', trim($name)));
-
-        return $name !== '' && $name !== '.' && $name !== '..' ? $name : 'file';
-    }
-
-    private function legacyPath(string $path): ?string
-    {
-        $root = realpath(base_path('../uploads'));
-
-        if ($root === false || $path === '') {
-            return null;
-        }
-
-        $relative = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($path, '/\\'));
-        $candidate = realpath($root.DIRECTORY_SEPARATOR.$relative);
-        $prefix = rtrim($root, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
-
-        if ($candidate === false || ! is_file($candidate) || ! str_starts_with($candidate, $prefix)) {
-            return null;
-        }
-
-        return $candidate;
     }
 }

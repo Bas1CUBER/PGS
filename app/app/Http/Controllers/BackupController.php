@@ -23,6 +23,8 @@ final class BackupController extends Controller
 
     public function index(): Response
     {
+        abort_unless(($user = auth()->user()) !== null && $user->isAdmin(), 403);
+
         $backups = [];
 
         foreach (config('backup.backup.destination.disks', []) as $disk) {
@@ -47,6 +49,9 @@ final class BackupController extends Controller
 
     public function create(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user !== null && $user->isAdmin(), 403);
+
         if (app()->isProduction() && blank(config('backup.backup.password'))) {
             return back()->with('error', 'Backup encryption is not configured. Set BACKUP_ARCHIVE_PASSWORD before creating a production backup.');
         }
@@ -66,6 +71,9 @@ final class BackupController extends Controller
 
     public function download(Request $request, string $disk, string $path): StreamedResponse
     {
+        $user = $request->user();
+        abort_unless($user !== null && $user->isAdmin(), 403);
+
         if (! in_array($disk, config('backup.backup.destination.disks', []), true)) {
             abort(404);
         }
@@ -87,6 +95,9 @@ final class BackupController extends Controller
 
     public function destroy(Request $request, string $disk, string $path): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user !== null && $user->isAdmin(), 403);
+
         if (! in_array($disk, config('backup.backup.destination.disks', []), true)) {
             abort(404);
         }

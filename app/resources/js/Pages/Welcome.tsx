@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { HeartPulse, LogIn, Megaphone, UserPlus } from 'lucide-react';
+import { HeartPulse, LogIn, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { PageProps } from '@/types';
@@ -14,10 +14,9 @@ interface Notice {
 interface WelcomePageProps extends PageProps {
     notices: Notice[];
     canLogin: boolean;
-    canRegister: boolean;
 }
 
-export default function Welcome({ notices, canLogin, canRegister }: WelcomePageProps) {
+export default function Welcome({ notices, canLogin }: WelcomePageProps) {
     const { auth } = usePage().props;
     const user = auth.user;
 
@@ -25,7 +24,7 @@ export default function Welcome({ notices, canLogin, canRegister }: WelcomePageP
         <>
             <Head title="Welcome" />
 
-            <div className="ui-kit pgs-welcome-page relative min-h-screen overflow-hidden text-white">
+            <main className="ui-kit pgs-welcome-page relative min-h-screen overflow-hidden text-white">
                 <div className="pointer-events-none absolute -top-40 -right-32 size-[32rem] rounded-full bg-white/10 blur-3xl" />
                 <div className="pointer-events-none absolute -bottom-48 -left-32 size-[32rem] rounded-full bg-white/10 blur-3xl" />
 
@@ -60,19 +59,6 @@ export default function Welcome({ notices, canLogin, canRegister }: WelcomePageP
                                         <Link href={route('login', undefined, false)}>
                                             <LogIn className="size-4" />
                                             Sign in
-                                        </Link>
-                                    </Button>
-                                )}
-                                {canRegister && (
-                                    <Button
-                                        asChild
-                                        size="lg"
-                                        variant="outline"
-                                        className="border-white/40 bg-white/10 text-white hover:bg-white/20"
-                                    >
-                                        <Link href={route('register', undefined, false)}>
-                                            <UserPlus className="size-4" />
-                                            Register
                                         </Link>
                                     </Button>
                                 )}
@@ -121,7 +107,7 @@ export default function Welcome({ notices, canLogin, canRegister }: WelcomePageP
                         Department of Health
                     </p>
                 </div>
-            </div>
+            </main>
         </>
     );
 }

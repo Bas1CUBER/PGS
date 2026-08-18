@@ -136,25 +136,27 @@ final class NoticeController extends Controller
     private function storeMedia(Request $request, Notice $notice): void
     {
         $disk = Storage::disk('public');
+        $dirty = false;
 
         foreach (['image', 'video'] as $kind) {
             if (! $request->hasFile($kind)) {
                 continue;
             }
 
-            $oldPath = $notice->{$kind};
-            if (is_string($oldPath)) {
-                $disk->delete($oldPath);
-            }
-
             $stored = $request->file($kind)?->store('notices', 'public');
 
             if (is_string($stored)) {
+                $oldPath = $notice->{$kind};
                 $notice->{$kind} = $stored;
+                $dirty = true;
+
+                if (is_string($oldPath)) {
+                    $disk->delete($oldPath);
+                }
             }
         }
 
-        if ($notice->isDirty(['image', 'video'])) {
+        if ($dirty) {
             $notice->save();
         }
     }

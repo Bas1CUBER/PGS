@@ -289,7 +289,11 @@ export default function ContentShow({
                             <CardTitle>User access matrix</CardTitle>
                         </CardHeader>
                         <CardContent className="overflow-x-auto">
-                            <AccessTable matrix={structuredContent as AccessMatrix} />
+                            {structuredContent !== null && typeof structuredContent === 'object' && !Array.isArray(structuredContent) && 'columns' in structuredContent && 'rows' in structuredContent ? (
+                                <AccessTable matrix={structuredContent as AccessMatrix} />
+                            ) : (
+                                <p className="text-muted-foreground text-sm">Access matrix not available.</p>
+                            )}
                             {canManage && (
                                 <div className="mt-6 space-y-3">
                                     <div className="flex items-center gap-2">

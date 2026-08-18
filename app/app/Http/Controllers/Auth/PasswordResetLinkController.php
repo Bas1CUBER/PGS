@@ -15,7 +15,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
 
-class PasswordResetLinkController extends Controller
+final class PasswordResetLinkController extends Controller
 {
     public function __construct(
         private readonly PasswordResetCodeService $passwordResetCodes,
@@ -39,7 +39,7 @@ class PasswordResetLinkController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = Validator::make($request->all(), [
-            'email' => 'required|email',
+            'email' => ['required', 'email'],
         ])->validate();
 
         $email = Str::lower(trim($request->string('email')->toString()));

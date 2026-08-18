@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     Archive,
@@ -47,8 +47,7 @@ interface SurveysPageProps extends PageProps {
 
 export default function SurveysIndex({ surveys, archived, canManage }: SurveysPageProps) {
     const { isPending, start, finish } = usePendingAction();
-    const [title, setTitle] = useState('');
-    const [url, setUrl] = useState('');
+    const form = useForm({ title: '', url: '' });
     const [editing, setEditing] = useState<SurveyRow | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<SurveyRow | null>(null);
 
@@ -68,39 +67,22 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
 
     function createSurvey(e: { preventDefault(): void }): void {
         e.preventDefault();
-        start('create');
-        router.post(
-            '/surveys',
-            { title, url },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setTitle('');
-                    setUrl('');
-                },
-                onFinish: () => {
-                    finish('create');
-                },
+        form.post('/surveys', {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.reset();
             },
-        );
+        });
     }
 
     function saveEdit(): void {
         if (editing === null) return;
-        start('save');
-        router.put(
-            `/surveys/${String(editing.id)}`,
-            { title, url },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setEditing(null);
-                },
-                onFinish: () => {
-                    finish('save');
-                },
+        form.put(`/surveys/${String(editing.id)}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditing(null);
             },
-        );
+        });
     }
 
     function archiveSurvey(survey: SurveyRow): void {
@@ -151,29 +133,35 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                                     <Label htmlFor="survey-title">Title</Label>
                                     <Input
                                         id="survey-title"
-                                        value={title}
+                                        value={form.data.title}
                                         onChange={(e) => {
-                                            setTitle(e.target.value);
+                                            form.setData('title', e.target.value);
                                         }}
                                         required
                                     />
+                                    {form.errors.title && (
+                                        <p className="text-destructive text-sm">{form.errors.title}</p>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="survey-url">Survey URL</Label>
                                     <Input
                                         id="survey-url"
                                         type="url"
-                                        value={url}
+                                        value={form.data.url}
                                         onChange={(e) => {
-                                            setUrl(e.target.value);
+                                            form.setData('url', e.target.value);
                                         }}
                                         placeholder="https://..."
                                         required
                                     />
+                                    {form.errors.url && (
+                                        <p className="text-destructive text-sm">{form.errors.url}</p>
+                                    )}
                                 </div>
                                 <Button
                                     type="submit"
-                                    loading={isPending('create')}
+                                    loading={form.processing}
                                     loadingText="Publishing"
                                 >
                                     <Plus className="size-4" /> Publish
@@ -260,8 +248,10 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                                             aria-label="Edit survey"
                                             onClick={() => {
                                                 setEditing(survey);
-                                                setTitle(survey.title);
-                                                setUrl(survey.url);
+                                                form.setData({
+                                                    title: survey.title,
+                                                    url: survey.url,
+                                                });
                                             }}
                                         >
                                             <Pencil className="size-4" />
@@ -339,22 +329,28 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                             <Label htmlFor="edit-survey-title">Title</Label>
                             <Input
                                 id="edit-survey-title"
-                                value={title}
+                                value={form.data.title}
                                 onChange={(e) => {
-                                    setTitle(e.target.value);
+                                    form.setData('title', e.target.value);
                                 }}
                             />
+                            {form.errors.title && (
+                                <p className="text-destructive text-sm">{form.errors.title}</p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="edit-survey-url">Survey URL</Label>
                             <Input
                                 id="edit-survey-url"
                                 type="url"
-                                value={url}
+                                value={form.data.url}
                                 onChange={(e) => {
-                                    setUrl(e.target.value);
+                                    form.setData('url', e.target.value);
                                 }}
                             />
+                            {form.errors.url && (
+                                <p className="text-destructive text-sm">{form.errors.url}</p>
+                            )}
                         </div>
                     </DialogBody>
                     <DialogFooter>
@@ -366,7 +362,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                         >
                             Cancel
                         </Button>
-                        <Button onClick={saveEdit} loading={isPending('save')} loadingText="Saving">
+                        <Button onClick={saveEdit} loading={form.processing} loadingText="Saving">
                             Save changes
                         </Button>
                     </DialogFooter>

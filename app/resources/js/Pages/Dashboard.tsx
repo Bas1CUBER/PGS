@@ -349,7 +349,7 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                                                 {notice.image_url !== null && (
                                                     <img
                                                         src={notice.image_url}
-                                                        alt=""
+                                                        alt={notice.title ?? 'Notice image'}
                                                         className="size-12 rounded object-cover"
                                                     />
                                                 )}

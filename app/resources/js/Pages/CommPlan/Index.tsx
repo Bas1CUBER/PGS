@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { FileUp, Plus, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -47,13 +47,16 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: CommPlanPageProps) {
-    const [objective, setObjective] = useState('');
-    const [channel, setChannel] = useState('');
-    const [timeframe, setTimeframe] = useState('');
-    const [responsible, setResponsible] = useState('');
-    const [message, setMessage] = useState('');
-    const [audience, setAudience] = useState('');
-    const [requirements, setRequirements] = useState('');
+    const form = useForm({
+        objective: '',
+        channel: '',
+        timeframe: '',
+        responsible_person: '',
+        message: '',
+        target_audience: '',
+        requirements: '',
+    });
+
     const [editing, setEditing] = useState<CommPlanRow | null>(null);
     const [formOpen, setFormOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<CommPlanRow | null>(null);
@@ -62,75 +65,39 @@ export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: Co
 
     function create(e: { preventDefault(): void }): void {
         e.preventDefault();
-        start('create');
-        router.post(
-            '/communication-plan',
-            {
-                objective,
-                channel,
-                timeframe,
-                responsible_person: responsible,
-                message,
-                target_audience: audience,
-                requirements,
+        form.post('/communication-plan', {
+            preserveScroll: true,
+            onSuccess: () => {
+                setFormOpen(false);
+                form.reset();
             },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setFormOpen(false);
-                    setObjective('');
-                    setChannel('');
-                    setTimeframe('');
-                    setResponsible('');
-                    setMessage('');
-                    setAudience('');
-                    setRequirements('');
-                },
-                onFinish: () => {
-                    finish('create');
-                },
-            },
-        );
+        });
     }
 
     function openEdit(row: CommPlanRow): void {
         setEditing(row);
         setFormOpen(true);
-        setObjective(row.objective);
-        setChannel(row.channel ?? '');
-        setTimeframe(row.timeframe ?? '');
-        setResponsible(row.responsible_person ?? '');
-        setMessage(row.message ?? '');
-        setAudience(row.target_audience ?? '');
-        setRequirements(row.requirements ?? '');
+        form.setData({
+            objective: row.objective,
+            channel: row.channel ?? '',
+            timeframe: row.timeframe ?? '',
+            responsible_person: row.responsible_person ?? '',
+            message: row.message ?? '',
+            target_audience: row.target_audience ?? '',
+            requirements: row.requirements ?? '',
+        });
     }
 
     function saveEdit(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (editing === null) return;
-        start('save');
-        router.put(
-            `/communication-plan/${String(editing.id)}`,
-            {
-                objective,
-                channel,
-                timeframe,
-                responsible_person: responsible,
-                message,
-                target_audience: audience,
-                requirements,
+        form.put(`/communication-plan/${String(editing.id)}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditing(null);
+                setFormOpen(false);
             },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setEditing(null);
-                    setFormOpen(false);
-                },
-                onFinish: () => {
-                    finish('save');
-                },
-            },
-        );
+        });
     }
 
     function setStatus(id: number, status: string): void {
@@ -177,45 +144,57 @@ export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: Co
                 <Label htmlFor="objective">Objective</Label>
                 <textarea
                     id="objective"
-                    value={objective}
+                    value={form.data.objective}
                     onChange={(e) => {
-                        setObjective(e.target.value);
+                        form.setData('objective', e.target.value);
                     }}
                     rows={2}
                     className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                     required
                 />
+                {form.errors.objective && (
+                    <p className="text-destructive text-sm">{form.errors.objective}</p>
+                )}
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-2">
                     <Label htmlFor="channel">Channel</Label>
                     <Input
                         id="channel"
-                        value={channel}
+                        value={form.data.channel}
                         onChange={(e) => {
-                            setChannel(e.target.value);
+                            form.setData('channel', e.target.value);
                         }}
                     />
+                    {form.errors.channel && (
+                        <p className="text-destructive text-sm">{form.errors.channel}</p>
+                    )}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="timeframe">Timeframe</Label>
                     <Input
                         id="timeframe"
-                        value={timeframe}
+                        value={form.data.timeframe}
                         onChange={(e) => {
-                            setTimeframe(e.target.value);
+                            form.setData('timeframe', e.target.value);
                         }}
                     />
+                    {form.errors.timeframe && (
+                        <p className="text-destructive text-sm">{form.errors.timeframe}</p>
+                    )}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="responsible">Responsible person</Label>
                     <Input
                         id="responsible"
-                        value={responsible}
+                        value={form.data.responsible_person}
                         onChange={(e) => {
-                            setResponsible(e.target.value);
+                            form.setData('responsible_person', e.target.value);
                         }}
                     />
+                    {form.errors.responsible_person && (
+                        <p className="text-destructive text-sm">{form.errors.responsible_person}</p>
+                    )}
                 </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -223,34 +202,43 @@ export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: Co
                     <Label htmlFor="audience">Target audience</Label>
                     <Input
                         id="audience"
-                        value={audience}
+                        value={form.data.target_audience}
                         onChange={(e) => {
-                            setAudience(e.target.value);
+                            form.setData('target_audience', e.target.value);
                         }}
                     />
+                    {form.errors.target_audience && (
+                        <p className="text-destructive text-sm">{form.errors.target_audience}</p>
+                    )}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="requirements">Requirements</Label>
                     <Input
                         id="requirements"
-                        value={requirements}
+                        value={form.data.requirements}
                         onChange={(e) => {
-                            setRequirements(e.target.value);
+                            form.setData('requirements', e.target.value);
                         }}
                     />
+                    {form.errors.requirements && (
+                        <p className="text-destructive text-sm">{form.errors.requirements}</p>
+                    )}
                 </div>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="message">Message</Label>
                 <textarea
                     id="message"
-                    value={message}
+                    value={form.data.message}
                     onChange={(e) => {
-                        setMessage(e.target.value);
+                        form.setData('message', e.target.value);
                     }}
                     rows={2}
                     className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                 />
+                {form.errors.message && (
+                    <p className="text-destructive text-sm">{form.errors.message}</p>
+                )}
             </div>
         </>
     );
@@ -272,6 +260,7 @@ export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: Co
                         type="button"
                         onClick={() => {
                             setEditing(null);
+                            form.reset();
                             setFormOpen(true);
                         }}
                     >
@@ -403,7 +392,7 @@ export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: Co
                             </Button>
                             <Button
                                 type="submit"
-                                loading={isPending(editing === null ? 'create' : 'save')}
+                                loading={form.processing}
                                 loadingText={editing === null ? 'Adding' : 'Saving'}
                             >
                                 <Plus className="size-4" />

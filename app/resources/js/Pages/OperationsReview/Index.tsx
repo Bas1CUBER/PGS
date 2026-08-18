@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { ClipboardCheck, Download, FileUp, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { Button } from '@/components/ui/button';
@@ -67,7 +67,7 @@ export default function OperationsReviewIndex({
     userId,
     canEditAny,
 }: OperationsReviewProps) {
-    const [data, setData] = useState<FormData>(() => blankForm(fields));
+    const form = useForm(blankForm(fields));
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formOpen, setFormOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Review | null>(null);
@@ -75,32 +75,28 @@ export default function OperationsReviewIndex({
 
     function save(): void {
         start('save');
-        const request =
-            editingId === null
-                ? () => {
-                      router.post('/operations-review', data, options);
-                  }
-                : () => {
-                      router.put(`/operations-review/${String(editingId)}`, data, options);
-                  };
-        request();
-    }
+        const options = {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.reset();
+                setEditingId(null);
+                setFormOpen(false);
+            },
+            onFinish: () => {
+                finish('save');
+            },
+        };
 
-    const options = {
-        preserveScroll: true,
-        onSuccess: () => {
-            setData(blankForm(fields));
-            setEditingId(null);
-            setFormOpen(false);
-        },
-        onFinish: () => {
-            finish('save');
-        },
-    };
+        if (editingId === null) {
+            form.post('/operations-review', options);
+        } else {
+            form.put(`/operations-review/${String(editingId)}`, options);
+        }
+    }
 
     function edit(review: Review): void {
         setEditingId(review.id);
-        setData({ ...blankForm(fields), ...review.data });
+        form.setData({ ...blankForm(fields), ...review.data });
         setFormOpen(true);
     }
 
@@ -117,7 +113,7 @@ export default function OperationsReviewIndex({
     }
 
     function field(name: string, area = false): ReactElement {
-        const value = data[name] ?? '';
+        const value = form.data[name] ?? '';
         return (
             <div className={area ? 'space-y-2 md:col-span-2' : 'space-y-2'}>
                 <label className="text-xs font-semibold" htmlFor={`operations-${name}`}>
@@ -128,7 +124,7 @@ export default function OperationsReviewIndex({
                         id={`operations-${name}`}
                         value={value}
                         onChange={(event) => {
-                            setData({ ...data, [name]: event.target.value });
+                            form.setData(name, event.target.value);
                         }}
                         rows={3}
                         className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
@@ -138,10 +134,13 @@ export default function OperationsReviewIndex({
                         id={`operations-${name}`}
                         value={value}
                         onChange={(event) => {
-                            setData({ ...data, [name]: event.target.value });
+                            form.setData(name, event.target.value);
                         }}
                         required={['department', 'head_deputy', 'documenter'].includes(name)}
                     />
+                )}
+                {form.errors[name] && (
+                    <p className="text-destructive text-sm">{form.errors[name]}</p>
                 )}
             </div>
         );
@@ -175,7 +174,7 @@ export default function OperationsReviewIndex({
                                 type="button"
                                 onClick={() => {
                                     setEditingId(null);
-                                    setData(blankForm(fields));
+                                    form.reset();
                                     setFormOpen(true);
                                 }}
                             >
@@ -264,7 +263,7 @@ export default function OperationsReviewIndex({
                     setFormOpen(open);
                     if (!open) {
                         setEditingId(null);
-                        setData(blankForm(fields));
+                        form.reset();
                     }
                 }}
             >
@@ -324,7 +323,7 @@ export default function OperationsReviewIndex({
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" loading={isPending('save')} loadingText="Saving">
+                            <Button type="submit" loading={form.processing} loadingText="Saving">
                                 <Save className="size-4" /> Save review
                             </Button>
                         </DialogFooter>

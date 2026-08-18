@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { ArrowLeft, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
+import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface CreateUserPageProps extends PageProps {
     roles: string[];
@@ -30,8 +31,8 @@ const accessLabels: Record<string, string> = {
 
 export default function CreateUser({ roles, accessModules }: CreateUserPageProps) {
     const [importFile, setImportFile] = useState<File | null>(null);
-    const [importing, setImporting] = useState(false);
     const [importReport, setImportReport] = useState<ImportReport | null>(null);
+    const { isPending, start, finish } = usePendingAction();
 
     const { data, setData, post, processing, errors } = useForm({
         name: '',
@@ -59,19 +60,28 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
         form.append('file', importFile);
         form.append('dry_run', dryRun ? '1' : '0');
 
-        setImporting(true);
+        start('import');
         try {
             const response = await fetch('/users/import', {
                 method: 'POST',
-                headers: { Accept: 'application/json' },
+                headers: {
+                    Accept: 'application/json',
+                    'X-XSRF-TOKEN': decodeURIComponent(
+                        document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '',
+                    ),
+                },
                 body: form,
             });
+            if (!response.ok) {
+                setImportReport({ total: 0, created: 0, errors: [{ line: 0, message: `Import failed (${String(response.status)})` }] });
+                return;
+            }
             const payload = (await response.json()) as ImportReport;
             setImportReport(payload);
         } catch {
-            setImportReport(null);
+            setImportReport({ total: 0, created: 0, errors: [{ line: 0, message: 'Network error — please try again.' }] });
         } finally {
-            setImporting(false);
+            finish('import');
         }
     }
 
@@ -203,18 +213,21 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                                             key={module}
                                             className={cn(
                                                 'flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm',
-                                                data[module as keyof typeof data] &&
+                                                module in data &&
+                                                    Boolean(data[module as keyof typeof data]) &&
                                                     'border-primary bg-accent',
                                             )}
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={Boolean(data[module as keyof typeof data])}
+                                                checked={module in data ? Boolean(data[module as keyof typeof data]) : false}
                                                 onChange={(e) => {
-                                                    setData(
-                                                        module as keyof typeof data,
-                                                        e.target.checked,
-                                                    );
+                                                    if (module in data) {
+                                                        setData(
+                                                            module as keyof typeof data,
+                                                            e.target.checked,
+                                                        );
+                                                    }
                                                 }}
                                             />
                                             {accessLabels[module] ?? module}
@@ -259,18 +272,18 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    loading={importing}
+                                    loading={isPending('import')}
                                     loadingText="Checking"
-                                    disabled={importFile === null || importing}
+                                    disabled={importFile === null || isPending('import')}
                                     onClick={() => void runImport(true)}
                                 >
                                     Dry run
                                 </Button>
                                 <Button
                                     size="sm"
-                                    loading={importing}
+                                    loading={isPending('import')}
                                     loadingText="Importing"
-                                    disabled={importFile === null || importing}
+                                    disabled={importFile === null || isPending('import')}
                                     onClick={() => void runImport(false)}
                                 >
                                     <Upload className="size-4" />
