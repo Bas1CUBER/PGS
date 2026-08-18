@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DeadlineControl;
 use App\Services\AuditLogService;
+use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,9 +23,10 @@ final class DeadlineController extends Controller
 
     public function index(): Response
     {
-        $deadlines = DeadlineControl::query()
+        $deadlines = CacheInvalidationService::remember('deadline', 'index', static fn () => DeadlineControl::query()
             ->orderBy('role')
-            ->get();
+            ->get()
+            ->all(), 60);
 
         return Inertia::render('Deadlines/Index', [
             'deadlines' => $deadlines,
@@ -55,6 +57,7 @@ final class DeadlineController extends Controller
         $deadline->save();
 
         Cache::forget("pgs_deadline_{$role}");
+        CacheInvalidationService::invalidate('deadline');
 
         $this->audit->record(
             $this->userId($request),

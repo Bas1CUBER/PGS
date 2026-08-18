@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Jobs\RunBackupJob;
 use App\Services\AuditLogService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
@@ -56,7 +57,7 @@ final class BackupController extends Controller
             return back()->with('error', 'Backup encryption is not configured. Set BACKUP_ARCHIVE_PASSWORD before creating a production backup.');
         }
 
-        Artisan::call('backup:run', ['--only-db' => true]);
+        RunBackupJob::dispatch();
 
         $this->audit->record(
             $this->userId($request),
@@ -66,7 +67,7 @@ final class BackupController extends Controller
             request: $request,
         );
 
-        return back()->with('success', 'Backup created.');
+        return back()->with('success', 'Backup started. It will complete in the background.');
     }
 
     public function download(Request $request, string $disk, string $path): StreamedResponse
@@ -117,6 +118,39 @@ final class BackupController extends Controller
         );
 
         return back()->with('success', 'Backup deleted.');
+    }
+
+    public function restore(Request $request, string $disk, string $path): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null && $user->isAdmin(), 403);
+
+        if (! in_array($disk, config('backup.backup.destination.disks', []), true)) {
+            abort(404);
+        }
+
+        if (! $this->isKnownBackupPath($disk, $path)) {
+            abort(404);
+        }
+
+        try {
+            Artisan::call('backup:restore', [
+                '--backup' => $path,
+                '--disk' => $disk,
+            ]);
+
+            $this->audit->record(
+                $this->userId($request),
+                'backup.restored',
+                'backup',
+                $path,
+                request: $request,
+            );
+
+            return back()->with('success', 'Backup restored successfully.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Restore failed: '.$e->getMessage());
+        }
     }
 
     /**

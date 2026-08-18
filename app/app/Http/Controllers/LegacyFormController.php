@@ -99,6 +99,9 @@ final class LegacyFormController extends Controller
 
     public function opcr(Request $request): InertiaResponse
     {
+        $user = $request->user();
+        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
+
         $rows = CacheInvalidationService::remember('legacy_form', 'opcr', function (): array {
             return DB::table('performance_targets')->orderBy('id')->get()->map(fn (\stdClass $row): array => [
                 'id' => $this->rowId($row),
@@ -122,6 +125,9 @@ final class LegacyFormController extends Controller
 
     public function opcrStore(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
+
         $data = $this->validatedOpcr($request);
         $id = DB::table('performance_targets')->insertGetId($data);
         $this->audit->record($this->userId($request), 'opcr.row_created', 'performance_targets', (string) $id, request: $request);
@@ -133,6 +139,9 @@ final class LegacyFormController extends Controller
 
     public function opcrUpdate(Request $request, int $id): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
+
         $data = $this->validatedOpcr($request);
         abort_unless(DB::table('performance_targets')->where('id', $id)->update($data) > 0, 404);
         $this->audit->record($this->userId($request), 'opcr.row_updated', 'performance_targets', (string) $id, request: $request);
@@ -144,6 +153,9 @@ final class LegacyFormController extends Controller
 
     public function opcrDestroy(Request $request, int $id): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
+
         abort_unless(DB::table('performance_targets')->where('id', $id)->delete() > 0, 404);
         $this->audit->record($this->userId($request), 'opcr.row_deleted', 'performance_targets', (string) $id, request: $request);
 

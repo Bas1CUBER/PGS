@@ -13,6 +13,9 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function (): void {
 
     Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
     Route::post('/backups', [BackupController::class, 'create'])->name('backups.create');
+    Route::post('/backups/{disk}/{path}/restore', [BackupController::class, 'restore'])
+        ->name('backups.restore')
+        ->where('path', '.*');
     Route::get('/backups/{disk}/{path}', [BackupController::class, 'download'])
         ->name('backups.download')
         ->where('path', '.*');

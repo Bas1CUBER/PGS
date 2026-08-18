@@ -16,6 +16,11 @@ Schedule::command('queue:restart')->dailyAt('03:30');
 // Warm critical cache entries before business hours.
 Schedule::command('cache:warm')->dailyAt('07:50');
 
+// ── Deadline Management ──────────────────────────────────────────────────────
+
+// Auto-disable expired deadlines every 5 minutes.
+Schedule::command('deadline:check-expiry')->everyFiveMinutes();
+
 // ── Cleanup ──────────────────────────────────────────────────────────────────
 
 // Prune old outbox mails (sent or pending > 7 days).
