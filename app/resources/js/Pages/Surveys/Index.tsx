@@ -49,6 +49,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
     const { isPending, start, finish } = usePendingAction();
     const form = useForm({ title: '', url: '' });
     const [editing, setEditing] = useState<SurveyRow | null>(null);
+    const [createOpen, setCreateOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<SurveyRow | null>(null);
 
     function markDone(id: number): void {
@@ -71,6 +72,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
             preserveScroll: true,
             onSuccess: () => {
                 form.reset();
+                setCreateOpen(false);
             },
         });
     }
@@ -120,55 +122,11 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
 
             <div className="mx-auto max-w-4xl space-y-6">
                 {canManage && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Publish a survey</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <form
-                                onSubmit={createSurvey}
-                                className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end"
-                            >
-                                <div className="space-y-2">
-                                    <Label htmlFor="survey-title">Title</Label>
-                                    <Input
-                                        id="survey-title"
-                                        value={form.data.title}
-                                        onChange={(e) => {
-                                            form.setData('title', e.target.value);
-                                        }}
-                                        required
-                                    />
-                                    {form.errors.title && (
-                                        <p className="text-destructive text-sm">{form.errors.title}</p>
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="survey-url">Survey URL</Label>
-                                    <Input
-                                        id="survey-url"
-                                        type="url"
-                                        value={form.data.url}
-                                        onChange={(e) => {
-                                            form.setData('url', e.target.value);
-                                        }}
-                                        placeholder="https://..."
-                                        required
-                                    />
-                                    {form.errors.url && (
-                                        <p className="text-destructive text-sm">{form.errors.url}</p>
-                                    )}
-                                </div>
-                                <Button
-                                    type="submit"
-                                    loading={form.processing}
-                                    loadingText="Publishing"
-                                >
-                                    <Plus className="size-4" /> Publish
-                                </Button>
-                            </form>
-                        </CardContent>
-                    </Card>
+                    <div className="flex justify-end">
+                        <Button onClick={() => { setCreateOpen(true); form.reset(); }}>
+                            <Plus className="size-4" /> New survey
+                        </Button>
+                    </div>
                 )}
 
                 <section className="space-y-3">
@@ -313,6 +271,62 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                     </section>
                 )}
             </div>
+
+            <Dialog
+                open={createOpen}
+                onOpenChange={(open) => {
+                    setCreateOpen(open);
+                    if (!open) form.reset();
+                }}
+            >
+                <DialogContent className="pgs-modal-form-dialog">
+                    <DialogHeader>
+                        <DialogTitle>Publish a survey</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={createSurvey} className="pgs-modal-form pgs-modal-form-scroll">
+                        <DialogBody className="space-y-3">
+                            <div className="space-y-2">
+                                <Label htmlFor="survey-title">Title</Label>
+                                <Input
+                                    id="survey-title"
+                                    value={form.data.title}
+                                    onChange={(e) => {
+                                        form.setData('title', e.target.value);
+                                    }}
+                                    required
+                                />
+                                {form.errors.title && (
+                                    <p className="text-destructive text-sm">{form.errors.title}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="survey-url">Survey URL</Label>
+                                <Input
+                                    id="survey-url"
+                                    type="url"
+                                    value={form.data.url}
+                                    onChange={(e) => {
+                                        form.setData('url', e.target.value);
+                                    }}
+                                    placeholder="https://..."
+                                    required
+                                />
+                                {form.errors.url && (
+                                    <p className="text-destructive text-sm">{form.errors.url}</p>
+                                )}
+                            </div>
+                        </DialogBody>
+                        <DialogFooter className="pgs-modal-footer">
+                            <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); form.reset(); }}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" loading={form.processing} loadingText="Publishing">
+                                <Plus className="size-4" /> Publish
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             <Dialog
                 open={editing !== null}
