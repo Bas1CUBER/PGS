@@ -1,48 +1,28 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PGS repository root guard.
+#
+# The blessed web entry point is the standalone LAN Apache instance on :8082
+# with DocumentRoot app/public (see app/lan-apache/httpd-lan.conf); it never
+# reads this file. Nothing else in this tree may be served directly by any
+# vhost whose docroot reaches it (e.g. the XAMPP default vhost exposing
+# htdocs on :80): runtime secrets (.env, scripts/db_credentials.bat),
+# application internals, and dependencies live here.
+# ─────────────────────────────────────────────────────────────────────────────
+
 RewriteEngine On
 
-# Disable directory listing
+# Deny every request that resolves into this subtree through an outer docroot.
+RewriteRule ^ - [F,L]
+
+# Defense in depth should a future vhost point at or below this directory.
 Options -Indexes
 
-# Block access to sensitive files
-<FilesMatch "^(composer\.(json|lock)|package-lock\.json|phpunit\.xml|phpstan\.neon|\.php-cs-fixer\.cache|planning\.sql|config\.php|db\.php|DOCUMENTATION\.md)$">
+# Never serve dotfiles (.env*, .git*) from anywhere in the subtree.
+<FilesMatch "^\.">
   Require all denied
 </FilesMatch>
 
-# Block direct access to sensitive directories (keep uploads/ reachable for files, but no listings)
-RewriteRule ^(_archive|storage|data|vendor|src|import_planning_sql|templates|tests)(/|$) - [F,L,NC]
-
-# Security headers
-<IfModule mod_headers.c>
-  Header always set X-Frame-Options "DENY"
-  Header always set X-Content-Type-Options "nosniff"
-  Header always set Referrer-Policy "strict-origin-when-cross-origin"
-  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
-</IfModule>
-
-# Browser caching for static assets (via mod_headers; works in .htaccess context)
-<IfModule mod_headers.c>
-  <FilesMatch "\.(css|js)$">
-    Header set Cache-Control "public, max-age=2592000"
-  </FilesMatch>
-  <FilesMatch "\.(png|jpe?g|gif|svg|ico)$">
-    Header set Cache-Control "public, max-age=31536000"
-  </FilesMatch>
-  <FilesMatch "\.pdf$">
-    Header set Cache-Control "public, max-age=2592000"
-  </FilesMatch>
-</IfModule>
-
-# Compression
-<IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json image/svg+xml
-</IfModule>
-
-# Redirect GET .php requests to clean URLs
-RewriteCond %{THE_REQUEST} ^GET\s/(PGS/)?([^.]+)\.php[\s?] [NC]
-RewriteRule ^ /%1%2 [R=301,L]
-
-# Internally rewrite clean URL to .php file
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME}.php -f
-RewriteRule ^(.+)$ $1.php [L]
+# Never serve credentials, dumps, logs, manifests, or internal docs.
+<FilesMatch "(\.(bat|sql|log|lock|neon)$|^composer\.(json|lock)$|^package(-lock)?\.json$|^phpunit.*\.xml$|^DOCUMENTATION\.md$)">
+  Require all denied
+</FilesMatch>

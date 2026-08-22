@@ -3,6 +3,7 @@
 
 # Environment / config with secrets
 /src/Config/config.php
+/scripts/db_credentials.bat
 
 # Runtime storage & user uploads
 /storage/
