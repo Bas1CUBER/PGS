@@ -35,7 +35,7 @@ npm run build               # production assets
 
 ## Environment
 
-- Local: XAMPP PHP 8.2 + MariaDB on `127.0.0.1:3306`, DB `pgs_app` (root, no password).
+- Local: XAMPP PHP 8.2 + MariaDB on `127.0.0.1:3306`, DB `pgs_app` via the dedicated least-privilege MySQL user `pgs_app` (credentials in `.env`, never root).
 - App URL: `http://127.0.0.1:8082` (Apache vhost `pgs.app` in `C:/xampp/apache/conf/extra/httpd-vhosts.conf` — requires Apache restart to take effect; bound to `0.0.0.0` so LAN peers use `http://<server-LAN-IP>:8082`).
 - Tests run on MySQL `pgs_test` (phpunit.xml) — mirrors the MariaDB/MySQL-specific legacy migrations.
 - **No Redis / no Docker / no external services**: cache, sessions, and queues use the `database` driver; observability is Laravel logs + audit log (docs/TechStack.md §1b).

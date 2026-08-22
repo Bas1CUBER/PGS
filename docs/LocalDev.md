@@ -21,7 +21,7 @@ cd app
 composer install
 npm ci
 cp .env.example .env
-# edit DB_* to local MariaDB (DB: pgs_app, user root)
+# edit DB_* to local MariaDB (DB: pgs_app, least-privilege user pgs_app — never root)
 php artisan key:generate
 php artisan migrate
 php artisan serve          # dev server — http://127.0.0.1:8000 (or 8082 vhost when activated)

@@ -39,12 +39,19 @@ echo.
 REM ── Step 2: Backup database ────────────────────────────────────────────────
 echo [2/8] Backing up database...
 
+if exist "%~dp0db_credentials.bat" (
+    call "%~dp0db_credentials.bat"
+) else (
+    echo [FAIL] Missing scripts\db_credentials.bat - create it with DB_BACKUP_USER / DB_BACKUP_PASS ^(ask the administrator^)
+    exit /b 1
+)
+
 if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%"
 
 set BACKUP_FILE=%BACKUP_DIR%\pre-deploy_%date:~-4%%date:~4,2%%date:~7,2%_%time:~0,2%%time:~3,2%.sql
 set BACKUP_FILE=!BACKUP_FILE: =0!
 
-mysqldump -u root pgs_app > "!BACKUP_FILE!" 2>NUL
+mysqldump -u %DB_BACKUP_USER% -p%DB_BACKUP_PASS% pgs_app > "!BACKUP_FILE!" 2>NUL
 if %ERRORLEVEL% NEQ 0 (
     echo [WARN] mysqldump failed - continuing without DB backup
 ) else (
