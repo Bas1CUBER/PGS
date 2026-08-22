@@ -33,9 +33,15 @@ interface LegacyFormsProps extends PageProps {
     canManage: boolean;
 }
 
+function isAnnexRowValue(row: unknown): row is AnnexRow {
+    return typeof row === 'object' && row !== null && !Array.isArray(row) && 'values' in row && 'id' in row;
+}
+
 export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: LegacyFormsProps) {
-    const { data, setData, post, put, processing, errors, reset } = useForm({
-        values: form.columns.map(() => '') as (string | null)[],
+    const { data, setData, post, put, processing, errors, reset } = useForm<{
+        values: (string | null)[];
+    }>({
+        values: form.columns.map(() => ''),
     });
     const [editingId, setEditingId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<AnnexRow | null>(null);
@@ -194,13 +200,14 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                 </thead>
                                 <tbody data-slot="table-body">
                                     {rows.map((row, rowIndex) => {
-                                        const isAnnexRow = form.editable && row !== null && typeof row === 'object' && !Array.isArray(row) && 'values' in row && 'id' in row;
-                                        const rowValues = isAnnexRow
-                                            ? (row as AnnexRow).values
-                                            : (row as (string | null)[]);
-                                        const rowId = isAnnexRow
-                                            ? (row as AnnexRow).id
-                                            : rowIndex;
+                                        const annex = form.editable && isAnnexRowValue(row) ? row : null;
+                                        const rowValues: (string | null)[] =
+                                            annex !== null
+                                                ? annex.values
+                                                : Array.isArray(row)
+                                                    ? row
+                                                    : [];
+                                        const rowId = annex !== null ? annex.id : rowIndex;
 
                                         return (
                                             <tr
@@ -227,7 +234,7 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                                         >
                                                             <DropdownMenuItem
                                                                 onSelect={() => {
-                                                                    if (isAnnexRow) editRow(row as AnnexRow);
+                                                                    if (annex !== null) editRow(annex);
                                                                 }}
                                                             >
                                                                 <Pencil className="size-4" /> Edit
@@ -237,9 +244,7 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                                                 variant="destructive"
                                                                 disabled={isPending('delete')}
                                                                 onSelect={() => {
-                                                                    setDeleteTarget(
-                                                                        row as AnnexRow,
-                                                                    );
+                                                                    setDeleteTarget(annex);
                                                                 }}
                                                             >
                                                                 <Trash2 className="size-4" /> Delete

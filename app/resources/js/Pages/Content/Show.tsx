@@ -290,7 +290,7 @@ export default function ContentShow({
                         </CardHeader>
                         <CardContent className="overflow-x-auto">
                             {structuredContent !== null && typeof structuredContent === 'object' && !Array.isArray(structuredContent) && 'columns' in structuredContent && 'rows' in structuredContent ? (
-                                <AccessTable matrix={structuredContent as AccessMatrix} />
+                                <AccessTable matrix={structuredContent} />
                             ) : (
                                 <p className="text-muted-foreground text-sm">Access matrix not available.</p>
                             )}

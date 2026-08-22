@@ -43,6 +43,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
 
     const createForm = useForm({ title: '', description: '' });
     const editForm = useForm({ title: '', description: '' });
+    const deleteForm = useForm({});
     const [image, setImage] = useState<File | null>(null);
     const [video, setVideo] = useState<File | null>(null);
     const [editing, setEditing] = useState<NoticeRow | null>(null);
@@ -91,7 +92,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
     function deleteNotice(): void {
         if (deleteTarget === null) return;
         start('delete');
-        useForm({}).delete(`/notices/${String(deleteTarget.notice_id)}`, {
+        deleteForm.delete(`/notices/${String(deleteTarget.notice_id)}`, {
             onFinish: () => {
                 finish('delete');
                 setDeleteTarget(null);

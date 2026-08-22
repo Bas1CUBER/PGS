@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { ArrowLeft, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -67,7 +67,7 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                 headers: {
                     Accept: 'application/json',
                     'X-XSRF-TOKEN': decodeURIComponent(
-                        document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '',
+                        (/XSRF-TOKEN=([^;]+)/.exec(document.cookie)?.[1] ?? ''),
                     ),
                 },
                 body: form,
