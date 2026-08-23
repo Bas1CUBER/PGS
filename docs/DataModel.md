@@ -95,7 +95,7 @@ Legacy indexes preserved verbatim (migrations). Additions happen per module port
 |---|---|
 | Wide year columns (`training_pct_personnel.y2024…y2028`, `resilience_adverse_notes.y2024…`) | `(entity_id, year, value)` rows + cached summary views |
 | MySQL `ENUM` statuses | PHP enums + string columns (docs/Workflows.md) |
-| `deliverables` vs `p_deliverables` duplication | single table, one migration + data merge |
+| ~~`deliverables` vs `p_deliverables` duplication~~ | RESOLVED 2026-08-23: empty legacy `deliverables` table dropped by migration (guarded against data loss); `p_deliverables` remains the live table |
 | Per-module `*_uploads` duplication | shared uploads service (docs/Uploads.md), tables stay per-module for BC |
 | Missing FKs (some legacy joins by convention) | add FKs/indexes during port |
 
