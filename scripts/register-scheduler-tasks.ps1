@@ -40,9 +40,13 @@ foreach ($legacy in @('PGS Scheduler', 'PGS Queue Worker')) {
 function Register-PgsTask([string]$Name, [string]$Script, [int]$Minutes, [int]$LimitMinutes) {
     Unregister-ScheduledTask -TaskName $Name -Confirm:$false -ErrorAction SilentlyContinue
 
+    # wscript is a GUI-subsystem host: launching through run-ps-hidden.vbs
+    # never allocates a console, unlike powershell.exe which flashes one
+    # briefly before -WindowStyle Hidden applies.
+    $launcher = 'C:\xampp\htdocs\pgs\scripts\run-ps-hidden.vbs'
     $action = New-ScheduledTaskAction `
-        -Execute 'powershell.exe' `
-        -Argument "-NonInteractive -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$Script`""
+        -Execute 'wscript.exe' `
+        -Argument "`"$launcher`" `"$Script`""
 
     $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
         -RepetitionInterval (New-TimeSpan -Minutes $Minutes) `
