@@ -161,10 +161,10 @@ return [
             'filename_prefix' => 'pgs-',
 
             /*
-             * The disk names on which the backups will be stored.
-             */
+         * The disk names on which the backups will be stored.
+         */
             'disks' => [
-                'local',
+                'backups',
             ],
         ],
 
@@ -224,7 +224,7 @@ return [
         'notifiable' => Notifiable::class,
 
         'mail' => [
-            'to' => 'your@example.com',
+            'to' => env('BACKUP_NOTIFY_EMAIL', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
 
             'from' => [
                 'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
@@ -268,7 +268,7 @@ return [
     'monitor_backups' => [
         [
             'name' => env('APP_NAME', 'laravel-backup'),
-            'disks' => ['local'],
+            'disks' => ['backups'],
             'health_checks' => [
                 MaximumAgeInDays::class => 1,
                 MaximumStorageInMegabytes::class => 5000,

@@ -16,6 +16,17 @@ Schedule::command('queue:restart')->dailyAt('03:30');
 // Warm critical cache entries before business hours.
 Schedule::command('cache:warm')->dailyAt('07:50');
 
+// ── Backups ──────────────────────────────────────────────────────────────────
+
+// Full nightly backup (database + uploads) to the local backups disk.
+Schedule::command('backup:run')->dailyAt('01:30');
+
+// Apply retention policy after each nightly backup window.
+Schedule::command('backup:clean')->dailyAt('03:05');
+
+// Health check: alerts when the newest backup exceeds MaximumAgeInDays.
+Schedule::command('backup:monitor')->dailyAt('07:55');
+
 // ── Deadline Management ──────────────────────────────────────────────────────
 
 // Auto-disable expired deadlines every 5 minutes.
@@ -23,7 +34,7 @@ Schedule::command('deadline:check-expiry')->everyFiveMinutes();
 
 // ── Cleanup ──────────────────────────────────────────────────────────────────
 
-// Prune old outbox mails (sent or pending > 7 days).
+// Prune old outbox mails older than 7 days.
 Schedule::command('outbox:prune', ['--days' => 7])->dailyAt('03:15');
 
 // ── Scheduler Heartbeat ─────────────────────────────────────────────────────
