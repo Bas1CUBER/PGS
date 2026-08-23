@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Enums\NotificationType;
+use App\Models\OperationsReview;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\CacheInvalidationService;
@@ -12,7 +13,6 @@ use App\Services\NotificationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,15 +37,15 @@ final class OperationsReviewController extends Controller
         $scope = $user->isAdmin() || $user->isFocal() ? 'all' : "user:{$user->id}";
 
         $reviews = CacheInvalidationService::remember('ops_review', "index:{$scope}", function () use ($user): array {
-            return DB::table('operations_review as o')
-                ->join('users as u', 'u.id', '=', 'o.employee_id')
-                ->when(! $user->isAdmin() && ! $user->isFocal(), fn ($query) => $query->where('o.employee_id', $user->id))
-                ->orderByDesc('o.created_at')
-                ->get(['o.id', 'o.employee_id', 'o.form_data', 'o.pdf_file', 'o.created_at', 'u.email as employee_email'])
-                ->map(fn (\stdClass $review): array => [
-                    'id' => $this->idValue($review->id),
-                    'employee_id' => $this->idValue($review->employee_id),
-                    'employee_email' => is_scalar($review->employee_email) ? (string) $review->employee_email : '',
+            return OperationsReview::query()
+                ->with('employee:id,email')
+                ->when(! $user->isAdmin() && ! $user->isFocal(), fn ($query) => $query->where('employee_id', $user->id))
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn (OperationsReview $review): array => [
+                    'id' => $review->id,
+                    'employee_id' => $review->employee_id,
+                    'employee_email' => $review->employee !== null ? $review->employee->email : '',
                     'data' => $this->decodeFormData($review->form_data),
                     'pdf_file' => $review->pdf_file,
                     'created_at' => $review->created_at,
@@ -65,12 +65,12 @@ final class OperationsReviewController extends Controller
     {
         $user = $this->userOrFail($request);
         $data = $this->validatedData($request);
-        $id = DB::table('operations_review')->insertGetId([
+        $row = OperationsReview::query()->create([
             'employee_id' => $user->id,
             'form_data' => json_encode($data, JSON_UNESCAPED_UNICODE),
             'created_at' => now(),
         ]);
-        $this->audit->record($user->id, 'operations_review.form_created', 'operations_review', (string) $id, request: $request);
+        $this->audit->record($user->id, 'operations_review.form_created', 'operations_review', (string) $row->id, request: $request);
 
         $this->notifications->createForRolesExcept(
             ['admin', 'focal'],
@@ -78,7 +78,7 @@ final class OperationsReviewController extends Controller
             NotificationType::Upload,
             'Operations Review submitted',
             $user->email.' saved an Operations Review for review.',
-            $id,
+            $row->id,
             'operations_review',
         );
 
@@ -90,12 +90,12 @@ final class OperationsReviewController extends Controller
     public function update(Request $request, int $review): RedirectResponse
     {
         $user = $this->userOrFail($request);
-        $existing = DB::table('operations_review')->where('id', $review)->first();
+        $existing = OperationsReview::query()->find($review);
         abort_if($existing === null, 404);
-        abort_unless($user->isAdmin() || $this->idValue($existing->employee_id) === $user->id, 403);
+        abort_unless($user->isAdmin() || $existing->employee_id === $user->id, 403);
         $data = $this->validatedData($request);
 
-        DB::table('operations_review')->where('id', $review)->update([
+        $existing->update([
             'form_data' => json_encode($data, JSON_UNESCAPED_UNICODE),
         ]);
         $this->audit->record($user->id, 'operations_review.form_updated', 'operations_review', (string) $review, request: $request);
@@ -108,10 +108,10 @@ final class OperationsReviewController extends Controller
     public function destroy(Request $request, int $review): RedirectResponse
     {
         $user = $this->userOrFail($request);
-        $existing = DB::table('operations_review')->where('id', $review)->first();
+        $existing = OperationsReview::query()->find($review);
         abort_if($existing === null, 404);
-        abort_unless($user->isAdmin() || $this->idValue($existing->employee_id) === $user->id, 403);
-        DB::table('operations_review')->where('id', $review)->delete();
+        abort_unless($user->isAdmin() || $existing->employee_id === $user->id, 403);
+        $existing->delete();
         $this->audit->record($user->id, 'operations_review.form_deleted', 'operations_review', (string) $review, request: $request);
 
         CacheInvalidationService::onOpsReviewChange();
@@ -139,11 +139,6 @@ final class OperationsReviewController extends Controller
         $data['documenter'] = $request->string('documenter')->toString();
 
         return $data;
-    }
-
-    private function idValue(mixed $value): int
-    {
-        return is_numeric($value) ? (int) $value : 0;
     }
 
     /** @return array<string, string> */

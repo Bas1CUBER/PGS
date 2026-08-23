@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\ImpactScorecardMeasure;
+use App\Models\ImpactScorecardValue;
+use App\Models\ImpactScorecardYear;
 use App\Services\AuditLogService;
 use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
@@ -23,19 +26,11 @@ final class ImpactScorecardController extends Controller
     public function index(): Response
     {
         [$measures, $years, $values] = CacheInvalidationService::remember('scorecard', 'index', function (): array {
-            $measures = DB::table('impact_scorecard_measures')
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get();
-
-            $years = DB::table('impact_scorecard_years')
-                ->orderBy('sort_order')
-                ->orderBy('year')
-                ->get();
-
-            $values = collect(DB::table('impact_scorecard_values')->get())
-                ->map(static fn (object $v): array => (array) $v)
-                ->keyBy(fn (array $v): string => $this->toStr($v['measure_id'] ?? null).':'.$this->toStr($v['year_id'] ?? null));
+            $measures = ImpactScorecardMeasure::query()->orderBy('sort_order')->orderBy('id')->get();
+            $years = ImpactScorecardYear::query()->orderBy('sort_order')->orderBy('year')->get();
+            $values = ImpactScorecardValue::query()->get()->keyBy(
+                fn (ImpactScorecardValue $v): string => $v->measure_id.':'.$v->year_id,
+            );
 
             return [$measures, $years, $values];
         }, 60);
@@ -57,9 +52,9 @@ final class ImpactScorecardController extends Controller
             'bl' => ['nullable', 'string', 'max:255'],
         ])->validate();
 
-        $max = (int) DB::table('impact_scorecard_measures')->max('sort_order');
+        $max = (int) ImpactScorecardMeasure::query()->max('sort_order');
 
-        $id = DB::table('impact_scorecard_measures')->insertGetId([
+        $row = ImpactScorecardMeasure::query()->create([
             'impact' => $request->string('impact')->toString(),
             'measure' => $request->string('measure')->toString(),
             'bl' => $request->filled('bl') ? $request->string('bl')->toString() : null,
@@ -70,7 +65,7 @@ final class ImpactScorecardController extends Controller
             $this->userId($request),
             'scorecard.measure_created',
             'impact_scorecard_measures',
-            (string) $id,
+            (string) $row->id,
             request: $request,
         );
 
@@ -89,7 +84,7 @@ final class ImpactScorecardController extends Controller
             'bl' => ['nullable', 'string', 'max:255'],
         ])->validate();
 
-        DB::table('impact_scorecard_measures')->where('id', $measure)->update([
+        ImpactScorecardMeasure::query()->whereKey($measure)->update([
             'impact' => $request->string('impact')->toString(),
             'measure' => $request->string('measure')->toString(),
             'bl' => $request->filled('bl') ? $request->string('bl')->toString() : null,
@@ -113,8 +108,8 @@ final class ImpactScorecardController extends Controller
         $this->assertAdminOrFocal($request);
 
         DB::transaction(function () use ($measure): void {
-            DB::table('impact_scorecard_values')->where('measure_id', $measure)->delete();
-            DB::table('impact_scorecard_measures')->where('id', $measure)->delete();
+            ImpactScorecardValue::query()->where('measure_id', $measure)->delete();
+            ImpactScorecardMeasure::query()->whereKey($measure)->delete();
         });
 
         $this->audit->record(
@@ -140,13 +135,13 @@ final class ImpactScorecardController extends Controller
 
         $year = $request->integer('year');
 
-        if (DB::table('impact_scorecard_years')->where('year', $year)->exists()) {
+        if (ImpactScorecardYear::query()->where('year', $year)->exists()) {
             return back()->with('error', 'That year already exists.');
         }
 
-        $max = (int) DB::table('impact_scorecard_years')->max('sort_order');
+        $max = (int) ImpactScorecardYear::query()->max('sort_order');
 
-        $id = DB::table('impact_scorecard_years')->insertGetId([
+        $row = ImpactScorecardYear::query()->create([
             'year' => $year,
             'sort_order' => $max + 1,
         ]);
@@ -155,7 +150,7 @@ final class ImpactScorecardController extends Controller
             $this->userId($request),
             'scorecard.year_created',
             'impact_scorecard_years',
-            (string) $id,
+            (string) $row->id,
             request: $request,
         );
 
@@ -169,8 +164,8 @@ final class ImpactScorecardController extends Controller
         $this->assertAdminOrFocal($request);
 
         DB::transaction(function () use ($year): void {
-            DB::table('impact_scorecard_values')->where('year_id', $year)->delete();
-            DB::table('impact_scorecard_years')->where('id', $year)->delete();
+            ImpactScorecardValue::query()->where('year_id', $year)->delete();
+            ImpactScorecardYear::query()->whereKey($year)->delete();
         });
 
         $this->audit->record(
@@ -196,7 +191,7 @@ final class ImpactScorecardController extends Controller
 
         $value = $request->filled('value') ? $request->string('value')->toString() : null;
 
-        DB::table('impact_scorecard_values')->updateOrInsert(
+        ImpactScorecardValue::query()->updateOrInsert(
             ['measure_id' => $measure, 'year_id' => $year],
             ['value' => $value, 'updated_at' => now()],
         );
@@ -218,11 +213,6 @@ final class ImpactScorecardController extends Controller
         }
 
         return $user->id;
-    }
-
-    private function toStr(mixed $value): string
-    {
-        return $value === null ? '' : (string) $value;
     }
 
     private function assertAdminOrFocal(Request $request): void

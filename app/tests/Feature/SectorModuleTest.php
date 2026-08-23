@@ -53,7 +53,7 @@ it('rejects unknown sector slugs', function (): void {
 });
 
 it('updates a sector indicator row', function (): void {
-    $user = User::factory()->employee()->withPageAccess()->create();
+    $user = User::factory()->focal()->withPageAccess()->create();
     $id = DB::table('collab')->insertGetId([
         'category' => 'Partnerships',
         'year' => 2025,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Enums\NotificationType;
+use App\Models\StrategyReviewForm;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\CacheInvalidationService;
@@ -12,7 +13,6 @@ use App\Services\NotificationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,15 +39,15 @@ final class StrategyReviewController extends Controller
         $scope = $user->isEmployee() ? "user:{$user->id}" : 'all';
 
         $forms = CacheInvalidationService::remember('strat_review', "index:{$scope}", function () use ($user): array {
-            return DB::table('strategy_review_forms as f')
-                ->join('users as u', 'u.id', '=', 'f.employee_id')
-                ->when($user->isEmployee(), fn ($query) => $query->where('f.employee_id', $user->id))
-                ->orderByDesc('f.updated_at')
-                ->get(['f.id', 'f.employee_id', 'f.form_data', 'f.pdf_filename', 'f.status', 'f.created_at', 'f.updated_at', 'u.email as employee_email'])
-                ->map(fn (\stdClass $form): array => [
-                    'id' => $this->idValue($form->id),
-                    'employee_id' => $this->idValue($form->employee_id),
-                    'employee_email' => is_scalar($form->employee_email) ? (string) $form->employee_email : '',
+            return StrategyReviewForm::query()
+                ->with('employee:id,email')
+                ->when($user->isEmployee(), fn ($query) => $query->where('employee_id', $user->id))
+                ->orderByDesc('updated_at')
+                ->get()
+                ->map(fn (StrategyReviewForm $form): array => [
+                    'id' => $form->id,
+                    'employee_id' => $form->employee_id,
+                    'employee_email' => $form->employee !== null ? $form->employee->email : '',
                     'data' => $this->decodeFormData($form->form_data),
                     'pdf_filename' => $form->pdf_filename,
                     'status' => $form->status,
@@ -72,13 +72,12 @@ final class StrategyReviewController extends Controller
         $data = $this->validatedData($request);
         $status = $request->string('status')->toString() === 'Submitted' ? 'Submitted' : 'Draft';
 
-        $id = DB::table('strategy_review_forms')->insertGetId([
+        $row = StrategyReviewForm::query()->create([
             'employee_id' => $user->id,
             'form_data' => json_encode($data, JSON_UNESCAPED_UNICODE),
             'status' => $status,
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
+        $id = $row->id;
 
         $this->audit->record($user->id, 'strategy_review.form_created', 'strategy_review_forms', (string) $id, request: $request);
 
@@ -102,15 +101,14 @@ final class StrategyReviewController extends Controller
     public function update(Request $request, int $form): RedirectResponse
     {
         $user = $this->userOrFail($request);
-        $existing = DB::table('strategy_review_forms')->where('id', $form)->first();
-        abort_unless($existing !== null && ($user->isAdmin() || $this->idValue($existing->employee_id) === $user->id), 403);
+        $existing = StrategyReviewForm::query()->find($form);
+        abort_unless($existing !== null && ($user->isAdmin() || $existing->employee_id === $user->id), 403);
 
         $data = $this->validatedData($request);
         $status = $request->string('status')->toString() === 'Submitted' ? 'Submitted' : 'Draft';
-        DB::table('strategy_review_forms')->where('id', $form)->update([
+        $existing->update([
             'form_data' => json_encode($data, JSON_UNESCAPED_UNICODE),
             'status' => $status,
-            'updated_at' => now(),
         ]);
 
         CacheInvalidationService::onStratReviewChange();
@@ -123,13 +121,13 @@ final class StrategyReviewController extends Controller
         $user = $this->userOrFail($request);
         abort_unless($user->isAdmin() || $user->isFocal(), 403);
         Validator::make($request->all(), ['status' => ['required', 'in:Approved,Returned']])->validate();
-        $existing = DB::table('strategy_review_forms')->where('id', $form)->first();
+        $existing = StrategyReviewForm::query()->find($form);
         abort_if($existing === null, 404);
-        abort_unless($this->idValue($existing->employee_id) !== $user->id, 403, 'A reviewer cannot approve their own form.');
+        abort_unless($existing->employee_id !== $user->id, 403, 'A reviewer cannot approve their own form.');
         $status = $request->string('status')->toString();
-        DB::table('strategy_review_forms')->where('id', $form)->update(['status' => $status, 'updated_at' => now()]);
+        $existing->update(['status' => $status]);
 
-        $ownerId = $this->idValue($existing->employee_id);
+        $ownerId = $existing->employee_id;
         if ($ownerId > 0) {
             $this->notifications->create(
                 $ownerId,
@@ -160,11 +158,6 @@ final class StrategyReviewController extends Controller
         }
 
         return $data;
-    }
-
-    private function idValue(mixed $value): int
-    {
-        return is_numeric($value) ? (int) $value : 0;
     }
 
     /** @return array<string, string> */

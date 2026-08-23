@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\AnnexWorkspaceRow;
+use App\Models\PerformanceTarget;
 use App\Modules\LegacyFormRegistry;
 use App\Services\AuditLogService;
 use App\Services\CacheInvalidationService;
@@ -11,7 +13,6 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -43,13 +44,12 @@ final class LegacyFormController extends Controller
         abort_if($definition === null, 404);
         $this->assertEditable($request, $definition);
         $values = $this->validatedAnnexValues($request, $definition['columns']);
-        $id = DB::table('annex_workspace_rows')->insertGetId([
+        $row = AnnexWorkspaceRow::query()->create([
             'slug' => $slug,
-            'data' => json_encode($values, JSON_UNESCAPED_UNICODE),
+            'data' => $values,
             'created_by' => $this->userId($request),
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
+        $id = $row->id;
         $this->audit->record($this->userId($request), 'annex.row_created', 'annex_workspace_rows', (string) $id, request: $request);
 
         CacheInvalidationService::onLegacyFormChange();
@@ -63,9 +63,8 @@ final class LegacyFormController extends Controller
         abort_if($definition === null, 404);
         $this->assertEditable($request, $definition);
         $values = $this->validatedAnnexValues($request, $definition['columns']);
-        abort_unless(DB::table('annex_workspace_rows')->where('id', $id)->where('slug', $slug)->update([
-            'data' => json_encode($values, JSON_UNESCAPED_UNICODE),
-            'updated_at' => now(),
+        abort_unless(AnnexWorkspaceRow::query()->whereKey($id)->where('slug', $slug)->update([
+            'data' => $values,
         ]) > 0, 404);
         $this->audit->record($this->userId($request), 'annex.row_updated', 'annex_workspace_rows', (string) $id, request: $request);
 
@@ -79,7 +78,7 @@ final class LegacyFormController extends Controller
         $definition = LegacyFormRegistry::findAnnex($slug);
         abort_if($definition === null, 404);
         $this->assertEditable($request, $definition);
-        abort_unless(DB::table('annex_workspace_rows')->where('id', $id)->where('slug', $slug)->delete() > 0, 404);
+        abort_unless(AnnexWorkspaceRow::query()->whereKey($id)->where('slug', $slug)->delete() > 0, 404);
         $this->audit->record($this->userId($request), 'annex.row_deleted', 'annex_workspace_rows', (string) $id, request: $request);
 
         CacheInvalidationService::onLegacyFormChange();
@@ -103,17 +102,17 @@ final class LegacyFormController extends Controller
         abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
 
         $rows = CacheInvalidationService::remember('legacy_form', 'opcr', function (): array {
-            return DB::table('performance_targets')->orderBy('id')->get()->map(fn (\stdClass $row): array => [
-                'id' => $this->rowId($row),
-                'strategic_goal' => $this->nullableString($row->strategic_goal),
-                'success_indicator' => $this->string($row->success_indicator),
-                'division_accountable' => $this->string($row->division_accountable),
-                'annual_target' => $this->nullableString($row->annual_target),
-                'quarter1_target' => $this->nullableString($row->quarter1_target),
-                'quarter2_target' => $this->nullableString($row->quarter2_target),
-                'quarter3_target' => $this->nullableString($row->quarter3_target),
-                'quarter4_target' => $this->nullableString($row->quarter4_target),
-                'remarks' => $this->nullableString($row->remarks),
+            return PerformanceTarget::query()->orderBy('id')->get()->map(fn (PerformanceTarget $row): array => [
+                'id' => $row->id,
+                'strategic_goal' => $row->strategic_goal,
+                'success_indicator' => $row->success_indicator,
+                'division_accountable' => $row->division_accountable,
+                'annual_target' => $row->annual_target,
+                'quarter1_target' => $row->quarter1_target,
+                'quarter2_target' => $row->quarter2_target,
+                'quarter3_target' => $row->quarter3_target,
+                'quarter4_target' => $row->quarter4_target,
+                'remarks' => $row->remarks,
             ])->values()->all();
         }, 60);
 
@@ -129,7 +128,8 @@ final class LegacyFormController extends Controller
         abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
 
         $data = $this->validatedOpcr($request);
-        $id = DB::table('performance_targets')->insertGetId($data);
+        $row = PerformanceTarget::query()->create($data);
+        $id = $row->id;
         $this->audit->record($this->userId($request), 'opcr.row_created', 'performance_targets', (string) $id, request: $request);
 
         CacheInvalidationService::onLegacyFormChange();
@@ -143,7 +143,7 @@ final class LegacyFormController extends Controller
         abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
 
         $data = $this->validatedOpcr($request);
-        abort_unless(DB::table('performance_targets')->where('id', $id)->update($data) > 0, 404);
+        abort_unless(PerformanceTarget::query()->whereKey($id)->update($data) > 0, 404);
         $this->audit->record($this->userId($request), 'opcr.row_updated', 'performance_targets', (string) $id, request: $request);
 
         CacheInvalidationService::onLegacyFormChange();
@@ -156,7 +156,7 @@ final class LegacyFormController extends Controller
         $user = $request->user();
         abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
 
-        abort_unless(DB::table('performance_targets')->where('id', $id)->delete() > 0, 404);
+        abort_unless(PerformanceTarget::query()->whereKey($id)->delete() > 0, 404);
         $this->audit->record($this->userId($request), 'opcr.row_deleted', 'performance_targets', (string) $id, request: $request);
 
         CacheInvalidationService::onLegacyFormChange();
@@ -166,16 +166,16 @@ final class LegacyFormController extends Controller
 
     public function opcrDownload(Request $request): Response
     {
-        $rows = array_values(DB::table('performance_targets')->orderBy('id')->get()->map(fn (\stdClass $row): array => [
-            $this->nullableString($row->strategic_goal),
-            $this->string($row->success_indicator),
-            $this->string($row->division_accountable),
-            $this->nullableString($row->annual_target),
-            $this->nullableString($row->quarter1_target),
-            $this->nullableString($row->quarter2_target),
-            $this->nullableString($row->quarter3_target),
-            $this->nullableString($row->quarter4_target),
-            $this->nullableString($row->remarks),
+        $rows = array_values(PerformanceTarget::query()->orderBy('id')->get()->map(fn (PerformanceTarget $row): array => [
+            $row->strategic_goal,
+            $row->success_indicator,
+            $row->division_accountable,
+            $row->annual_target,
+            $row->quarter1_target,
+            $row->quarter2_target,
+            $row->quarter3_target,
+            $row->quarter4_target,
+            $row->remarks,
         ])->all());
 
         return $this->csvResponse('OPCR', [
@@ -189,24 +189,22 @@ final class LegacyFormController extends Controller
     {
         $definition = LegacyFormRegistry::findAnnex($slug);
         if ($definition !== null && $definition['editable']) {
-            return array_values(DB::table('annex_workspace_rows')->where('slug', $slug)->orderBy('id')->get()->map(function (\stdClass $row) use ($definition): array {
-                $raw = $row->data;
-                $data = is_string($raw) ? json_decode($raw, true) : null;
-                $data = is_array($data) ? $data : [];
+            return array_values(AnnexWorkspaceRow::query()->where('slug', $slug)->orderBy('id')->get()->map(function (AnnexWorkspaceRow $row) use ($definition): array {
+                $data = $row->data;
 
                 return array_map(fn (string $column): ?string => isset($data[$column]) && is_scalar($data[$column]) ? (string) $data[$column] : null, $definition['columns']);
             })->all());
         }
 
-        $targets = DB::table('performance_targets')->orderBy('id')->get();
+        $targets = PerformanceTarget::query()->orderBy('id')->get();
 
         return match ($slug) {
-            'annex-d' => array_values($targets->map(fn (\stdClass $row): array => [
-                $this->nullableString($row->strategic_goal), $this->string($row->success_indicator), $this->string($row->division_accountable), $this->nullableString($row->annual_target),
+            'annex-d' => array_values($targets->map(fn (PerformanceTarget $row): array => [
+                $row->strategic_goal, $row->success_indicator, $row->division_accountable, $row->annual_target,
             ])->all()),
-            'annex-e' => array_values($targets->map(fn (\stdClass $row): array => [
-                $this->string($row->success_indicator), $this->nullableString($row->quarter1_target), $this->nullableString($row->quarter2_target),
-                $this->nullableString($row->quarter3_target), $this->nullableString($row->quarter4_target), $this->nullableString($row->remarks),
+            'annex-e' => array_values($targets->map(fn (PerformanceTarget $row): array => [
+                $row->success_indicator, $row->quarter1_target, $row->quarter2_target,
+                $row->quarter3_target, $row->quarter4_target, $row->remarks,
             ])->all()),
             default => [],
         };
@@ -222,13 +220,11 @@ final class LegacyFormController extends Controller
             return $this->annexRows($definition['slug']);
         }
 
-        return array_values(DB::table('annex_workspace_rows')->where('slug', $definition['slug'])->orderBy('id')->get()->map(function (\stdClass $row) use ($definition): array {
-            $raw = $row->data;
-            $data = is_string($raw) ? json_decode($raw, true) : null;
-            $data = is_array($data) ? $data : [];
+        return array_values(AnnexWorkspaceRow::query()->where('slug', $definition['slug'])->orderBy('id')->get()->map(function (AnnexWorkspaceRow $row) use ($definition): array {
+            $data = $row->data;
 
             return [
-                'id' => $this->rowId($row),
+                'id' => $row->id,
                 'values' => array_map(fn (string $column): ?string => isset($data[$column]) && is_scalar($data[$column]) ? (string) $data[$column] : null, $definition['columns']),
             ];
         })->all());
@@ -309,21 +305,6 @@ final class LegacyFormController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.str($name)->slug('_').'.csv"',
         ]);
-    }
-
-    private function rowId(\stdClass $row): int
-    {
-        return is_numeric($row->id) ? (int) $row->id : 0;
-    }
-
-    private function string(mixed $value): string
-    {
-        return is_scalar($value) ? (string) $value : '';
-    }
-
-    private function nullableString(mixed $value): ?string
-    {
-        return $value === null ? null : $this->string($value);
     }
 
     /**

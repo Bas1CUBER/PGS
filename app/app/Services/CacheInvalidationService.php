@@ -97,7 +97,7 @@ class CacheInvalidationService
 
         $lock = Cache::lock("pgs:{$domain}:lock:{$key}", 10);
         try {
-            if ($lock->get()) {
+            if ((bool) $lock->get()) {
                 try {
                     $cached = Cache::get($cacheKey);
                     if ($cached !== null) {

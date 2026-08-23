@@ -152,8 +152,8 @@ it('cannot delete the own admin account', function (): void {
 it('imports users from a CSV with a report', function (): void {
     $admin = User::factory()->admin()->create();
     $csv = "email,password,role,name,office\n"
-        ."imported@example.com,password-12345,employee,Imported User,ICT\n"
-        ."bad-role@example.com,password-12345,superadmin,Bad Role,\n";
+        ."imported@example.com,Password-12345,employee,Imported User,ICT\n"
+        ."bad-role@example.com,Password-12345,superadmin,Bad Role,\n";
 
     $this->actingAs($admin)
         ->post('/users/import', [

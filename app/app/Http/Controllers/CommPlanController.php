@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Enums\NotificationType;
+use App\Models\CommunicationPlanRoadmap;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\CacheInvalidationService;
@@ -12,7 +13,6 @@ use App\Services\NotificationService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,12 +29,7 @@ final class CommPlanController extends Controller
         $user = $request->user();
 
         $rows = CacheInvalidationService::remember('comm_plan', 'index', function (): array {
-            return DB::table('communication_plan_roadmap')
-                ->orderBy('id')
-                ->get()
-                ->map(fn (object $row): array => (array) $row)
-                ->values()
-                ->all();
+            return CommunicationPlanRoadmap::query()->orderBy('id')->get()->toArray();
         }, 60);
 
         return Inertia::render('CommPlan/Index', [
@@ -58,7 +53,7 @@ final class CommPlanController extends Controller
             'responsible_person' => ['nullable', 'string', 'max:255'],
         ])->validate();
 
-        $id = DB::table('communication_plan_roadmap')->insertGetId([
+        $row = CommunicationPlanRoadmap::query()->create([
             'objective' => $request->string('objective')->toString(),
             'target_audience' => $this->nullableText($request, 'target_audience'),
             'message' => $this->nullableText($request, 'message'),
@@ -74,7 +69,7 @@ final class CommPlanController extends Controller
             $this->userId($request),
             'commplan.row_created',
             'communication_plan_roadmap',
-            (string) $id,
+            (string) $row->id,
             request: $request,
         );
 
@@ -84,7 +79,7 @@ final class CommPlanController extends Controller
             NotificationType::Edit,
             'Communication plan updated',
             $user->email.' added a communication plan item for review.',
-            $id,
+            $row->id,
             'communication_plan_roadmap',
         );
 
@@ -107,15 +102,11 @@ final class CommPlanController extends Controller
             'status' => ['nullable', 'in:Not Accomplished/Started,Ongoing,Completed'],
         ])->validate();
 
-        $existing = DB::table('communication_plan_roadmap')->where('id', $row)->first();
+        $existing = CommunicationPlanRoadmap::query()->find($row);
+        abort_if($existing === null, 404);
+        abort_unless($user->isAdmin() || $user->isFocal() || (int) $existing->created_by === $user->id, 403);
 
-        if ($existing === null) {
-            abort(404);
-        }
-
-        abort_unless($user->isAdmin() || $user->isFocal() || $this->idValue($existing->created_by) === $user->id, 403);
-
-        DB::table('communication_plan_roadmap')->where('id', $row)->update([
+        $existing->update([
             'objective' => $request->string('objective')->toString(),
             'target_audience' => $this->nullableText($request, 'target_audience'),
             'message' => $this->nullableText($request, 'message'),
@@ -142,10 +133,10 @@ final class CommPlanController extends Controller
     public function destroy(Request $request, int $row): RedirectResponse
     {
         $user = $this->userOrFail($request);
-        $existing = DB::table('communication_plan_roadmap')->where('id', $row)->first();
+        $existing = CommunicationPlanRoadmap::query()->find($row);
         abort_if($existing === null, 404);
-        abort_unless($user->isAdmin() || $user->isFocal() || $this->idValue($existing->created_by) === $user->id, 403);
-        DB::table('communication_plan_roadmap')->where('id', $row)->delete();
+        abort_unless($user->isAdmin() || $user->isFocal() || (int) $existing->created_by === $user->id, 403);
+        $existing->delete();
 
         $this->audit->record(
             $user->id,
@@ -163,11 +154,6 @@ final class CommPlanController extends Controller
     private function nullableText(Request $request, string $key): ?string
     {
         return $request->filled($key) ? $request->string($key)->toString() : null;
-    }
-
-    private function idValue(mixed $value): int
-    {
-        return is_numeric($value) ? (int) $value : 0;
     }
 
     private function userOrFail(Request $request): User

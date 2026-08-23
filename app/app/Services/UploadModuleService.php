@@ -106,6 +106,7 @@ final class UploadModuleService
             abort(404);
         }
 
+        /** @var array<string, mixed> $rowArr */
         $rowArr = (array) $row;
         $ownerId = is_numeric($rowArr[$module['uploader_fk']] ?? null) ? (int) $rowArr[$module['uploader_fk']] : 0;
 
@@ -158,7 +159,9 @@ final class UploadModuleService
             after: ['status' => $status],
         );
 
-        $ownerId = is_numeric((array) $row[$module['uploader_fk']] ?? null) ? (int) ((array) $row)[$module['uploader_fk']] : 0;
+        /** @var array<string, mixed> $rowArr */
+        $rowArr = (array) $row;
+        $ownerId = is_numeric($rowArr[$module['uploader_fk']] ?? null) ? (int) $rowArr[$module['uploader_fk']] : 0;
         $type = $status === 'Approved' ? NotificationType::Approved : ($status === 'Returned' ? NotificationType::Returned : NotificationType::Edit);
         if ($ownerId > 0 && $ownerId !== $user->id) {
             $this->notifications->create($ownerId, $type, 'Upload status updated', "Your {$module['singular']} in {$module['label']} is now {$status}.", $id, $module['table']);
@@ -167,7 +170,7 @@ final class UploadModuleService
 
     /**
      * @param  array{table: string, has_status: bool, status_values: list<string>|null, uploader_fk: string, has_title: bool, has_description: bool}  $module
-     * @return list<array{id: int, title: string|null, description: string|null, filename: string, original_name: string, file_size: int, status: string|null, uploaded_at: string, uploader: string|null, uploader_id: int}>
+     * @return array<int, array{id: int, title: string|null, description: string|null, filename: string, original_name: string, file_size: int, status: string|null, uploaded_at: string, uploader: string|null, uploader_id: int}>
      */
     public function listRows(array $module, string $slug, ?string $statusFilter = null): array
     {
@@ -179,6 +182,7 @@ final class UploadModuleService
             ->paginate(20)
             ->withQueryString();
 
+        /** @var array<int, array<string, mixed>> $rowsRaw */
         $rowsRaw = collect($query->items())->map(static fn (object $r): array => (array) $r)->values()->all();
         $uploaderIds = collect($rowsRaw)->pluck($module['uploader_fk'])->unique()->all();
         $uploaders = $uploaderIds !== []
@@ -186,16 +190,17 @@ final class UploadModuleService
             : [];
 
         return collect($rowsRaw)->map(function (array $row) use ($module, $uploaders): array {
+            /** @var array<string, mixed> $row */
             $uploaderId = (int) ($row[$module['uploader_fk']] ?? 0);
 
             return [
                 'id' => (int) ($row['id'] ?? 0),
-                'title' => $module['has_title'] ? ($row['title'] ?? null) : null,
-                'description' => $module['has_description'] ? ($row['description'] ?? null) : null,
+                'title' => $module['has_title'] ? ($row['title'] ?? null) === null ? null : (string) $row['title'] : null,
+                'description' => $module['has_description'] ? ($row['description'] ?? null) === null ? null : (string) $row['description'] : null,
                 'filename' => (string) ($row['filename'] ?? ''),
                 'original_name' => (string) ($row['original_name'] ?? ''),
                 'file_size' => (int) ($row['file_size'] ?? 0),
-                'status' => $module['has_status'] ? ($row['status'] ?? null) : null,
+                'status' => $module['has_status'] ? ($row['status'] ?? null) === null ? null : (string) $row['status'] : null,
                 'uploaded_at' => (string) ($row['uploaded_at'] ?? ''),
                 'uploader' => $uploaders[$uploaderId] ?? null,
                 'uploader_id' => $uploaderId,
@@ -226,26 +231,41 @@ final class UploadModuleService
     }
 
     /**
-     * @return list<array{label: string, file: string, preview: bool, source: string, id?: int, url: string}>
+     * @param  array<string, mixed>  $module
+     * @return array<int, array{label: string, file: string, preview: bool, source: string, id?: int, url: string}>
      */
     public function templates(string $slug, array $module): array
     {
-        $staticTemplates = collect($module['templates'] ?? [])
+        /** @var list<array{label: string, file: string, preview: bool}> $templates */
+        $templates = $module['templates'] ?? [];
+
+        $staticTemplates = collect($templates)
             ->filter(fn (array $template): bool => is_file(base_path('../img/'.$template['file'])))
-            ->map(fn (array $template): array => $template + ['source' => 'static', 'url' => route('legacy-img', ['name' => $template['file']], absolute: false)]);
+            ->map(fn (array $template): array => [
+                'label' => $template['label'],
+                'file' => $template['file'],
+                'preview' => $template['preview'],
+                'source' => 'static',
+                'url' => route('legacy-img', ['name' => $template['file']], absolute: false),
+            ]);
 
         $managedTemplates = DB::table('upload_module_templates')
             ->where('slug', $slug)
             ->orderBy('label')
             ->get()
-            ->map(fn (object $template): array => [
-                'label' => (string) $template->label,
-                'file' => (string) $template->original_name,
-                'preview' => false,
-                'source' => 'managed',
-                'id' => (int) $template->id,
-                'url' => $this->templateRouteUrl($slug, $template->id),
-            ]);
+            ->map(function (object $template) use ($slug): array {
+                /** @var array<string, mixed> $template */
+                $template = (array) $template;
+
+                return [
+                    'label' => (string) ($template['label'] ?? ''),
+                    'file' => (string) ($template['original_name'] ?? ''),
+                    'preview' => false,
+                    'source' => 'managed',
+                    'id' => (int) ($template['id'] ?? 0),
+                    'url' => $this->templateRouteUrl($slug, (int) ($template['id'] ?? 0)),
+                ];
+            });
 
         return $staticTemplates->concat($managedTemplates)->values()->all();
     }
@@ -254,7 +274,9 @@ final class UploadModuleService
     {
         $existing = DB::table('upload_module_templates')->where('slug', $slug)->where('label', $label)->first();
         if ($existing !== null) {
-            Storage::disk('local')->delete((string) $existing->filename);
+            /** @var array<string, mixed> $existingArr */
+            $existingArr = (array) $existing;
+            Storage::disk('local')->delete((string) ($existingArr['filename'] ?? ''));
         }
 
         $path = $file->store('templates/'.$slug, 'local');
@@ -281,7 +303,9 @@ final class UploadModuleService
             abort(404);
         }
 
-        Storage::disk('local')->delete((string) $row->filename);
+        /** @var array<string, mixed> $rowArr */
+        $rowArr = (array) $row;
+        Storage::disk('local')->delete((string) ($rowArr['filename'] ?? ''));
         DB::table('upload_module_templates')->where('id', $templateId)->delete();
     }
 
@@ -301,6 +325,9 @@ final class UploadModuleService
         return route('uploads.templates.download', ['slug' => $slug, 'template' => $templateId], absolute: false);
     }
 
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
     public function uploadRouteUrl(string $slug, string $action, array $parameters = []): string
     {
         $routeName = $slug.'.upload.'.$action;

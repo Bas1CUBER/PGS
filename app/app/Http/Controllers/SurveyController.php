@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Survey;
 use App\Models\User;
 use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
@@ -21,39 +22,36 @@ final class SurveyController extends Controller
         $user = $this->userOrFail($request);
 
         $data = CacheInvalidationService::remember('survey', 'index', function () use ($user): array {
-            $surveys = DB::table('surveys')
-                ->whereNull('archived_at')
-                ->orderByDesc('created_at')
-                ->get();
+            $surveys = Survey::query()->active()->orderByDesc('created_at')->get();
 
             $completionCounts = DB::table('surveys_done')
                 ->select('survey_id', DB::raw('COUNT(*) as total'))
                 ->groupBy('survey_id')
                 ->pluck('total', 'survey_id');
 
-            $surveys = $surveys->map(function (object $survey) use ($completionCounts): array {
-                $surveyId = $this->toInt($survey->id);
-
+            $surveys = $surveys->map(function (Survey $survey) use ($completionCounts): array {
                 return [
-                    'id' => $surveyId,
+                    'id' => $survey->id,
                     'title' => $survey->title,
                     'url' => $survey->url,
                     'status' => $survey->status,
                     'created_at' => $survey->created_at,
-                    'completion_count' => $this->toInt($completionCounts[$survey->id] ?? 0),
+                    'completion_count' => (int) ($completionCounts[$survey->id] ?? 0),
                 ];
             })->values();
 
             $archived = $this->isAdmin($user)
-                ? DB::table('surveys')->whereNotNull('archived_at')->orderByDesc('archived_at')->get()->map(fn (object $survey): array => [
-                    'id' => $this->toInt($survey->id),
-                    'title' => $survey->title,
-                    'url' => $survey->url,
-                    'status' => $survey->status,
-                    'created_at' => $survey->created_at,
-                    'archived_at' => $survey->archived_at,
-                    'completion_count' => $this->toInt($completionCounts[$survey->id] ?? 0),
-                ])->values()->all()
+                ? Survey::query()->whereNotNull('archived_at')->orderByDesc('archived_at')->get()->map(function (Survey $survey) use ($completionCounts): array {
+                    return [
+                        'id' => $survey->id,
+                        'title' => $survey->title,
+                        'url' => $survey->url,
+                        'status' => $survey->status,
+                        'created_at' => $survey->created_at,
+                        'archived_at' => $survey->archived_at,
+                        'completion_count' => (int) ($completionCounts[$survey->id] ?? 0),
+                    ];
+                })->values()->all()
                 : [];
 
             return ['surveys' => $surveys->all(), 'archived' => $archived];
@@ -88,7 +86,7 @@ final class SurveyController extends Controller
             'url' => ['required', 'url', 'max:1024'],
         ])->validate();
 
-        DB::table('surveys')->insert([
+        Survey::query()->create([
             'title' => $request->string('title')->toString(),
             'url' => $request->string('url')->toString(),
             'status' => 'Active',
@@ -111,7 +109,7 @@ final class SurveyController extends Controller
             'url' => ['required', 'url', 'max:1024'],
         ])->validate();
 
-        $updated = DB::table('surveys')->where('id', $survey)->update([
+        $updated = Survey::query()->whereKey($survey)->update([
             'title' => $request->string('title')->toString(),
             'url' => $request->string('url')->toString(),
         ]);
@@ -128,7 +126,7 @@ final class SurveyController extends Controller
         $user = $this->userOrFail($request);
         abort_unless($this->isAdmin($user), 403);
 
-        $updated = DB::table('surveys')->where('id', $survey)->whereNull('archived_at')->update([
+        $updated = Survey::query()->whereKey($survey)->whereNull('archived_at')->update([
             'status' => 'Archived',
             'archived_at' => now(),
         ]);
@@ -145,7 +143,7 @@ final class SurveyController extends Controller
         $user = $this->userOrFail($request);
         abort_unless($this->isAdmin($user), 403);
 
-        $deleted = DB::table('surveys')->where('id', $survey)->whereNotNull('archived_at')->delete();
+        $deleted = Survey::query()->whereKey($survey)->whereNotNull('archived_at')->delete();
         abort_unless($deleted > 0, 404);
 
         CacheInvalidationService::onSurveyChange();
@@ -157,7 +155,7 @@ final class SurveyController extends Controller
     {
         $user = $this->userOrFail($request);
 
-        if (! DB::table('surveys')->where('id', $survey)->exists()) {
+        if (! Survey::query()->whereKey($survey)->exists()) {
             abort(404);
         }
 
@@ -188,10 +186,5 @@ final class SurveyController extends Controller
     private function isAdmin(User $user): bool
     {
         return $user->isAdmin();
-    }
-
-    private function toInt(mixed $value): int
-    {
-        return is_numeric($value) ? (int) $value : 0;
     }
 }

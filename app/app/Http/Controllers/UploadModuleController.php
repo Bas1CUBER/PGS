@@ -112,7 +112,7 @@ final class UploadModuleController extends Controller
 
         CacheInvalidationService::onUploadChange($slug);
 
-        return back()->with('success', ucfirst((string) $module['singular']).' uploaded.');
+        return back()->with('success', ucfirst($module['singular']).' uploaded.');
     }
 
     public function download(Request $request, string $slug, int $id): SymfonyResponse
@@ -125,6 +125,7 @@ final class UploadModuleController extends Controller
             abort(404);
         }
 
+        /** @var array<string, mixed> $rowArr */
         $rowArr = (array) $row;
         $name = (string) ($rowArr['original_name'] ?? 'file');
         $path = (string) ($rowArr['filename'] ?? '');
@@ -157,7 +158,7 @@ final class UploadModuleController extends Controller
 
         CacheInvalidationService::onUploadChange($slug);
 
-        return back()->with('success', ucfirst((string) $module['singular']).' deleted.');
+        return back()->with('success', ucfirst($module['singular']).' deleted.');
     }
 
     public function updateStatus(Request $request, string $slug, int $id): RedirectResponse
@@ -176,7 +177,7 @@ final class UploadModuleController extends Controller
         }
 
         Validator::make($request->all(), [
-            'status' => ['required', 'in:'.implode(',', (array) ($module['status_values'] ?? []))],
+            'status' => ['required', 'in:'.implode(',', $module['status_values'] ?? [])],
         ])->validate();
 
         $this->uploads->updateStatus($module, $user, $id, $request->string('status')->toString(), $slug);
@@ -213,14 +214,17 @@ final class UploadModuleController extends Controller
         if ($row === null) {
             abort(404);
         }
-        $rowFilename = (string) $row->filename;
+
+        /** @var array<string, mixed> $rowArr */
+        $rowArr = (array) $row;
+        $rowFilename = (string) ($rowArr['filename'] ?? '');
         if (! Storage::disk('local')->exists($rowFilename)) {
             abort(404);
         }
 
         return Storage::disk('local')->download(
             $rowFilename,
-            $this->uploads->safeFilename((string) $row->original_name),
+            $this->uploads->safeFilename((string) ($rowArr['original_name'] ?? '')),
         );
     }
 
@@ -237,6 +241,9 @@ final class UploadModuleController extends Controller
         return back()->with('success', 'Template removed.');
     }
 
+    /**
+     * @return array{slug: string, label: string, table: string, has_title: bool, has_description: bool, has_status: bool, status_values: list<string>|null, uploader_fk: string, uploader_label: string, singular: string, templates?: list<array{label: string, file: string, preview: bool}>}
+     */
     private function resolveModule(string $slug): array
     {
         $module = UploadModuleRegistry::find($slug);

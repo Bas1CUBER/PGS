@@ -158,8 +158,8 @@ Route::middleware('web')->group(function (): void {
 
         // Static content pages
         Route::get('/content/{slug}', [StaticContentController::class, 'show'])->name('content.show');
-        Route::post('/content/{slug}/image', [StaticContentController::class, 'replaceImage'])->name('content.image');
-        Route::post('/content/{slug}/structured', [StaticContentController::class, 'saveStructured'])->name('content.structured');
+        Route::post('/content/{slug}/image', [StaticContentController::class, 'replaceImage'])->middleware('role:admin')->name('content.image');
+        Route::post('/content/{slug}/structured', [StaticContentController::class, 'saveStructured'])->middleware('role:admin')->name('content.structured');
 
         // PDF exports
         Route::get('/uploads/{slug}/{id}/pdf', [PdfExportController::class, 'uploadRecord'])->name('uploads.pdf');
