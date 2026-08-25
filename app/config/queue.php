@@ -40,7 +40,9 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            // Must exceed the longest job timeout (RunBackupJob: 600s) so a
+            // long-running job is never re-picked-up while still executing.
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 720),
             'after_commit' => true,
         ],
 
@@ -124,15 +126,6 @@ return [
         'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
         'database' => env('DB_CONNECTION', 'sqlite'),
         'table' => 'failed_jobs',
-    ],
-
-    'worker' => [
-        'tries' => (int) env('PGS_QUEUE_WORKER_TRIES', 3),
-        'timeout' => (int) env('PGS_QUEUE_WORKER_TIMEOUT', 120),
-        'sleep' => (int) env('PGS_QUEUE_WORKER_SLEEP', 3),
-        'backoff' => (int) env('PGS_QUEUE_WORKER_BACKOFF', 5),
-        'max_jobs' => (int) env('PGS_QUEUE_WORKER_MAX_JOBS', 500),
-        'max_time' => (int) env('PGS_QUEUE_WORKER_MAX_TIME', 3600),
     ],
 
 ];

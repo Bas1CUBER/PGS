@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Enums\DeliverableStatus;
 use App\Http\Controllers\DeliverableController;
 use App\Mail\OutboxTransport;
-use App\Models\Deliverable;
 use App\Services\TransitionsWorkflowService;
+use App\Services\WorkflowRegistry;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Application;
@@ -63,7 +62,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Catch lazy-loaded relationships in production to prevent N+1 queries.
-        // In local/dev, the QueryOptimizationMiddleware already detects N+1s.
+        // In non-production environments this throws, surfacing N+1s in tests.
         Model::preventLazyLoading(! $this->app->isProduction());
 
         // Log slow queries (>200ms) in all non-testing environments.
@@ -115,25 +114,11 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureWorkflow(): void
     {
-        // Deliverable progress workflow (docs/Workflows.md §2).
+        // Maps live in WorkflowRegistry so tests exercise the same
+        // production definitions instead of ad-hoc copies.
         $this->app->when(DeliverableController::class)
             ->needs(TransitionsWorkflowService::class)
-            ->give(fn (): TransitionsWorkflowService => new TransitionsWorkflowService(
-                Deliverable::class,
-                [
-                    DeliverableStatus::NotYetStarted->value => [
-                        ['to' => DeliverableStatus::Ongoing->value, 'actor' => '*'],
-                        ['to' => DeliverableStatus::Accomplished->value, 'actor' => 'admin|focal'],
-                    ],
-                    DeliverableStatus::Ongoing->value => [
-                        ['to' => DeliverableStatus::Accomplished->value, 'actor' => '*'],
-                        ['to' => DeliverableStatus::NotYetStarted->value, 'actor' => 'admin|focal'],
-                    ],
-                    DeliverableStatus::Accomplished->value => [
-                        ['to' => DeliverableStatus::Ongoing->value, 'actor' => 'admin|focal'],
-                    ],
-                ],
-            ));
+            ->give(fn (): TransitionsWorkflowService => WorkflowRegistry::deliverables());
     }
 
     protected function registerQueueHealth(): void

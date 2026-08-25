@@ -57,9 +57,7 @@ export function ScorecardTable({
                                                 type="button"
                                                 aria-label={`Remove ${String(year.year)}`}
                                                 disabled={isPending('delete-year')}
-                                                aria-busy={
-                                                    isPending('delete-year') || undefined
-                                                }
+                                                aria-busy={isPending('delete-year') || undefined}
                                                 onClick={() => {
                                                     onDeleteYear(year);
                                                 }}

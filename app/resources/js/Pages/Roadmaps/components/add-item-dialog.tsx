@@ -68,9 +68,7 @@ export function AddItemDialog({
                                 required
                             />
                             {form.errors.sub_label && (
-                                <p className="text-destructive text-sm">
-                                    {form.errors.sub_label}
-                                </p>
+                                <p className="text-destructive text-sm">{form.errors.sub_label}</p>
                             )}
                         </div>
                     </DialogBody>
@@ -87,8 +85,7 @@ export function AddItemDialog({
                         <Button
                             type="submit"
                             loading={
-                                itemTitleId !== null &&
-                                isPending(`add-item:${String(itemTitleId)}`)
+                                itemTitleId !== null && isPending(`add-item:${String(itemTitleId)}`)
                             }
                             loadingText="Adding"
                         >

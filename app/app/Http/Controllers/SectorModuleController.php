@@ -46,7 +46,10 @@ final class SectorModuleController extends Controller
             abort(404);
         }
 
-        $data = CacheInvalidationService::remember('sector', "sector:{$slug}", function () use ($module, $slug, $request) {
+        // The cached payload must stay role-agnostic: it is shared between
+        // every user, so pending changes (an admin-only review queue) are
+        // resolved per request below instead of inside the closure.
+        $data = CacheInvalidationService::remember('sector', "sector:{$slug}", function () use ($module): array {
             $rows = DB::table($module['table'])
                 ->orderByDesc('year')
                 ->orderBy('id')
@@ -72,9 +75,6 @@ final class SectorModuleController extends Controller
                 ->select('status', DB::raw('COUNT(*) as total'))
                 ->groupBy('status')
                 ->pluck('total', 'status');
-            $pendingChanges = (($request->user()?->isAdmin() ?? false) || ($request->user()?->isFocal() ?? false))
-                ? DB::table('progress_pending_changes')->where('module', $slug)->where('decision', 'Pending')->orderByDesc('submitted_at')->limit(25)->get()
-                : collect();
 
             return [
                 'rows' => $rows,
@@ -82,9 +82,13 @@ final class SectorModuleController extends Controller
                 'schedule' => $schedule,
                 'details' => $details,
                 'progressSummary' => $progressSummary,
-                'pendingChanges' => $pendingChanges,
             ];
         }, 60);
+
+        $canManage = ($request->user()?->isAdmin() ?? false) || ($request->user()?->isFocal() ?? false);
+        $pendingChanges = $canManage
+            ? DB::table('progress_pending_changes')->where('module', $slug)->where('decision', 'Pending')->orderByDesc('submitted_at')->limit(25)->get()
+            : collect();
 
         return Inertia::render('Sectors/Show', [
             'module' => $module,
@@ -93,8 +97,8 @@ final class SectorModuleController extends Controller
             'schedule' => $data['schedule'],
             'details' => $data['details'],
             'progressSummary' => $data['progressSummary'],
-            'pendingChanges' => $data['pendingChanges'],
-            'canManage' => ($request->user()?->isAdmin() ?? false) || ($request->user()?->isFocal() ?? false),
+            'pendingChanges' => $pendingChanges,
+            'canManage' => $canManage,
         ]);
     }
 
@@ -119,7 +123,15 @@ final class SectorModuleController extends Controller
         ];
 
         if ($user->isAdmin() || $user->isFocal()) {
-            DB::table($module['table'])->insert($data);
+            $id = DB::table($module['table'])->insertGetId($data);
+            $this->audit->record(
+                $user->id,
+                "sector.{$slug}.row_created",
+                $module['table'],
+                (string) $id,
+                after: $data,
+                request: $request,
+            );
             CacheInvalidationService::onSectorChange();
 
             return back()->with('success', 'Indicator added.');
@@ -191,12 +203,15 @@ final class SectorModuleController extends Controller
             abort(404);
         }
 
+        // Progress records are official data: only admin/focal may edit them
+        // directly. Employees must go through the pending-changes workflow.
+        abort_unless(($user = $this->userOrFail($request))->isAdmin() || $user->isFocal(), 403);
+
         Validator::make($request->all(), [
             'status' => ['required', 'in:Not Accomplished/Started,Ongoing,Accomplished'],
             'remarks' => ['nullable', 'string', 'max:2000'],
         ])->validate();
 
-        $user = $this->userOrFail($request);
         $progress = DB::table($module['progress_table'])->where('id', $id)->first();
         if ($progress === null) {
             abort(404);
@@ -230,7 +245,23 @@ final class SectorModuleController extends Controller
             abort(404);
         }
         abort_unless(($user = $this->userOrFail($request))->isAdmin() || $user->isFocal(), 403);
-        abort_unless(DB::table($module['table'])->where('id', $id)->delete() > 0, 404);
+
+        $row = DB::table($module['table'])->where('id', $id)->first();
+        abort_unless($row !== null && DB::table($module['table'])->where('id', $id)->delete() > 0, 404);
+
+        /** @var array<string, mixed> $rowArr */
+        $rowArr = (array) $row;
+        $this->audit->record(
+            $user->id,
+            "sector.{$slug}.row_deleted",
+            $module['table'],
+            (string) $id,
+            before: array_map(
+                static fn (mixed $value): mixed => is_scalar($value) || $value === null ? $value : (string) $value,
+                $rowArr,
+            ),
+            request: $request,
+        );
 
         CacheInvalidationService::onSectorChange();
 
@@ -246,13 +277,27 @@ final class SectorModuleController extends Controller
         abort_unless(($user = $this->userOrFail($request))->isAdmin() || $user->isFocal(), 403);
         Validator::make($request->all(), ['decision' => ['required', 'in:Approved,Rejected']])->validate();
 
-        $pending = DB::table('progress_pending_changes')->where('id', $change)->where('module', $slug)->where('decision', 'Pending')->first();
-        if ($pending === null) {
-            abort(404);
-        }
+        $decision = $request->string('decision')->toString();
+        $submittedBy = 0;
 
-        DB::transaction(function () use ($request, $pending, $module, $change, $user): void {
-            if ($request->string('decision')->toString() === 'Approved') {
+        DB::transaction(function () use ($slug, $module, $change, $user, $decision, &$submittedBy): void {
+            // Lock the row and re-check inside the transaction so two
+            // concurrent decisions cannot both apply the same change.
+            $pending = DB::table('progress_pending_changes')
+                ->where('id', $change)
+                ->where('module', $slug)
+                ->lockForUpdate()
+                ->first();
+
+            if ($pending === null) {
+                abort(404);
+            }
+
+            if ($pending->decision !== 'Pending') {
+                abort(409, 'This change was already reviewed.');
+            }
+
+            if ($decision === 'Approved') {
                 if ($pending->change_type === 'add_row') {
                     DB::table($module['table'])->insert(['category' => $pending->category, 'year' => $pending->year, 'description' => $pending->description]);
                 } else {
@@ -263,11 +308,20 @@ final class SectorModuleController extends Controller
                 }
             }
 
-            DB::table('progress_pending_changes')->where('id', $change)->update(['decision' => $request->string('decision')->toString()]);
+            DB::table('progress_pending_changes')->where('id', $change)->update(['decision' => $decision]);
+
+            $this->audit->record(
+                $user->id,
+                "sector.{$module['slug']}.pending_{$decision}",
+                'progress_pending_changes',
+                (string) $change,
+                before: ['decision' => 'Pending'],
+                after: ['decision' => $decision],
+            );
+
+            $submittedBy = $this->idValue($pending->submitted_by);
         });
 
-        $submittedBy = $this->idValue($pending->submitted_by);
-        $decision = $request->string('decision')->toString();
         if ($submittedBy > 0 && $submittedBy !== $user->id) {
             $this->notifications->create(
                 $submittedBy,

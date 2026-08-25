@@ -31,8 +31,9 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
     const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [deleteRowTarget, setDeleteRowTarget] = useState<UploadRow | null>(null);
-    const [deleteTemplateTarget, setDeleteTemplateTarget] =
-        useState<DeleteTemplateTarget | null>(null);
+    const [deleteTemplateTarget, setDeleteTemplateTarget] = useState<DeleteTemplateTarget | null>(
+        null,
+    );
     const [statusTarget, setStatusTarget] = useState<UploadStatusTarget | null>(null);
     const { isPending, start, finish } = usePendingAction();
 

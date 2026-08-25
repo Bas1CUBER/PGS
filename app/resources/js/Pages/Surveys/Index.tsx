@@ -123,7 +123,12 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
             <div className="mx-auto max-w-4xl space-y-6">
                 {canManage && (
                     <div className="flex justify-end">
-                        <Button onClick={() => { setCreateOpen(true); form.reset(); }}>
+                        <Button
+                            onClick={() => {
+                                setCreateOpen(true);
+                                form.reset();
+                            }}
+                        >
                             <Plus className="size-4" /> New survey
                         </Button>
                     </div>
@@ -317,10 +322,21 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                             </div>
                         </DialogBody>
                         <DialogFooter className="pgs-modal-footer">
-                            <Button type="button" variant="outline" onClick={() => { setCreateOpen(false); form.reset(); }}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setCreateOpen(false);
+                                    form.reset();
+                                }}
+                            >
                                 Cancel
                             </Button>
-                            <Button type="submit" loading={form.processing} loadingText="Publishing">
+                            <Button
+                                type="submit"
+                                loading={form.processing}
+                                loadingText="Publishing"
+                            >
                                 <Plus className="size-4" /> Publish
                             </Button>
                         </DialogFooter>

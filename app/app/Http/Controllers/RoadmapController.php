@@ -185,8 +185,11 @@ final class RoadmapController extends Controller
         $user = $this->userOrFail($request);
         abort_unless($user->isAdmin() || $user->isFocal(), 403);
 
-        $item->blocks()->delete();
-        $item->delete();
+        // roadmap_page_blocks.item_id cascades the block deletion at the DB
+        // level; wrapping in a transaction keeps it atomic with the item.
+        DB::transaction(function () use ($item): void {
+            $item->delete();
+        });
 
         $this->audit->record(
             $this->userId($request),

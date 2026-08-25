@@ -51,7 +51,9 @@ final class UploadModuleController extends Controller
 
         $statusFilter = $request->string('status')->toString();
 
-        $data = CacheInvalidationService::remember('upload', "show:{$slug}", function () use ($module, $slug, $statusFilter) {
+        // The status filter changes the row set, so it must be part of the
+        // cache key or filtered results leak across requests.
+        $data = CacheInvalidationService::remember('upload', "show:{$slug}:{$statusFilter}", function () use ($module, $slug, $statusFilter) {
             return [
                 'rows' => $this->uploads->listRows($module, $slug, $statusFilter !== '' ? $statusFilter : null),
                 'stats' => $this->uploads->governanceStats($module, $slug),

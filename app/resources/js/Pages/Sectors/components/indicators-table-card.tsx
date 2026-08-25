@@ -43,8 +43,7 @@ export function IndicatorsTableCard({
                 <div className="table-toolbar-heading">
                     <CardTitle>Indicators</CardTitle>
                     <p className="table-toolbar-meta">
-                        {rows.data.length}{' '}
-                        {rows.data.length === 1 ? 'indicator' : 'indicators'}
+                        {rows.data.length} {rows.data.length === 1 ? 'indicator' : 'indicators'}
                     </p>
                 </div>
                 <div className="table-toolbar-actions">
@@ -83,9 +82,7 @@ export function IndicatorsTableCard({
                     <TableBody>
                         {filteredRows.map((row) => (
                             <TableRow key={row.id}>
-                                <TableCell className="font-medium">
-                                    {row.category}
-                                </TableCell>
+                                <TableCell className="font-medium">{row.category}</TableCell>
                                 <TableCell className="text-muted-foreground text-sm">
                                     {row.year}
                                 </TableCell>

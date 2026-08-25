@@ -39,19 +39,17 @@ export function ReviewFormFields({ form }: ReviewFormFieldsProps) {
                 />
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
-                {['measure', 'target', 'actual_to_date_measure', 'status_measure'].map(
-                    (field) => (
-                        <ReviewField
-                            key={field}
-                            label={fieldLabels[field] ?? field}
-                            value={form.data[field]}
-                            error={form.errors[field]}
-                            onChange={(value) => {
-                                form.setData(field, value);
-                            }}
-                        />
-                    ),
-                )}
+                {['measure', 'target', 'actual_to_date_measure', 'status_measure'].map((field) => (
+                    <ReviewField
+                        key={field}
+                        label={fieldLabels[field] ?? field}
+                        value={form.data[field]}
+                        error={form.errors[field]}
+                        onChange={(value) => {
+                            form.setData(field, value);
+                        }}
+                    />
+                ))}
             </div>
             <div className="grid gap-4 md:grid-cols-3">
                 {[1, 2, 3].map((number) => (
@@ -61,26 +59,23 @@ export function ReviewFormFields({ form }: ReviewFormFieldsProps) {
                     >
                         <p className="mb-3 text-sm font-semibold">KRA {number}</p>
                         <div className="space-y-3">
-                            {[
-                                'key_results_area',
-                                'deliverable',
-                                'actual_to_date',
-                                'status',
-                            ].map((suffix) => {
-                                const field = `kra${String(number)}_${suffix}`;
-                                return (
-                                    <ReviewField
-                                        key={field}
-                                        label={fieldLabels[field] ?? field}
-                                        value={form.data[field]}
-                                        area={suffix === 'key_results_area'}
-                                        error={form.errors[field]}
-                                        onChange={(value) => {
-                                            form.setData(field, value);
-                                        }}
-                                    />
-                                );
-                            })}
+                            {['key_results_area', 'deliverable', 'actual_to_date', 'status'].map(
+                                (suffix) => {
+                                    const field = `kra${String(number)}_${suffix}`;
+                                    return (
+                                        <ReviewField
+                                            key={field}
+                                            label={fieldLabels[field] ?? field}
+                                            value={form.data[field]}
+                                            area={suffix === 'key_results_area'}
+                                            error={form.errors[field]}
+                                            onChange={(value) => {
+                                                form.setData(field, value);
+                                            }}
+                                        />
+                                    );
+                                },
+                            )}
                         </div>
                     </div>
                 ))}

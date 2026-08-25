@@ -67,19 +67,27 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                 headers: {
                     Accept: 'application/json',
                     'X-XSRF-TOKEN': decodeURIComponent(
-                        (/XSRF-TOKEN=([^;]+)/.exec(document.cookie)?.[1] ?? ''),
+                        /XSRF-TOKEN=([^;]+)/.exec(document.cookie)?.[1] ?? '',
                     ),
                 },
                 body: form,
             });
             if (!response.ok) {
-                setImportReport({ total: 0, created: 0, errors: [{ line: 0, message: `Import failed (${String(response.status)})` }] });
+                setImportReport({
+                    total: 0,
+                    created: 0,
+                    errors: [{ line: 0, message: `Import failed (${String(response.status)})` }],
+                });
                 return;
             }
             const payload = (await response.json()) as ImportReport;
             setImportReport(payload);
         } catch {
-            setImportReport({ total: 0, created: 0, errors: [{ line: 0, message: 'Network error — please try again.' }] });
+            setImportReport({
+                total: 0,
+                created: 0,
+                errors: [{ line: 0, message: 'Network error — please try again.' }],
+            });
         } finally {
             finish('import');
         }
@@ -220,7 +228,11 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={module in data ? Boolean(data[module as keyof typeof data]) : false}
+                                                checked={
+                                                    module in data
+                                                        ? Boolean(data[module as keyof typeof data])
+                                                        : false
+                                                }
                                                 onChange={(e) => {
                                                     if (module in data) {
                                                         setData(

@@ -38,7 +38,8 @@ final class TransitionsWorkflowService
     }
 
     /**
-     * Apply a transition inside a transaction, writing the audit log.
+     * Apply a transition inside a transaction, writing the audit log
+     * atomically (a failed audit write rolls back the transition too).
      *
      * @param  TModel  $model
      * @param  array<string, mixed>  $extra
@@ -54,7 +55,7 @@ final class TransitionsWorkflowService
 
         $from = null;
 
-        $updated = DB::transaction(function () use ($model, $to, $actor, &$from): Model {
+        return DB::transaction(function () use ($model, $to, $actor, &$from): Model {
             $locked = $this->lockModel($model);
 
             // Re-evaluate both authorization and preconditions against the
@@ -80,19 +81,17 @@ final class TransitionsWorkflowService
             $locked->forceFill($transition['on_apply'] ?? []);
             $locked->save();
 
+            app(AuditLogService::class)->record(
+                $actor->id,
+                "{$locked->getTable()}.status_changed",
+                $locked->getTable(),
+                (string) $locked->getKey(),
+                before: ['status' => $from],
+                after: ['status' => $to],
+            );
+
             return $locked;
         });
-
-        app(AuditLogService::class)->record(
-            $actor->id,
-            "{$updated->getTable()}.status_changed",
-            $updated->getTable(),
-            (string) $updated->getKey(),
-            before: ['status' => $from],
-            after: ['status' => $to],
-        );
-
-        return $updated;
     }
 
     /**

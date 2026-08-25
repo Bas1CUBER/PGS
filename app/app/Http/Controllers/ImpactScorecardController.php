@@ -10,6 +10,7 @@ use App\Models\ImpactScorecardYear;
 use App\Services\AuditLogService;
 use App\Services\CacheInvalidationService;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -141,10 +142,15 @@ final class ImpactScorecardController extends Controller
 
         $max = (int) ImpactScorecardYear::query()->max('sort_order');
 
-        $row = ImpactScorecardYear::query()->create([
-            'year' => $year,
-            'sort_order' => $max + 1,
-        ]);
+        try {
+            $row = ImpactScorecardYear::query()->create([
+                'year' => $year,
+                'sort_order' => $max + 1,
+            ]);
+        } catch (QueryException) {
+            // Concurrent insert lost against the unique(year) index.
+            return back()->with('error', 'That year already exists.');
+        }
 
         $this->audit->record(
             $this->userId($request),

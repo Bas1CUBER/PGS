@@ -34,7 +34,13 @@ interface LegacyFormsProps extends PageProps {
 }
 
 function isAnnexRowValue(row: unknown): row is AnnexRow {
-    return typeof row === 'object' && row !== null && !Array.isArray(row) && 'values' in row && 'id' in row;
+    return (
+        typeof row === 'object' &&
+        row !== null &&
+        !Array.isArray(row) &&
+        'values' in row &&
+        'id' in row
+    );
 }
 
 export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: LegacyFormsProps) {
@@ -117,7 +123,7 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {Object.keys(errors).length > 0 && (
-                                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                                <div className="border-destructive/50 bg-destructive/10 text-destructive rounded-md border p-3 text-sm">
                                     {Object.entries(errors).map(([key, message]) => (
                                         <p key={key}>{message}</p>
                                     ))}
@@ -157,7 +163,8 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                     </Button>
                                 )}
                                 <Button onClick={saveRow} disabled={processing}>
-                                    <Save className="size-4" /> {processing ? 'Saving...' : 'Save row'}
+                                    <Save className="size-4" />{' '}
+                                    {processing ? 'Saving...' : 'Save row'}
                                 </Button>
                             </div>
                         </CardContent>
@@ -200,13 +207,14 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                 </thead>
                                 <tbody data-slot="table-body">
                                     {rows.map((row, rowIndex) => {
-                                        const annex = form.editable && isAnnexRowValue(row) ? row : null;
+                                        const annex =
+                                            form.editable && isAnnexRowValue(row) ? row : null;
                                         const rowValues: (string | null)[] =
                                             annex !== null
                                                 ? annex.values
                                                 : Array.isArray(row)
-                                                    ? row
-                                                    : [];
+                                                  ? row
+                                                  : [];
                                         const rowId = annex !== null ? annex.id : rowIndex;
 
                                         return (
@@ -234,7 +242,8 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                                                         >
                                                             <DropdownMenuItem
                                                                 onSelect={() => {
-                                                                    if (annex !== null) editRow(annex);
+                                                                    if (annex !== null)
+                                                                        editRow(annex);
                                                                 }}
                                                             >
                                                                 <Pencil className="size-4" /> Edit

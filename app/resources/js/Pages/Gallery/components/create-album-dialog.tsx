@@ -65,7 +65,9 @@ export function CreateAlbumDialog({
                                 placeholder="Optional"
                             />
                             {form.errors.description && (
-                                <p className="text-destructive text-sm">{form.errors.description}</p>
+                                <p className="text-destructive text-sm">
+                                    {form.errors.description}
+                                </p>
                             )}
                         </div>
                     </DialogBody>
@@ -79,11 +81,7 @@ export function CreateAlbumDialog({
                         >
                             Cancel
                         </Button>
-                        <Button
-                            type="submit"
-                            loading={form.processing}
-                            loadingText="Creating"
-                        >
+                        <Button type="submit" loading={form.processing} loadingText="Creating">
                             <Plus className="size-4" /> Create album
                         </Button>
                     </DialogFooter>

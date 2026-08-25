@@ -38,14 +38,14 @@ final class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $validated = Validator::make($request->all(), [
+        Validator::make($request->all(), [
             'email' => ['required', 'email'],
         ])->validate();
 
         $email = Str::lower(trim($request->string('email')->toString()));
 
         try {
-            $issued = $this->passwordResetCodes->issue($email);
+            $this->passwordResetCodes->issue($email);
         } catch (Throwable $exception) {
             report($exception);
 
@@ -60,10 +60,11 @@ final class PasswordResetLinkController extends Controller
             'password_reset_verified_at' => null,
         ]);
 
-        if (! $issued) {
-            return redirect()->route('password.code')->with('status', 'If an account exists for that email, a reset code has been sent.');
-        }
-
-        return redirect()->route('password.code')->with('status', 'We sent a 6-digit reset code to your email.');
+        // Identical response either way so the endpoint cannot be used to
+        // enumerate registered email addresses.
+        return redirect()->route('password.code')->with(
+            'status',
+            'If an account exists for that email, a 6-digit reset code has been sent.',
+        );
     }
 }

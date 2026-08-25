@@ -35,9 +35,7 @@ export function AlbumCard({
                 <div className="flex items-start justify-between gap-2">
                     <div>
                         <CardTitle>{album.name}</CardTitle>
-                        <CardDescription>
-                            {album.description ?? ''}
-                        </CardDescription>
+                        <CardDescription>{album.description ?? ''}</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
                         <Badge variant="outline" className="shrink-0">
@@ -74,9 +72,7 @@ export function AlbumCard({
             </CardHeader>
             <CardContent className="space-y-3">
                 {photos.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
-                        No photos yet.
-                    </p>
+                    <p className="text-muted-foreground text-sm">No photos yet.</p>
                 ) : (
                     <div className="grid grid-cols-3 gap-2">
                         {photos.map((photo) => (
@@ -95,9 +91,7 @@ export function AlbumCard({
                                         }}
                                     >
                                         <Pencil className="size-3" />
-                                        <span className="sr-only">
-                                            Edit caption
-                                        </span>
+                                        <span className="sr-only">Edit caption</span>
                                     </button>
                                 )}
                                 {canManage && (

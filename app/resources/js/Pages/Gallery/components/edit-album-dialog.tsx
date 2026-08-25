@@ -22,12 +22,7 @@ interface EditAlbumDialogProps {
     onSubmit: (event: { preventDefault(): void }) => void;
 }
 
-export function EditAlbumDialog({
-    open,
-    form,
-    onOpenChange,
-    onSubmit,
-}: EditAlbumDialogProps) {
+export function EditAlbumDialog({ open, form, onOpenChange, onSubmit }: EditAlbumDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="pgs-modal-form-dialog">
@@ -60,16 +55,14 @@ export function EditAlbumDialog({
                                 }}
                             />
                             {form.errors.description && (
-                                <p className="text-destructive text-sm">{form.errors.description}</p>
+                                <p className="text-destructive text-sm">
+                                    {form.errors.description}
+                                </p>
                             )}
                         </div>
                     </DialogBody>
                     <DialogFooter>
-                        <Button
-                            type="submit"
-                            loading={form.processing}
-                            loadingText="Saving"
-                        >
+                        <Button type="submit" loading={form.processing} loadingText="Saving">
                             <Save className="size-4" /> Save album
                         </Button>
                     </DialogFooter>

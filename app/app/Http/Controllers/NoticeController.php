@@ -45,7 +45,9 @@ final class NoticeController extends Controller
         Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'image' => ['nullable', 'file', 'image', 'max:20480'],
+            // Explicit raster formats only: the generic `image` rule accepts
+            // SVG, which must not be served inline.
+            'image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,gif', 'max:20480'],
             'video' => ['nullable', 'file', 'mimetypes:video/mp4,video/webm,video/quicktime', 'max:102400'],
         ])->validate();
 
@@ -75,7 +77,7 @@ final class NoticeController extends Controller
         Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'image' => ['nullable', 'file', 'image', 'max:20480'],
+            'image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,gif', 'max:20480'],
             'video' => ['nullable', 'file', 'mimetypes:video/mp4,video/webm,video/quicktime', 'max:102400'],
         ])->validate();
 
@@ -190,22 +192,25 @@ final class NoticeController extends Controller
             return $disk->path($path);
         }
 
-        // Existing records may contain a relative upload path. Resolve it
-        // inside the application parent directory and reject traversal.
-        $root = realpath(base_path('../'));
-        if ($root === false) {
-            return null;
+        // Existing records may contain a relative upload path. Only legacy
+        // public asset directories are searched — never the repo root,
+        // config, or storage (which holds .env and backup archives).
+        foreach ([base_path('../img'), base_path('../uploads')] as $root) {
+            $realRoot = realpath($root);
+            if ($realRoot === false) {
+                continue;
+            }
+
+            $relative = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($path, '/\\'));
+            $candidate = realpath($realRoot.DIRECTORY_SEPARATOR.$relative);
+            $prefix = rtrim($realRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+
+            if ($candidate !== false && is_file($candidate) && str_starts_with($candidate, $prefix)) {
+                return $candidate;
+            }
         }
 
-        $relative = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($path, '/\\'));
-        $candidate = realpath($root.DIRECTORY_SEPARATOR.$relative);
-        $prefix = rtrim($root, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
-
-        if ($candidate === false || ! is_file($candidate) || ! str_starts_with($candidate, $prefix)) {
-            return null;
-        }
-
-        return $candidate;
+        return null;
     }
 
     /**

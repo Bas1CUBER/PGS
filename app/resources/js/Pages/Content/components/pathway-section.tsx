@@ -35,9 +35,7 @@ export function PathwaySection({
                 {panels.map((panel, index) => (
                     <Card key={`${panel.title}-${String(index)}`}>
                         <CardHeader>
-                            <CardTitle>
-                                {panel.title || `Panel ${String(index + 1)}`}
-                            </CardTitle>
+                            <CardTitle>{panel.title || `Panel ${String(index + 1)}`}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             {panel.image && (
@@ -79,11 +77,7 @@ export function PathwaySection({
                                     <Input
                                         value={panel.status}
                                         onChange={(e) => {
-                                            updatePanel(
-                                                index,
-                                                'status',
-                                                e.target.value,
-                                            );
+                                            updatePanel(index, 'status', e.target.value);
                                         }}
                                     />
                                 </div>

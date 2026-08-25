@@ -87,7 +87,10 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                 showToast('error', 'Block content must be a flat JSON object with string values.');
                 return;
             }
-            blockForm.setData({ block_type: blockForm.data.block_type, content: JSON.stringify(parsed) });
+            blockForm.setData({
+                block_type: blockForm.data.block_type,
+                content: JSON.stringify(parsed),
+            });
             blockForm.post(`/roadmaps/items/${String(builderItem.id)}/blocks`, {
                 preserveScroll: true,
                 onSuccess: () => {

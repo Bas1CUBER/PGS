@@ -16,7 +16,6 @@ use App\Services\TransitionsWorkflowService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -188,13 +187,14 @@ final class DeliverableController extends Controller
 
         $filePath = $deliverable->mov_file;
 
-        DB::transaction(function () use ($deliverable, $filePath): void {
-            $deliverable->delete();
+        $deliverable->delete();
 
-            if ($filePath !== null) {
-                Storage::disk('local')->delete($filePath);
-            }
-        });
+        // File removal happens after the DB row is committed: a storage
+        // failure must not roll back an already-deleted record (and the
+        // reverse would orphan the file).
+        if ($filePath !== null) {
+            Storage::disk('local')->delete($filePath);
+        }
 
         $this->audit->record(
             $this->userId($request),

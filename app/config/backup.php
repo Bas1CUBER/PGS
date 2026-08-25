@@ -29,6 +29,13 @@ return [
                     base_path('../uploads'),
                     base_path('../gallery_uploads'),
                     base_path('../strategy_review_forms'),
+
+                    // App-managed uploads live on the local/public storage
+                    // disks (deliverables, module uploads, gallery photos,
+                    // notice media, templates). Without these the backups
+                    // would only cover legacy files.
+                    storage_path('app/private'),
+                    storage_path('app/public'),
                 ],
 
                 /*
@@ -39,6 +46,10 @@ return [
                 'exclude' => [
                     base_path('vendor'),
                     base_path('node_modules'),
+                    storage_path('app/backups'),
+                    storage_path('app/backup-temp'),
+                    storage_path('logs'),
+                    storage_path('framework'),
                 ],
 
                 /*

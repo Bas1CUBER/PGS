@@ -37,9 +37,7 @@ export function ImageSection({
                             className="mx-auto max-h-[70vh] w-auto rounded-lg border"
                         />
                     ) : (
-                        <p className="text-muted-foreground py-10 text-center">
-                            Image not found.
-                        </p>
+                        <p className="text-muted-foreground py-10 text-center">Image not found.</p>
                     )}
                 </CardContent>
             </Card>

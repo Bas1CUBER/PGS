@@ -57,9 +57,7 @@ export function RoadmapItemRow({
                     variant="ghost"
                     size="icon"
                     aria-label="Move down"
-                    loading={isPending(
-                        `reorder:${String(item.id)}:down`,
-                    )}
+                    loading={isPending(`reorder:${String(item.id)}:down`)}
                     loadingText=""
                     onClick={() => {
                         onReorder(item.id, 'down');

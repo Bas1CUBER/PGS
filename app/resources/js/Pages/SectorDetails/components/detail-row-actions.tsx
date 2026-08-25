@@ -33,8 +33,7 @@ export function DetailRowActions({
             <TableRowActions label={`Row #${String(row.id)}`}>
                 <DropdownMenuItem
                     disabled={
-                        (Boolean(row.locked) && !canManage) ||
-                        isPending(`save:${String(row.id)}`)
+                        (Boolean(row.locked) && !canManage) || isPending(`save:${String(row.id)}`)
                     }
                     onSelect={() => {
                         onSave();

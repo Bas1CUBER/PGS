@@ -66,6 +66,22 @@ final class UploadModuleService
         $data['uploaded_at'] = now();
         $data[$module['uploader_fk']] = $user->id;
 
+        // Double-click / retry guard: reject an identical submission (same
+        // user, same file name + size) inside a short window instead of
+        // silently creating a duplicate Pending row.
+        $duplicate = DB::table($module['table'])
+            ->where($module['uploader_fk'], $user->id)
+            ->where('original_name', $data['original_name'])
+            ->where('file_size', $data['file_size'])
+            ->where('uploaded_at', '>=', now()->subSeconds(60))
+            ->exists();
+
+        if ($duplicate) {
+            Storage::disk('local')->delete($stored);
+
+            throw new \RuntimeException('This file was just submitted. Check the list below before uploading again.');
+        }
+
         if ($module['has_status']) {
             $data['status'] = $this->initialStatus($module);
         }

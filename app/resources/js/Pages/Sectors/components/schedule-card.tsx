@@ -21,9 +21,7 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
                         No schedule for this pillar.
                     </p>
                 ) : schedule.length === 0 ? (
-                    <p className="text-muted-foreground px-6 pb-6 text-sm">
-                        No schedule entries.
-                    </p>
+                    <p className="text-muted-foreground px-6 pb-6 text-sm">No schedule entries.</p>
                 ) : (
                     <ul className="divide-y">
                         {schedule.map((entry) => (
@@ -31,9 +29,7 @@ export function ScheduleCard({ schedule }: ScheduleCardProps) {
                                 <p className="text-sm font-medium">
                                     {entry.category} - {entry.year} ({entry.month})
                                 </p>
-                                <p className="text-muted-foreground text-xs">
-                                    {entry.description}
-                                </p>
+                                <p className="text-muted-foreground text-xs">{entry.description}</p>
                             </li>
                         ))}
                     </ul>

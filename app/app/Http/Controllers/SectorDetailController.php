@@ -8,6 +8,7 @@ use App\Modules\SectorDetailRegistry;
 use App\Modules\SectorModuleRegistry;
 use App\Services\AuditLogService;
 use App\Services\CacheInvalidationService;
+use App\Support\CsvFormulaGuard;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -212,7 +213,7 @@ final class SectorDetailController extends Controller
         fputcsv($handle, array_map(fn (string $column): string => str($column)->replace('_', ' ')->title()->toString(), $columns));
         foreach ($rows as $row) {
             $rowArray = (array) $row;
-            fputcsv($handle, array_map(fn (string $column): mixed => $rowArray[$column] ?? null, $columns));
+            fputcsv($handle, CsvFormulaGuard::row(array_map(fn (string $column): mixed => $rowArray[$column] ?? null, $columns)));
         }
         rewind($handle);
         $contents = stream_get_contents($handle);

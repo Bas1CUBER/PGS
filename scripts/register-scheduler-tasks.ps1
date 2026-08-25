@@ -58,9 +58,12 @@ function Register-PgsTask([string]$Name, [string]$Script, [int]$Minutes, [int]$L
         -Hidden `
         -StartWhenAvailable
 
+    # S4U ("run whether user is logged on or not", no stored password) keeps
+    # the tasks alive after logoff, unlike Interactive which dies with the
+    # session and silently stops scheduler/queue processing.
     $principal = New-ScheduledTaskPrincipal `
         -UserId $UserName `
-        -LogonType Interactive `
+        -LogonType S4U `
         -RunLevel Limited
 
     Register-ScheduledTask `
@@ -78,4 +81,4 @@ Register-PgsTask -Name 'PgsScheduler'   -Script $schedulerScript -Minutes 1 -Lim
 Register-PgsTask -Name 'PgsQueueWorker' -Script $workerScript    -Minutes 5 -LimitMinutes 15
 
 Write-Output ""
-Write-Output "Done. Background processing is active while this user is logged in."
+Write-Output "Done. Background processing runs whether the user is logged in or not (S4U logon)."

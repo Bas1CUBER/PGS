@@ -125,7 +125,9 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                         required
                                     />
                                     {createForm.errors.title && (
-                                        <p className="text-destructive text-sm">{createForm.errors.title}</p>
+                                        <p className="text-destructive text-sm">
+                                            {createForm.errors.title}
+                                        </p>
                                     )}
                                 </div>
                                 <div className="space-y-2">
@@ -140,7 +142,9 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                         className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                                     />
                                     {createForm.errors.description && (
-                                        <p className="text-destructive text-sm">{createForm.errors.description}</p>
+                                        <p className="text-destructive text-sm">
+                                            {createForm.errors.description}
+                                        </p>
                                     )}
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-2">
@@ -322,7 +326,9 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                 className="border-input bg-background flex w-full rounded-md border px-3 py-2 text-sm"
                             />
                             {editForm.errors.description && (
-                                <p className="text-destructive text-sm">{editForm.errors.description}</p>
+                                <p className="text-destructive text-sm">
+                                    {editForm.errors.description}
+                                </p>
                             )}
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
@@ -359,7 +365,11 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                         >
                             Cancel
                         </Button>
-                        <Button onClick={saveEdit} loading={editForm.processing} loadingText="Saving">
+                        <Button
+                            onClick={saveEdit}
+                            loading={editForm.processing}
+                            loadingText="Saving"
+                        >
                             Save
                         </Button>
                     </DialogFooter>

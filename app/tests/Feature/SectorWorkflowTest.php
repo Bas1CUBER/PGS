@@ -147,13 +147,13 @@ it('rejects a pending change without touching the sector tables', function (): v
         ->and(DB::table('culture')->where('category', 'Rejected proposal')->exists())->toBeFalse();
 });
 
-it('404s deciding an already-decided change', function (): void {
+it('409s deciding an already-decided change', function (): void {
     $admin = User::factory()->admin()->create();
     $id = pendingChange('culture', ['decision' => 'Approved']);
 
     $this->actingAs($admin)
         ->post("/sectors/culture/pending/{$id}/decision", ['decision' => 'Rejected'])
-        ->assertNotFound();
+        ->assertStatus(409);
 });
 
 it('denies employees locking sector detail rows', function (): void {

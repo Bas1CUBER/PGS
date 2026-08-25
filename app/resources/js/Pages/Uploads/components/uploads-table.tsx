@@ -52,17 +52,13 @@ export function UploadsTable({
                         {rows.map((row) => (
                             <TableRow key={row.id}>
                                 <TableCell className="max-w-64">
-                                    <p className="truncate font-medium">
-                                        {row.original_name}
-                                    </p>
+                                    <p className="truncate font-medium">{row.original_name}</p>
                                     <p className="text-muted-foreground text-xs">
                                         {row.uploader ?? '—'}
                                     </p>
                                 </TableCell>
                                 {module.has_title && (
-                                    <TableCell className="text-sm">
-                                        {row.title ?? '—'}
-                                    </TableCell>
+                                    <TableCell className="text-sm">{row.title ?? '—'}</TableCell>
                                 )}
                                 <TableCell className="text-muted-foreground text-sm">
                                     {formatBytes(row.file_size)}
@@ -88,9 +84,7 @@ export function UploadsTable({
                                             <>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
-                                                    disabled={isPending(
-                                                        `status:${String(row.id)}`,
-                                                    )}
+                                                    disabled={isPending(`status:${String(row.id)}`)}
                                                     onSelect={() => {
                                                         onSelectStatus({
                                                             row,
@@ -101,9 +95,7 @@ export function UploadsTable({
                                                     <Check className="size-4" /> Approve
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
-                                                    disabled={isPending(
-                                                        `status:${String(row.id)}`,
-                                                    )}
+                                                    disabled={isPending(`status:${String(row.id)}`)}
                                                     onSelect={() => {
                                                         onSelectStatus({
                                                             row,

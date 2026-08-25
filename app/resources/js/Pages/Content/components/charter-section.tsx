@@ -74,9 +74,7 @@ export function CharterSection({
                                 onChange={(e) => {
                                     setCharter({
                                         ...charter,
-                                        core_values: e.target.value
-                                            .split(/\r?\n/)
-                                            .filter(Boolean),
+                                        core_values: e.target.value.split(/\r?\n/).filter(Boolean),
                                     });
                                 }}
                                 rows={4}

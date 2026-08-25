@@ -7,5 +7,11 @@ $app = 'C:\xampp\htdocs\pgs\app'
 $php = 'C:\xampp\php\php.exe'
 if (-not (Test-Path $php)) { $php = 'php' }
 
+# Keep the log from growing without bound (Laravel rotation does not cover it).
+$log = Join-Path $app 'storage\logs\scheduler.log'
+if ((Test-Path $log) -and ((Get-Item $log).Length -gt 10MB)) {
+    Set-Content -LiteralPath $log -Value '' -ErrorAction SilentlyContinue
+}
+
 Set-Location $app
-& $php artisan schedule:run *>> storage\logs\scheduler.log
+& $php artisan schedule:run *>> $log

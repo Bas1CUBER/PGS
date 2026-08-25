@@ -65,11 +65,7 @@ export function AddYearDialog({
                         >
                             Cancel
                         </Button>
-                        <Button
-                            type="submit"
-                            loading={isPending('add-year')}
-                            loadingText="Adding"
-                        >
+                        <Button type="submit" loading={isPending('add-year')} loadingText="Adding">
                             <CalendarPlus className="size-4" /> Add year
                         </Button>
                     </DialogFooter>

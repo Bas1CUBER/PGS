@@ -25,9 +25,7 @@ export function ProgressCard({ progress }: ProgressCardProps) {
             </CardHeader>
             <CardContent className="p-0">
                 {progress.length === 0 ? (
-                    <p className="text-muted-foreground px-6 pb-6 text-sm">
-                        No progress entries.
-                    </p>
+                    <p className="text-muted-foreground px-6 pb-6 text-sm">No progress entries.</p>
                 ) : (
                     <ul className="divide-y">
                         {progress.map((entry) => (

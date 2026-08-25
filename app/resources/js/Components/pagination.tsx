@@ -21,11 +21,7 @@ export function Pagination({ links }: PaginationProps) {
             {links.map((link, index) => (
                 <span key={index}>
                     {link.url ? (
-                        <Button
-                            asChild
-                            variant={link.active ? 'default' : 'ghost'}
-                            size="sm"
-                        >
+                        <Button asChild variant={link.active ? 'default' : 'ghost'} size="sm">
                             <a href={relativeInternalUrl(link.url) ?? '#'}>
                                 {link.label.replace(/&laquo;|&raquo;/g, '')}
                             </a>

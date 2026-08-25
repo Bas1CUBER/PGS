@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -126,16 +127,52 @@ it('lets focals approve or return a submitted form', function (): void {
     $focal = User::factory()->focal()->withPageAccess()->create();
 
     $this->actingAs($focal)
+        ->post("/strategy-review/{$id}/review", ['status' => 'Returned'])
+        ->assertRedirect();
+
+    expect(DB::table('strategy_review_forms')->where('id', $id)->value('status'))->toBe('Returned')
+        ->and(AuditLog::query()
+            ->where('action', 'strategy_review_forms.status_changed')
+            ->where('resource_id', (string) $id)
+            ->exists())->toBeTrue();
+});
+
+it('finalizes approved forms so they cannot be re-decided', function (): void {
+    $employee = User::factory()->employee()->withPageAccess()->create();
+    $id = strategyReviewRow($employee->id, 'Submitted');
+
+    $this->actingAs(User::factory()->focal()->withPageAccess()->create())
         ->post("/strategy-review/{$id}/review", ['status' => 'Approved'])
         ->assertRedirect();
 
     expect(DB::table('strategy_review_forms')->where('id', $id)->value('status'))->toBe('Approved');
 
-    $this->actingAs($focal)
+    // A second reviewer decision on an already-approved form must fail.
+    $this->actingAs(User::factory()->admin()->withPageAccess()->create())
         ->post("/strategy-review/{$id}/review", ['status' => 'Returned'])
+        ->assertForbidden();
+});
+
+it('lets owners resubmit a returned form through the workflow', function (): void {
+    $employee = User::factory()->employee()->withPageAccess()->create();
+    $id = strategyReviewRow($employee->id, 'Returned');
+
+    $this->actingAs($employee)
+        ->put("/strategy-review/{$id}", ['objective' => 'Fixed objective', 'status' => 'Submitted'])
         ->assertRedirect();
 
-    expect(DB::table('strategy_review_forms')->where('id', $id)->value('status'))->toBe('Returned');
+    expect(DB::table('strategy_review_forms')->where('id', $id)->value('status'))->toBe('Submitted');
+});
+
+it('denies reverting an approved form back to draft', function (): void {
+    $owner = User::factory()->employee()->withPageAccess()->create();
+    $id = strategyReviewRow($owner->id, 'Approved');
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->put("/strategy-review/{$id}", ['objective' => 'Rewritten'])
+        ->assertForbidden();
+
+    expect(DB::table('strategy_review_forms')->where('id', $id)->value('status'))->toBe('Approved');
 });
 
 it('rejects invalid review decisions', function (): void {

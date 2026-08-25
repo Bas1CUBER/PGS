@@ -43,9 +43,7 @@ export function CreateMeasureDialog({
             <DialogContent className="pgs-modal-form-dialog">
                 <DialogHeader>
                     <DialogTitle>Add measure</DialogTitle>
-                    <DialogDescription>
-                        Add a measure to the impact scorecard.
-                    </DialogDescription>
+                    <DialogDescription>Add a measure to the impact scorecard.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={onSubmit} className="pgs-modal-form pgs-modal-form-scroll">
                     <DialogBody>

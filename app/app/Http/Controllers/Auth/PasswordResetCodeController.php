@@ -74,7 +74,7 @@ final class PasswordResetCodeController extends Controller
         }
 
         try {
-            $issued = $this->passwordResetCodes->issue($email);
+            $this->passwordResetCodes->issue($email);
         } catch (Throwable $exception) {
             report($exception);
 
@@ -83,9 +83,11 @@ final class PasswordResetCodeController extends Controller
             ]);
         }
 
-        return back()->with('status', $issued
-            ? 'A new 6-digit reset code was sent.'
-            : 'If an account exists for that email, a new reset code has been sent.');
+        // Generic either way: do not reveal whether the account exists.
+        return back()->with(
+            'status',
+            'If an account exists for that email, a new reset code has been sent.',
+        );
     }
 
     public function change(Request $request): Response|RedirectResponse

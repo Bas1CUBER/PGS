@@ -43,10 +43,7 @@ export function AppHeader({
             <div className="navbar-actions">
                 <div className="navbar-search">
                     <Search size={16} />
-                    <button
-                        type="button"
-                        onClick={onOpenSearch}
-                    >
+                    <button type="button" onClick={onOpenSearch}>
                         Search components...
                     </button>
                     <kbd className="navbar-shortcut" aria-label="Control K shortcut">

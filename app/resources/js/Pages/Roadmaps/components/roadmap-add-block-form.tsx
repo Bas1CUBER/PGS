@@ -39,21 +39,12 @@ export function RoadmapAddBlockForm({ form, onAddBlock }: RoadmapAddBlockFormPro
                 />
             </div>
             {form.errors.block_type && (
-                <p className="text-destructive text-sm">
-                    {form.errors.block_type}
-                </p>
+                <p className="text-destructive text-sm">{form.errors.block_type}</p>
             )}
             {form.errors.content && (
-                <p className="text-destructive text-sm">
-                    {form.errors.content}
-                </p>
+                <p className="text-destructive text-sm">{form.errors.content}</p>
             )}
-            <Button
-                size="sm"
-                loading={form.processing}
-                loadingText="Adding"
-                onClick={onAddBlock}
-            >
+            <Button size="sm" loading={form.processing} loadingText="Adding" onClick={onAddBlock}>
                 <Plus className="size-4" />
                 Add block
             </Button>

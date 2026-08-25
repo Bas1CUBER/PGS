@@ -84,7 +84,9 @@ export function AddIndicatorDialog({
                                 required
                             />
                             {form.errors.description && (
-                                <p className="text-destructive text-sm">{form.errors.description}</p>
+                                <p className="text-destructive text-sm">
+                                    {form.errors.description}
+                                </p>
                             )}
                         </div>
                     </DialogBody>

@@ -2,7 +2,11 @@ import type { PgsStatTone } from '@/components/pgs-stat-card';
 
 export const blockTypes = ['heading', 'paragraph', 'table', 'dashboard_stat'];
 
-export function contentText(content: Record<string, unknown>, key: string, fallback: string): string {
+export function contentText(
+    content: Record<string, unknown>,
+    key: string,
+    fallback: string,
+): string {
     const value = content[key];
 
     return typeof value === 'string' || typeof value === 'number' ? String(value) : fallback;

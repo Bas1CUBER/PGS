@@ -124,9 +124,11 @@ final class GalleryController extends Controller
 
         Validator::make($request->all(), [
             'caption' => ['nullable', 'string', 'max:2000'],
-            'photo' => ['nullable', 'file', 'image', 'max:10240'],
+            // Explicit raster formats only: the generic `image` rule accepts
+            // SVG, which must not be served inline.
+            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,gif', 'max:10240'],
             'photos' => ['nullable', 'array', 'min:1', 'max:30'],
-            'photos.*' => ['file', 'image', 'max:10240'],
+            'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp,gif', 'max:10240'],
         ])->validate();
 
         $photos = $request->file('photos');

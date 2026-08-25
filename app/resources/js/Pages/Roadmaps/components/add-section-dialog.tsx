@@ -48,9 +48,7 @@ export function AddSectionDialog({
                                 required
                             />
                             {form.errors.title && (
-                                <p className="text-destructive text-sm">
-                                    {form.errors.title}
-                                </p>
+                                <p className="text-destructive text-sm">{form.errors.title}</p>
                             )}
                         </div>
                     </DialogBody>
@@ -64,11 +62,7 @@ export function AddSectionDialog({
                         >
                             Cancel
                         </Button>
-                        <Button
-                            type="submit"
-                            loading={form.processing}
-                            loadingText="Adding"
-                        >
+                        <Button type="submit" loading={form.processing} loadingText="Adding">
                             <Plus className="size-4" /> Add section
                         </Button>
                     </DialogFooter>

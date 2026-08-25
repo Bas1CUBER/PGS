@@ -48,11 +48,7 @@ export function EditPhotoCaptionDialog({
                         </div>
                     </DialogBody>
                     <DialogFooter>
-                        <Button
-                            type="submit"
-                            loading={form.processing}
-                            loadingText="Saving"
-                        >
+                        <Button type="submit" loading={form.processing} loadingText="Saving">
                             <Save className="size-4" /> Save caption
                         </Button>
                     </DialogFooter>

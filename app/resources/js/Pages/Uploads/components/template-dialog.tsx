@@ -55,9 +55,7 @@ export function TemplateDialog({
                                 required
                             />
                             {form.errors.label && (
-                                <p className="text-destructive text-sm">
-                                    {form.errors.label}
-                                </p>
+                                <p className="text-destructive text-sm">{form.errors.label}</p>
                             )}
                         </div>
                         <div className="pgs-modal-field">
@@ -74,11 +72,7 @@ export function TemplateDialog({
                         </div>
                     </DialogBody>
                     <DialogFooter className="pgs-modal-footer">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={onClose}
-                        >
+                        <Button type="button" variant="outline" onClick={onClose}>
                             Cancel
                         </Button>
                         <Button

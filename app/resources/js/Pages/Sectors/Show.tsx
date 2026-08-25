@@ -13,11 +13,7 @@ import { ProgressCard } from './components/progress-card';
 import { ProgressSummaryCards } from './components/progress-summary-cards';
 import { ScheduleCard } from './components/schedule-card';
 import { SectorBanner } from './components/sector-banner';
-import type {
-    PendingDecisionTarget,
-    SectorRow,
-    SectorShowPageProps,
-} from './components/types';
+import type { PendingDecisionTarget, SectorRow, SectorShowPageProps } from './components/types';
 
 export default function SectorShow({
     module,
@@ -36,7 +32,11 @@ export default function SectorShow({
     const [decisionTarget, setDecisionTarget] = useState<PendingDecisionTarget | null>(null);
     const { isPending, start, finish } = usePendingAction();
 
-    const addForm = useForm({ category: '', year: String(new Date().getFullYear()), description: '' });
+    const addForm = useForm({
+        category: '',
+        year: String(new Date().getFullYear()),
+        description: '',
+    });
     const editForm = useForm({ category: '', year: '', description: '' });
 
     const normalizedIndicatorFilter = indicatorFilter.trim().toLowerCase();

@@ -32,9 +32,7 @@ export function EditIndicatorDialog({
                 <DialogHeader className="pgs-modal-header">
                     <span className="pgs-modal-eyebrow">Responsive overlay</span>
                     <DialogTitle>Edit indicator</DialogTitle>
-                    <DialogDescription>
-                        Update the selected roadmap indicator.
-                    </DialogDescription>
+                    <DialogDescription>Update the selected roadmap indicator.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={onSubmit} className="pgs-modal-form pgs-modal-form-scroll">
                     <DialogBody>
@@ -80,7 +78,9 @@ export function EditIndicatorDialog({
                                 required
                             />
                             {form.errors.description && (
-                                <p className="text-destructive text-sm">{form.errors.description}</p>
+                                <p className="text-destructive text-sm">
+                                    {form.errors.description}
+                                </p>
                             )}
                         </div>
                     </DialogBody>

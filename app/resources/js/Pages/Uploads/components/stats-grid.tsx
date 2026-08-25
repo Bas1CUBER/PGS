@@ -1,11 +1,4 @@
-import {
-    CircleCheck,
-    FileText,
-    Hourglass,
-    Image as ImageIcon,
-    List,
-    Undo2,
-} from 'lucide-react';
+import { CircleCheck, FileText, Hourglass, Image as ImageIcon, List, Undo2 } from 'lucide-react';
 import { PgsStatCard, type PgsStatTone } from '@/components/pgs-stat-card';
 import type { GovernanceStatKey, GovernanceStats } from './types';
 

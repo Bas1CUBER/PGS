@@ -80,9 +80,7 @@ export function ReviewRegister({
                                                 status: 'Approved',
                                             });
                                         }}
-                                        loading={isPending(
-                                            `review:${String(reviewForm.id)}`,
-                                        )}
+                                        loading={isPending(`review:${String(reviewForm.id)}`)}
                                     >
                                         <ShieldCheck className="size-4" /> Approve
                                     </Button>
@@ -94,9 +92,7 @@ export function ReviewRegister({
                                                 status: 'Returned',
                                             });
                                         }}
-                                        loading={isPending(
-                                            `review:${String(reviewForm.id)}`,
-                                        )}
+                                        loading={isPending(`review:${String(reviewForm.id)}`)}
                                     >
                                         Return
                                     </Button>

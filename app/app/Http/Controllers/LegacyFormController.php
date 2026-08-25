@@ -9,6 +9,7 @@ use App\Models\PerformanceTarget;
 use App\Modules\LegacyFormRegistry;
 use App\Services\AuditLogService;
 use App\Services\CacheInvalidationService;
+use App\Support\CsvFormulaGuard;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -99,7 +100,8 @@ final class LegacyFormController extends Controller
     public function opcr(Request $request): InertiaResponse
     {
         $user = $request->user();
-        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
+        // Keep in sync with routes/content_modules.php (`role:admin`).
+        abort_unless($user !== null && $user->isAdmin(), 403);
 
         $rows = CacheInvalidationService::remember('legacy_form', 'opcr', function (): array {
             return PerformanceTarget::query()->orderBy('id')->get()->map(fn (PerformanceTarget $row): array => [
@@ -125,7 +127,7 @@ final class LegacyFormController extends Controller
     public function opcrStore(Request $request): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
 
         $data = $this->validatedOpcr($request);
         $row = PerformanceTarget::query()->create($data);
@@ -140,7 +142,7 @@ final class LegacyFormController extends Controller
     public function opcrUpdate(Request $request, int $id): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
 
         $data = $this->validatedOpcr($request);
         abort_unless(PerformanceTarget::query()->whereKey($id)->update($data) > 0, 404);
@@ -154,7 +156,7 @@ final class LegacyFormController extends Controller
     public function opcrDestroy(Request $request, int $id): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
 
         abort_unless(PerformanceTarget::query()->whereKey($id)->delete() > 0, 404);
         $this->audit->record($this->userId($request), 'opcr.row_deleted', 'performance_targets', (string) $id, request: $request);
@@ -294,7 +296,7 @@ final class LegacyFormController extends Controller
         abort_if($handle === false, 500);
         fputcsv($handle, $headers);
         foreach ($rows as $row) {
-            fputcsv($handle, $row);
+            fputcsv($handle, CsvFormulaGuard::row($row));
         }
         rewind($handle);
         $contents = stream_get_contents($handle);

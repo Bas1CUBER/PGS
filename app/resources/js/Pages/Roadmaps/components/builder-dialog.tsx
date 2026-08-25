@@ -47,8 +47,7 @@ export function BuilderDialog({
                             <div>
                                 <p className="text-sm font-medium">Stat card preview</p>
                                 <p className="text-muted-foreground text-xs">
-                                    These cards are rendered from the saved dashboard stat
-                                    blocks.
+                                    These cards are rendered from the saved dashboard stat blocks.
                                 </p>
                             </div>
                             <div className="grid gap-3 sm:grid-cols-2">
@@ -103,9 +102,7 @@ export function BuilderDialog({
                             </li>
                         ))}
                         {(item?.blocks ?? []).length === 0 && (
-                            <li className="text-muted-foreground py-2 text-sm">
-                                No blocks yet.
-                            </li>
+                            <li className="text-muted-foreground py-2 text-sm">No blocks yet.</li>
                         )}
                     </ul>
 

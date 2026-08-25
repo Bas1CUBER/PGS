@@ -7,7 +7,8 @@ export const statusStyles: Record<string, string> = {
     Ongoing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
     'Not Yet Started': 'bg-slate-100 text-slate-800 dark:bg-slate-900/40 dark:text-slate-200',
     Completed: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
-    'Not Accomplished/Started': 'bg-slate-100 text-slate-800 dark:bg-slate-900/40 dark:text-slate-200',
+    'Not Accomplished/Started':
+        'bg-slate-100 text-slate-800 dark:bg-slate-900/40 dark:text-slate-200',
     Active: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
     Archived: 'bg-slate-100 text-slate-800 dark:bg-slate-900/40 dark:text-slate-200',
 };

@@ -59,9 +59,7 @@ export function UploadDialog({
                                     required
                                 />
                                 {form.errors.title && (
-                                    <p className="text-destructive text-sm">
-                                        {form.errors.title}
-                                    </p>
+                                    <p className="text-destructive text-sm">{form.errors.title}</p>
                                 )}
                             </div>
                         )}

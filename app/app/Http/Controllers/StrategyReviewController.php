@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\CacheInvalidationService;
 use App\Services\NotificationService;
+use App\Services\TransitionsWorkflowService;
+use App\Services\WorkflowRegistry;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +34,12 @@ final class StrategyReviewController extends Controller
         private readonly AuditLogService $audit,
         private readonly NotificationService $notifications,
     ) {}
+
+    /** @return TransitionsWorkflowService<StrategyReviewForm> */
+    private function workflows(): TransitionsWorkflowService
+    {
+        return WorkflowRegistry::strategyReviewForms();
+    }
 
     public function index(Request $request): Response
     {
@@ -103,13 +111,33 @@ final class StrategyReviewController extends Controller
         $user = $this->userOrFail($request);
         $existing = StrategyReviewForm::query()->find($form);
         abort_unless($existing !== null && ($user->isAdmin() || $existing->employee_id === $user->id), 403);
-
+        /** @var StrategyReviewForm $existing */
         $data = $this->validatedData($request);
         $status = $request->string('status')->toString() === 'Submitted' ? 'Submitted' : 'Draft';
+
+        // Reject a forbidden status move before persisting anything, then
+        // save the content edit; any actual transition goes through the
+        // workflow engine (re-locked row, atomic audit record).
+        $transitionNeeded = $status !== $existing->getRawOriginal('status');
+        if ($transitionNeeded && ! $this->workflows()->canTransition($existing, $status, $user)) {
+            abort(403);
+        }
+
         $existing->update([
             'form_data' => json_encode($data, JSON_UNESCAPED_UNICODE),
-            'status' => $status,
         ]);
+
+        if ($transitionNeeded) {
+            $this->workflows()->transition($existing, $status, $user);
+        } else {
+            $this->audit->record(
+                $user->id,
+                'strategy_review.form_updated',
+                'strategy_review_forms',
+                (string) $form,
+                request: $request,
+            );
+        }
 
         CacheInvalidationService::onStratReviewChange();
 
@@ -124,8 +152,12 @@ final class StrategyReviewController extends Controller
         $existing = StrategyReviewForm::query()->find($form);
         abort_if($existing === null, 404);
         abort_unless($existing->employee_id !== $user->id, 403, 'A reviewer cannot approve their own form.');
+
         $status = $request->string('status')->toString();
-        $existing->update(['status' => $status]);
+
+        // Authorization, preconditions and the audit trail are enforced
+        // atomically by the workflow engine.
+        $this->workflows()->transition($existing, $status, $user);
 
         $ownerId = $existing->employee_id;
         if ($ownerId > 0) {

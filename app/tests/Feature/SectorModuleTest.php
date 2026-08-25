@@ -73,7 +73,7 @@ it('updates a sector indicator row', function (): void {
 });
 
 it('updates sector progress with audit', function (): void {
-    $user = User::factory()->employee()->withPageAccess()->create();
+    $user = User::factory()->focal()->withPageAccess()->create();
     $id = DB::table('resilience_progress')->insertGetId([
         'category' => 'Disaster Preparedness',
         'year' => 2025,
@@ -94,4 +94,79 @@ it('updates sector progress with audit', function (): void {
         ->and(DB::table('resilience_progress')->where('id', $id)->value('updated_by'))->toBe($user->id);
 
     expect(AuditLog::query()->where('action', 'sector.resilience.progress_updated')->exists())->toBeTrue();
+});
+
+it('denies employees direct progress updates', function (): void {
+    $user = User::factory()->employee()->withPageAccess()->create();
+    $id = DB::table('resilience_progress')->insertGetId([
+        'category' => 'Disaster Preparedness',
+        'year' => 2025,
+        'month' => 3,
+        'status' => 'Ongoing',
+        'updated_by' => $user->id,
+        'description' => 'x',
+    ]);
+
+    $this->actingAs($user)
+        ->put("/sectors/resilience/progress/{$id}", [
+            'status' => 'Accomplished',
+        ])
+        ->assertForbidden();
+
+    expect(DB::table('resilience_progress')->where('id', $id)->value('status'))->toBe('Ongoing');
+});
+
+it('does not leak pending changes through the shared page cache', function (): void {
+    $focal = User::factory()->focal()->withPageAccess()->create();
+    $employee = User::factory()->employee()->withPageAccess()->create();
+    DB::table('culture')->insert([
+        'category' => 'Patient Safety Culture',
+        'year' => 2025,
+        'description' => 'Baseline.',
+    ]);
+    DB::table('progress_pending_changes')->insert([
+        'module' => 'culture',
+        'change_type' => 'add_row',
+        'category' => 'Secret submission',
+        'year' => 2031,
+        'description' => 'pending row',
+        'submitted_by' => $employee->id,
+        'submitted_at' => now(),
+        'decision' => 'Pending',
+    ]);
+
+    // Admin/focal warms the cache first.
+    $this->actingAs($focal)
+        ->get('/sectors/culture')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->has('pendingChanges', 1));
+
+    // The employee must not receive the review queue in their props.
+    $this->actingAs($employee)
+        ->get('/sectors/culture')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->has('pendingChanges', 0));
+});
+
+it('rejects a second decision on an already-reviewed change', function (): void {
+    $focal = User::factory()->focal()->withPageAccess()->create();
+    $changeId = DB::table('progress_pending_changes')->insertGetId([
+        'module' => 'culture',
+        'change_type' => 'add_row',
+        'category' => 'Dup check',
+        'year' => 2030,
+        'description' => 'row',
+        'submitted_by' => $focal->id,
+        'submitted_at' => now(),
+        'decision' => 'Pending',
+    ]);
+
+    $payload = ['decision' => 'Approved'];
+
+    $this->actingAs($focal)->post("/sectors/culture/pending/{$changeId}/decision", $payload)->assertRedirect();
+    $this->actingAs($focal)->post("/sectors/culture/pending/{$changeId}/decision", $payload)->assertStatus(409);
+
+    expect((int) DB::table('culture')->where('category', 'Dup check')->count())->toBe(1)
+        ->and(DB::table('progress_pending_changes')->where('id', $changeId)->value('decision'))->toBe('Approved')
+        ->and(AuditLog::query()->where('action', 'sector.culture.pending_Approved')->exists())->toBeTrue();
 });
