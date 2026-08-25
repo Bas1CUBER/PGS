@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 it('lists the upload modules', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
 
     $this->actingAs($user)
         ->get('/uploads')
@@ -20,7 +20,7 @@ it('lists the upload modules', function (): void {
 });
 
 it('lists resources with uploader info', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
     DB::table('resources_uploads')->insert([
         'title' => 'Policy PDF',
         'filename' => 'uploads/resources/policy.pdf',
@@ -42,7 +42,7 @@ it('lists resources with uploader info', function (): void {
 
 it('uploads a file to a module', function (): void {
     Storage::fake('local');
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
 
     $this->actingAs($user)
         ->post('/uploads/resources', [
@@ -58,8 +58,8 @@ it('uploads a file to a module', function (): void {
 });
 
 it('approves and returns pending uploads as focal', function (): void {
-    $focal = User::factory()->focal()->create();
-    $employee = User::factory()->employee()->create();
+    $focal = User::factory()->focal()->withPageAccess()->create();
+    $employee = User::factory()->employee()->withPageAccess()->create();
     $id = DB::table('operations_review_uploads')->insertGetId([
         'employee_id' => $employee->id,
         'filename' => 'x.pdf',
@@ -78,7 +78,7 @@ it('approves and returns pending uploads as focal', function (): void {
 });
 
 it('prevents employees from changing upload status', function (): void {
-    $employee = User::factory()->employee()->create();
+    $employee = User::factory()->employee()->withPageAccess()->create();
     $id = DB::table('operations_review_uploads')->insertGetId([
         'employee_id' => $employee->id,
         'filename' => 'x.pdf',
@@ -97,7 +97,7 @@ it('prevents employees from changing upload status', function (): void {
 });
 
 it('rejects executable upload content', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
 
     $this->actingAs($user)
         ->post('/uploads/resources', [
@@ -114,7 +114,7 @@ it('blocks uploads when the deadline has passed', function (): void {
         'end_time' => now()->subHour(),
         'message' => 'Deadline passed.',
     ]);
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
 
     $this->actingAs($user)
         ->post('/uploads/resources', [
@@ -125,7 +125,7 @@ it('blocks uploads when the deadline has passed', function (): void {
 });
 
 it('rejects unknown upload module slugs', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
 
     $this->actingAs($user)->get('/uploads/nope')->assertNotFound();
 });

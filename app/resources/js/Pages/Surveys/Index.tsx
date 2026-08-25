@@ -50,6 +50,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
     const form = useForm({ title: '', url: '' });
     const [editing, setEditing] = useState<SurveyRow | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
+    const [archiveTarget, setArchiveTarget] = useState<SurveyRow | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<SurveyRow | null>(null);
 
     function markDone(id: number): void {
@@ -88,15 +89,21 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
     }
 
     function archiveSurvey(survey: SurveyRow): void {
-        const action = `archive:${String(survey.id)}`;
+        setArchiveTarget(survey);
+    }
+
+    function confirmArchive(): void {
+        if (archiveTarget === null) return;
+        const action = `archive:${String(archiveTarget.id)}`;
         start(action);
         router.post(
-            `/surveys/${String(survey.id)}/archive`,
+            `/surveys/${String(archiveTarget.id)}/archive`,
             {},
             {
                 preserveScroll: true,
                 onFinish: () => {
                     finish(action);
+                    setArchiveTarget(null);
                 },
             },
         );
@@ -398,6 +405,20 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <PgsConfirmationDialog
+                open={archiveTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setArchiveTarget(null);
+                }}
+                title="Archive survey"
+                description="Archived surveys are removed from the active list but remain accessible to administrators."
+                confirmationTitle="Confirm archive"
+                confirmationDescription={`"${archiveTarget?.title ?? 'This survey'}" will be archived.`}
+                onConfirm={confirmArchive}
+                loading={archiveTarget !== null && isPending(`archive:${String(archiveTarget.id)}`)}
+                loadingText="Archiving"
+            />
+
             <PgsConfirmationDialog
                 open={deleteTarget !== null}
                 onOpenChange={(open) => {

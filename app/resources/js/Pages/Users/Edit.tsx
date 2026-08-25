@@ -31,6 +31,7 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
         Object.fromEntries(accessModules.map((m) => [m, access[m] ?? true])),
     );
     const [confirmingDeletion, setConfirmingDeletion] = useState(false);
+    const [confirmingToggle, setConfirmingToggle] = useState(false);
 
     const { data, setData, put, processing, errors } = useForm({
         name: user.name ?? '',
@@ -70,6 +71,7 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
             {
                 onFinish: () => {
                     finish('toggle');
+                    setConfirmingToggle(false);
                 },
             },
         );
@@ -288,7 +290,9 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
                             size="sm"
                             loading={isPending('toggle')}
                             loadingText="Updating"
-                            onClick={toggleAccount}
+                            onClick={() => {
+                                setConfirmingToggle(true);
+                            }}
                         >
                             {user.is_active ? 'Deactivate account' : 'Activate account'}
                         </Button>
@@ -317,6 +321,25 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
                 onConfirm={confirmDelete}
                 loading={isPending('delete')}
                 loadingText="Deleting"
+            />
+
+            <PgsConfirmationDialog
+                open={confirmingToggle}
+                onOpenChange={setConfirmingToggle}
+                title={user.is_active ? 'Deactivate account' : 'Activate account'}
+                description={
+                    user.is_active
+                        ? 'The user will lose access until reactivated by an administrator.'
+                        : 'The user will regain access to the workspace.'
+                }
+                confirmationTitle={user.is_active ? 'Confirm deactivation' : 'Confirm activation'}
+                confirmationDescription={`${user.email} will be ${user.is_active ? 'deactivated' : 'activated'}.`}
+                onConfirm={toggleAccount}
+                loading={isPending('toggle')}
+                loadingText={user.is_active ? 'Deactivating' : 'Activating'}
+                confirmText={user.is_active ? 'Deactivate' : 'Activate'}
+                confirmVariant={user.is_active ? 'destructive' : 'default'}
+                kind={user.is_active ? 'reject' : 'approve'}
             />
         </AuthenticatedLayout>
     );

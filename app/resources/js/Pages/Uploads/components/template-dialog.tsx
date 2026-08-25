@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 
 interface TemplateDialogProps {
     open: boolean;
-    form: InertiaFormProps<{ label: string }>;
+    form: InertiaFormProps<{ label: string; file: File | null }>;
     file: File | null;
     onOpenChange: (open: boolean) => void;
     onClose: () => void;
@@ -69,6 +69,9 @@ export function TemplateDialog({
                                 }}
                                 required
                             />
+                            {form.errors.file && (
+                                <p className="text-destructive text-sm">{form.errors.file}</p>
+                            )}
                         </div>
                     </DialogBody>
                     <DialogFooter className="pgs-modal-footer">

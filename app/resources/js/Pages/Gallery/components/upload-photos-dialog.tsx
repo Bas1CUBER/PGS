@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 interface UploadPhotosDialogProps {
     open: boolean;
     targetName: string;
-    form: InertiaFormProps<{ caption: string }>;
+    form: InertiaFormProps<{ caption: string; photos: File[] }>;
     photoFiles: File[];
     onPhotoFilesChange: (files: File[]) => void;
     onOpenChange: (open: boolean) => void;
@@ -64,6 +64,9 @@ export function UploadPhotosDialog({
                                     onPhotoFilesChange(Array.from(e.target.files ?? []));
                                 }}
                             />
+                            {form.errors.photos && (
+                                <p className="text-destructive text-sm">{form.errors.photos}</p>
+                            )}
                         </div>
                     </DialogBody>
                     <DialogFooter>

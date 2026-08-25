@@ -15,6 +15,7 @@ use App\Services\WorkflowRegistry;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -117,27 +118,33 @@ final class StrategyReviewController extends Controller
 
         // Reject a forbidden status move before persisting anything, then
         // save the content edit; any actual transition goes through the
-        // workflow engine (re-locked row, atomic audit record).
+        // workflow engine (re-locked row, atomic audit record). Both writes
+        // share ONE transaction so a precondition failure cannot leave the
+        // content changed while the status stays stale.
         $transitionNeeded = $status !== $existing->getRawOriginal('status');
         if ($transitionNeeded && ! $this->workflows()->canTransition($existing, $status, $user)) {
             abort(403);
         }
 
-        $existing->update([
-            'form_data' => json_encode($data, JSON_UNESCAPED_UNICODE),
-        ]);
+        DB::transaction(function () use ($request, $existing, $status, $user, $data, $transitionNeeded, $form): void {
+            $existing->update([
+                'form_data' => json_encode($data, JSON_UNESCAPED_UNICODE),
+            ]);
 
-        if ($transitionNeeded) {
-            $this->workflows()->transition($existing, $status, $user);
-        } else {
-            $this->audit->record(
-                $user->id,
-                'strategy_review.form_updated',
-                'strategy_review_forms',
-                (string) $form,
-                request: $request,
-            );
-        }
+            if ($transitionNeeded) {
+                // Nested DB::transaction becomes a savepoint: a failure here
+                // rolls back the content save too.
+                $this->workflows()->transition($existing, $status, $user);
+            } else {
+                $this->audit->record(
+                    $user->id,
+                    'strategy_review.form_updated',
+                    'strategy_review_forms',
+                    (string) $form,
+                    request: $request,
+                );
+            }
+        });
 
         CacheInvalidationService::onStratReviewChange();
 

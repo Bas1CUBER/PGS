@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface CreateUserPageProps extends PageProps {
     roles: string[];
@@ -32,6 +33,8 @@ const accessLabels: Record<string, string> = {
 export default function CreateUser({ roles, accessModules }: CreateUserPageProps) {
     const [importFile, setImportFile] = useState<File | null>(null);
     const [importReport, setImportReport] = useState<ImportReport | null>(null);
+    const [confirmingImport, setConfirmingImport] = useState(false);
+    const hasRunDryRun = importReport !== null;
     const { isPending, start, finish } = usePendingAction();
 
     const { data, setData, post, processing, errors } = useForm({
@@ -296,7 +299,13 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                                     loading={isPending('import')}
                                     loadingText="Importing"
                                     disabled={importFile === null || isPending('import')}
-                                    onClick={() => void runImport(false)}
+                                    onClick={() => {
+                                        if (hasRunDryRun) {
+                                            void runImport(false);
+                                        } else {
+                                            setConfirmingImport(true);
+                                        }
+                                    }}
                                 >
                                     <Upload className="size-4" />
                                     Import
@@ -323,6 +332,22 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
                         )}
                     </CardContent>
                 </Card>
+
+                <PgsConfirmationDialog
+                    open={confirmingImport}
+                    onOpenChange={setConfirmingImport}
+                    title="Import users"
+                    description="You have not run a dry run yet. Importing writes users to the database — please verify the file first."
+                    confirmationTitle="Confirm import"
+                    confirmationDescription={`${importFile?.name ?? 'No file selected'} will be imported and accounts created.`}
+                    onConfirm={() => {
+                        setConfirmingImport(false);
+                        void runImport(false);
+                    }}
+                    loading={isPending('import')}
+                    loadingText="Importing"
+                    confirmText="Import anyway"
+                />
             </div>
         </AuthenticatedLayout>
     );

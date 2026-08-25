@@ -15,6 +15,7 @@ interface EditMeasureDialogProps {
     impact: string;
     measure: string;
     bl: string;
+    errors?: Partial<Record<string, string>>;
     onImpactChange: (value: string) => void;
     onMeasureChange: (value: string) => void;
     onBaselineChange: (value: string) => void;
@@ -29,6 +30,7 @@ export function EditMeasureDialog({
     impact,
     measure,
     bl,
+    errors = {},
     onImpactChange,
     onMeasureChange,
     onBaselineChange,
@@ -52,7 +54,11 @@ export function EditMeasureDialog({
                             onChange={(e) => {
                                 onImpactChange(e.target.value);
                             }}
+                            required
                         />
+                        {errors.impact && (
+                            <p className="text-destructive text-sm">{errors.impact}</p>
+                        )}
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="edit-measure">Measure</Label>
@@ -62,7 +68,11 @@ export function EditMeasureDialog({
                             onChange={(e) => {
                                 onMeasureChange(e.target.value);
                             }}
+                            required
                         />
+                        {errors.measure && (
+                            <p className="text-destructive text-sm">{errors.measure}</p>
+                        )}
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="edit-bl">Baseline</Label>
@@ -73,6 +83,7 @@ export function EditMeasureDialog({
                                 onBaselineChange(e.target.value);
                             }}
                         />
+                        {errors.bl && <p className="text-destructive text-sm">{errors.bl}</p>}
                     </div>
                 </DialogBody>
                 <DialogFooter>

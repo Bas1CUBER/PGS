@@ -48,12 +48,14 @@ it('does not expose arbitrary files on the private backup disk', function (): vo
     Storage::fake('local');
     Storage::disk('local')->put('not-a-backup.txt', 'private data');
     $admin = User::factory()->admin()->create();
+    $confirmed = ['auth.password_confirmed_at' => time()];
 
     $this->actingAs($admin)
         ->get('/backups/local/not-a-backup.txt')
         ->assertNotFound();
 
     $this->actingAs($admin)
+        ->withSession($confirmed)
         ->delete('/backups/local/not-a-backup.txt')
         ->assertNotFound();
 

@@ -14,6 +14,11 @@ final class MailboxController extends Controller
 {
     public function index(Request $request): Response
     {
+        // Defense-in-depth alongside the route-level role:admin middleware:
+        // the outbox contains password-reset bodies and other internal mail.
+        $user = $request->user();
+        abort_unless($user?->isAdmin() === true, 403);
+
         $search = $request->string('q')->toString();
 
         $mails = DB::table('outbox_mails')
@@ -33,6 +38,9 @@ final class MailboxController extends Controller
 
     public function show(Request $request, int $id): Response
     {
+        $user = $request->user();
+        abort_unless($user?->isAdmin() === true, 403);
+
         $mail = DB::table('outbox_mails')->where('id', $id)->first();
 
         if ($mail === null) {

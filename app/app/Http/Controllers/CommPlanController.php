@@ -43,6 +43,9 @@ final class CommPlanController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = $this->userOrFail($request);
+        // Published access matrix (StaticContentController): Employees are
+        // read-only here; plan authoring belongs to Focal/Admin.
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
         Validator::make($request->all(), [
             'objective' => ['required', 'string', 'max:5000'],
             'target_audience' => ['nullable', 'string', 'max:5000'],
@@ -104,7 +107,9 @@ final class CommPlanController extends Controller
 
         $existing = CommunicationPlanRoadmap::query()->find($row);
         abort_if($existing === null, 404);
-        abort_unless($user->isAdmin() || $user->isFocal() || (int) $existing->created_by === $user->id, 403);
+        // Published access matrix: row edits (including status changes)
+        // are reserved for Focal/Admin.
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
 
         $existing->update([
             'objective' => $request->string('objective')->toString(),
@@ -135,7 +140,7 @@ final class CommPlanController extends Controller
         $user = $this->userOrFail($request);
         $existing = CommunicationPlanRoadmap::query()->find($row);
         abort_if($existing === null, 404);
-        abort_unless($user->isAdmin() || $user->isFocal() || (int) $existing->created_by === $user->id, 403);
+        abort_unless($user->isAdmin() || $user->isFocal(), 403);
         $existing->delete();
 
         $this->audit->record(

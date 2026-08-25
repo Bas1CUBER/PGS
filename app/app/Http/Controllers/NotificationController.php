@@ -25,7 +25,9 @@ final class NotificationController extends Controller
     {
         $user = $this->userOrFail($request);
 
-        $notifications = CacheInvalidationService::remember('notification', "index:{$user->id}", function () use ($user): array {
+        // paginate() reads ?page= from the current request, so the page must
+        // be part of the cache key or one page's result is served to all.
+        $notifications = CacheInvalidationService::remember('notification', "index:{$user->id}:p".(int) $request->query('page', '1'), function () use ($user): array {
             return Notification::query()
                 ->where('user_id', $user->id)
                 ->orderByDesc('created_at')
@@ -88,7 +90,7 @@ final class NotificationController extends Controller
         $userId = $this->userOrFail($request)->id;
         $this->notifications->markAsRead($notification, $userId);
 
-        CacheInvalidationService::onNotificationChange($userId);
+        CacheInvalidationService::onNotificationChange();
 
         return back();
     }
@@ -98,7 +100,7 @@ final class NotificationController extends Controller
         $userId = $this->userOrFail($request)->id;
         $this->notifications->markAllAsRead($userId);
 
-        CacheInvalidationService::onNotificationChange($userId);
+        CacheInvalidationService::onNotificationChange();
 
         return back();
     }

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Modules\UploadModuleRegistry;
 use App\Services\AuditLogService;
 use App\Services\PageAccessService;
+use App\Services\UploadModuleService;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Auth\AuthenticationException;
@@ -43,12 +44,7 @@ final class PdfExportController extends Controller
 
         $rowArr = (array) $row;
         $user = $this->userOrFail($request);
-        $gate = match ($slug) {
-            'resources', 'cascading-activities', 'communication-plan' => 'cascading',
-            'governance-culture', 'governance-sharing' => 'governance',
-            'operations-review', 'strategy-review', 'strategy-refresh' => 'performance_assessment',
-            default => null,
-        };
+        $gate = UploadModuleService::accessGateFor($slug);
         abort_unless($gate === null || ! $this->access->hasMatrix($user) || $this->access->can($user, $gate), 403);
 
         $title = $module['label'].' — Record #'.$id;
@@ -64,6 +60,7 @@ final class PdfExportController extends Controller
             'status' => $this->str($rowArr['status'] ?? null),
             'uploadedAt' => $this->str($rowArr['uploaded_at'] ?? null),
             'generatedBy' => $user->email ?? 'system',
+            'extraRows' => [],
         ])->render();
 
         $this->audit->record(
@@ -82,19 +79,31 @@ final class PdfExportController extends Controller
         $deliverable = Deliverable::query()->findOrFail($id);
         $this->authorize('view', $deliverable);
         $user = $this->userOrFail($request);
-        $row = $deliverable->toArray();
+
+        // Properly labeled rows instead of shoehorning values into the
+        // generic upload-record fields (status was previously rendered as
+        // the file "Type").
+        $extraRows = [
+            ['Division', $this->str($deliverable->division)],
+            ['Focal Person', $this->str($deliverable->focal_person)],
+            ['Form Type', $this->str($deliverable->form_type)],
+            ['Target Date', $deliverable->target_date !== null ? $deliverable->target_date->format('Y-m-d') : ''],
+            ['Actual Date', $deliverable->actual_date !== null ? $deliverable->actual_date->format('Y-m-d') : ''],
+            ['Status', $deliverable->status !== null ? $deliverable->status->value : ''],
+        ];
 
         $html = view('exports.upload-record', [
             'moduleLabel' => 'Deliverable',
             'recordId' => $id,
-            'title' => $this->str($row['title'] ?? null),
-            'description' => $this->str($row['division'] ?? null),
-            'originalName' => $this->str($row['mov_file'] ?? null),
+            'title' => $this->str($deliverable->title),
+            'description' => '',
+            'originalName' => $this->str($deliverable->mov_file !== null ? basename($deliverable->mov_file) : null),
             'fileSize' => '',
-            'mimeType' => $this->str($row['status'] ?? null),
-            'status' => $this->str($row['status'] ?? null),
-            'uploadedAt' => $this->str($row['actual_date'] ?? null),
+            'mimeType' => '',
+            'status' => '',
+            'uploadedAt' => $deliverable->created_at->format('Y-m-d H:i'),
             'generatedBy' => $user->email,
+            'extraRows' => $extraRows,
         ])->render();
 
         $this->audit->record(

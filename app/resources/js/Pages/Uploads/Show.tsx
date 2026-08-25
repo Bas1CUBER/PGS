@@ -23,11 +23,13 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
     const user = auth.user;
     const canReview = user !== null && (user.role === 'focal' || user.role === 'admin');
 
-    const uploadForm = useForm({ title: '', description: '' });
-    const templateForm = useForm({ label: '' });
+    const uploadForm = useForm<{ title: string; description: string; file: File | null }>({
+        title: '',
+        description: '',
+        file: null,
+    });
+    const templateForm = useForm<{ label: string; file: File | null }>({ label: '', file: null });
 
-    const [file, setFile] = useState<File | null>(null);
-    const [templateFile, setTemplateFile] = useState<File | null>(null);
     const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [deleteRowTarget, setDeleteRowTarget] = useState<UploadRow | null>(null);
@@ -39,12 +41,7 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
 
     function submit(event: { preventDefault(): void }): void {
         event.preventDefault();
-        if (file === null) return;
-
-        const formData = new FormData();
-        formData.append('file', file);
-        if (module.has_title) formData.append('title', uploadForm.data.title);
-        if (module.has_description) formData.append('description', uploadForm.data.description);
+        if (uploadForm.data.file === null) return;
 
         start('upload');
         uploadForm.post(module.upload_base_url, {
@@ -56,7 +53,6 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
             onFinish: () => {
                 finish('upload');
                 uploadForm.reset();
-                setFile(null);
             },
         });
     }
@@ -91,11 +87,8 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
 
     function submitTemplate(event: { preventDefault(): void }): void {
         event.preventDefault();
-        if (templateFile === null || templateForm.data.label.trim() === '') return;
+        if (templateForm.data.file === null || templateForm.data.label.trim() === '') return;
 
-        const formData = new FormData();
-        formData.append('label', templateForm.data.label);
-        formData.append('file', templateFile);
         start('template');
         templateForm.post(module.template_upload_url, {
             forceFormData: true,
@@ -106,7 +99,6 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
             onFinish: () => {
                 finish('template');
                 templateForm.reset();
-                setTemplateFile(null);
             },
         });
     }
@@ -127,7 +119,6 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
         setUploadDialogOpen(open);
         if (!open) {
             uploadForm.reset();
-            setFile(null);
         }
     }
 
@@ -135,7 +126,6 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
         setTemplateDialogOpen(open);
         if (!open) {
             templateForm.reset();
-            setTemplateFile(null);
         }
     }
 
@@ -189,19 +179,21 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                 <TemplateDialog
                     open={templateDialogOpen}
                     form={templateForm}
-                    file={templateFile}
+                    file={templateForm.data.file}
                     onOpenChange={handleTemplateDialogChange}
                     onClose={() => {
                         setTemplateDialogOpen(false);
                     }}
-                    onFileChange={setTemplateFile}
+                    onFileChange={(selected) => {
+                        templateForm.setData('file', selected);
+                    }}
                     onSubmit={submitTemplate}
                 />
 
                 <UploadDialog
                     open={uploadDialogOpen}
                     form={uploadForm}
-                    file={file}
+                    file={uploadForm.data.file}
                     singular={module.singular}
                     hasTitle={module.has_title}
                     hasDescription={module.has_description}
@@ -209,7 +201,9 @@ export default function UploadsShow({ module, rows, stats }: UploadsShowPageProp
                     onClose={() => {
                         setUploadDialogOpen(false);
                     }}
-                    onFileChange={setFile}
+                    onFileChange={(selected) => {
+                        uploadForm.setData('file', selected);
+                    }}
                     onSubmit={submit}
                 />
 

@@ -58,15 +58,19 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
         });
     }
 
-    function toggleUser(user: User & { is_active: boolean }): void {
-        const action = `toggle:${String(user.id)}`;
+    const [toggleTarget, setToggleTarget] = useState<(User & { is_active: boolean }) | null>(null);
+
+    function confirmToggle(): void {
+        if (toggleTarget === null) return;
+        const action = `toggle:${String(toggleTarget.id)}`;
         start(action);
         router.post(
-            `/users/${String(user.id)}/toggle`,
+            `/users/${String(toggleTarget.id)}/toggle`,
             {},
             {
                 onFinish: () => {
                     finish(action);
+                    setToggleTarget(null);
                 },
             },
         );
@@ -164,7 +168,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                                         `toggle:${String(user.id)}`,
                                                     )}
                                                     onSelect={() => {
-                                                        toggleUser(user);
+                                                        setToggleTarget(user);
                                                     }}
                                                 >
                                                     <Power className="size-4" />
@@ -235,6 +239,27 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                 onConfirm={confirmDelete}
                 loading={isPending('delete')}
                 loadingText="Deleting"
+            />
+
+            <PgsConfirmationDialog
+                open={toggleTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setToggleTarget(null);
+                }}
+                title={toggleTarget?.is_active ? 'Deactivate account' : 'Activate account'}
+                description={
+                    toggleTarget?.is_active
+                        ? 'The user will lose access until reactivated by an administrator.'
+                        : 'The user will regain access to the workspace.'
+                }
+                confirmationTitle={toggleTarget?.is_active ? 'Confirm deactivation' : 'Confirm activation'}
+                confirmationDescription={`${toggleTarget?.email ?? 'This user'} will be ${toggleTarget?.is_active ? 'deactivated' : 'activated'}.`}
+                onConfirm={confirmToggle}
+                loading={toggleTarget !== null && isPending(`toggle:${String(toggleTarget.id)}`)}
+                loadingText={toggleTarget?.is_active ? 'Deactivating' : 'Activating'}
+                confirmText={toggleTarget?.is_active ? 'Deactivate' : 'Activate'}
+                confirmVariant={toggleTarget?.is_active ? 'destructive' : 'default'}
+                kind={toggleTarget?.is_active ? 'reject' : 'approve'}
             />
         </AuthenticatedLayout>
     );

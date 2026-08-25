@@ -48,9 +48,13 @@ final class SectorDetailController extends Controller
 
         $lockColumn = $this->lockColumn($module['table']);
 
+        // paginate() reads ?page= from the current request, so the page must
+        // be part of the cache key or one page's result is served to all.
+        $page = (int) $request->query('page', '1');
+
         [$rows, $stats] = CacheInvalidationService::remember(
             'sector_detail',
-            "{$pillar}:{$slug}",
+            "{$pillar}:{$slug}:p{$page}",
             function () use ($module, $columns, $lockColumn, $slug): array {
                 $rows = DB::table($module['table'])
                     ->orderBy('id')
@@ -123,10 +127,20 @@ final class SectorDetailController extends Controller
 
         $existing = DB::table($module['table'])->where('id', $id)->first();
         abort_if($existing === null, 404);
+
+        // A locked row freezes edits for focals; admins keep break-glass
+        // access so a mistaken lock can always be undone via toggleLock.
+        $user = $request->user();
         if ($this->isLocked($existing, $module['table'])) {
-            $user = $request->user();
-            if ($user === null || (! $user->isAdmin() && ! $user->isFocal())) {
-                abort(403, 'This roadmap row is locked.');
+            abort_unless($user !== null && $user->isAdmin(), 403, 'This roadmap row is locked.');
+        }
+
+        /** @var array<string, mixed> $existingArr */
+        $existingArr = (array) $existing;
+        $before = [];
+        foreach ($editable as $column) {
+            if (array_key_exists($column, $existingArr)) {
+                $before[$column] = $existingArr[$column];
             }
         }
 
@@ -142,6 +156,8 @@ final class SectorDetailController extends Controller
             "sector_detail.{$pillar}.{$slug}.row_updated",
             $module['table'],
             (string) $id,
+            before: $before,
+            after: $data,
             request: $request,
         );
 
@@ -176,6 +192,14 @@ final class SectorDetailController extends Controller
         $module = SectorDetailRegistry::find($pillar, $slug);
         abort_if($module === null, 404);
         abort_unless($this->canManage($request), 403);
+
+        $existing = DB::table($module['table'])->where('id', $id)->first();
+        abort_if($existing === null, 404);
+        if ($this->isLocked($existing, $module['table'])) {
+            $user = $request->user();
+            abort_unless($user !== null && $user->isAdmin(), 403, 'This roadmap row is locked.');
+        }
+
         abort_unless(DB::table($module['table'])->where('id', $id)->delete() > 0, 404);
         $this->audit->record($this->userId($request), "sector_detail.{$pillar}.{$slug}.row_deleted", $module['table'], (string) $id, request: $request);
 

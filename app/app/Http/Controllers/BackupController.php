@@ -137,6 +137,7 @@ final class BackupController extends Controller
             Artisan::call('backup:restore', [
                 '--backup' => $path,
                 '--disk' => $disk,
+                '--no-interaction' => true,
             ]);
 
             $this->audit->record(
@@ -149,7 +150,11 @@ final class BackupController extends Controller
 
             return back()->with('success', 'Backup restored successfully.');
         } catch (\Throwable $e) {
-            return back()->with('error', 'Restore failed: '.$e->getMessage());
+            // Log the details server-side; only a generic message reaches
+            // the UI (exception text may contain paths/credentials).
+            report($e);
+
+            return back()->with('error', 'Restore failed. Check the application logs for details.');
         }
     }
 

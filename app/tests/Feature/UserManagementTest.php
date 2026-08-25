@@ -156,6 +156,7 @@ it('imports users from a CSV with a report', function (): void {
         ."bad-role@example.com,Password-12345,superadmin,Bad Role,\n";
 
     $this->actingAs($admin)
+        ->withSession(['auth.password_confirmed_at' => time()])
         ->post('/users/import', [
             'file' => UploadedFile::fake()->createWithContent('users.csv', $csv),
         ], ['Accept' => 'application/json'])

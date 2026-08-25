@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 interface AddYearDialogProps {
     open: boolean;
     year: string;
+    errors?: Partial<Record<string, string>>;
     onYearChange: (value: string) => void;
     onOpenChange: (open: boolean) => void;
     onCancel: () => void;
@@ -24,6 +25,7 @@ interface AddYearDialogProps {
 export function AddYearDialog({
     open,
     year,
+    errors = {},
     onYearChange,
     onOpenChange,
     onCancel,
@@ -53,6 +55,9 @@ export function AddYearDialog({
                                 placeholder="e.g. 2029"
                                 required
                             />
+                            {errors.year && (
+                                <p className="text-destructive text-sm">{errors.year}</p>
+                            )}
                         </div>
                     </DialogBody>
                     <DialogFooter className="pgs-modal-footer">

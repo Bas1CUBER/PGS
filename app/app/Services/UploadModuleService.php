@@ -8,12 +8,26 @@ use App\Enums\NotificationType;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 final class UploadModuleService
 {
+    /**
+     * Allowed upload-status transitions (docs/Workflows.md §uploads).
+     * Every mutation goes through updateStatus(), which validates against
+     * this map under a row lock — direct column writes are banned.
+     */
+    private const STATUS_TRANSITIONS = [
+        'Pending' => ['Approved', 'Returned'],
+        'In Progress' => ['Approved', 'Returned'],
+        'Returned' => ['Pending', 'In Progress', 'Approved'],
+        'Approved' => ['Returned'],
+    ];
+
     public function __construct(
         private readonly AuditLogService $audit,
         private readonly NotificationService $notifications,
@@ -21,16 +35,31 @@ final class UploadModuleService
         private readonly DeadlineService $deadlines,
     ) {}
 
-    public function canAccessSlug(User $user, string $slug): bool
+    /**
+     * The page-access gate protecting a module slug (single source shared
+     * with PdfExportController so authorization cannot drift).
+     */
+    public static function accessGateFor(string $slug): ?string
     {
-        $gate = match ($slug) {
+        return match ($slug) {
             'resources', 'cascading-activities', 'communication-plan' => 'cascading',
             'governance-culture', 'governance-sharing' => 'governance',
             'operations-review', 'strategy-review', 'strategy-refresh' => 'performance_assessment',
             default => null,
         };
+    }
 
-        return $gate === null || ! $this->access->hasMatrix($user) || $this->access->can($user, $gate);
+    public function canAccessSlug(User $user, string $slug): bool
+    {
+        $gate = self::accessGateFor($slug);
+
+        // Deny by default: accounts without a matrix row have no granted
+        // modules (mirrors CanAccessPageMiddleware).
+        if ($gate === null || ! $this->access->hasMatrix($user)) {
+            return false;
+        }
+
+        return $this->access->can($user, $gate);
     }
 
     /**
@@ -54,33 +83,31 @@ final class UploadModuleService
     {
         $this->deadlines->enforce($user);
 
+        // Double-click / retry guard: reject an identical submission (same
+        // user, same file name + size) inside a short window instead of
+        // silently creating a duplicate Pending row. Checked before storing
+        // so a rejected duplicate never writes a file to disk.
+        $duplicate = DB::table($module['table'])
+            ->where($module['uploader_fk'], $user->id)
+            ->where('original_name', $file->getClientOriginalName())
+            ->where('file_size', $file->getSize())
+            ->where('uploaded_at', '>=', now()->subSeconds(60))
+            ->exists();
+
+        if ($duplicate) {
+            throw new \RuntimeException('This file was just submitted. Check the list below before uploading again.');
+        }
+
         $stored = $file->store('uploads/'.$slug, 'local');
         if ($stored === false) {
             throw new \RuntimeException('Could not store the file.');
         }
-
         $data['filename'] = $stored;
         $data['original_name'] = $file->getClientOriginalName();
         $data['file_size'] = $file->getSize();
         $data['mime_type'] = $file->getMimeType();
         $data['uploaded_at'] = now();
         $data[$module['uploader_fk']] = $user->id;
-
-        // Double-click / retry guard: reject an identical submission (same
-        // user, same file name + size) inside a short window instead of
-        // silently creating a duplicate Pending row.
-        $duplicate = DB::table($module['table'])
-            ->where($module['uploader_fk'], $user->id)
-            ->where('original_name', $data['original_name'])
-            ->where('file_size', $data['file_size'])
-            ->where('uploaded_at', '>=', now()->subSeconds(60))
-            ->exists();
-
-        if ($duplicate) {
-            Storage::disk('local')->delete($stored);
-
-            throw new \RuntimeException('This file was just submitted. Check the list below before uploading again.');
-        }
 
         if ($module['has_status']) {
             $data['status'] = $this->initialStatus($module);
@@ -90,7 +117,14 @@ final class UploadModuleService
             $data['doc_type'] = str_starts_with((string) $file->getMimeType(), 'image/') ? 'Image' : 'PDF';
         }
 
-        $id = DB::table($module['table'])->insertGetId($data);
+        try {
+            $id = DB::table($module['table'])->insertGetId($data);
+        } catch (\Throwable $exception) {
+            // Never leave an orphaned file behind when the row write fails.
+            Storage::disk('local')->delete($stored);
+
+            throw $exception;
+        }
 
         $this->audit->record(
             $user->id,
@@ -130,12 +164,18 @@ final class UploadModuleService
             abort(403);
         }
 
-        $filename = (string) ($rowArr['filename'] ?? '');
-        if ($filename !== '') {
-            Storage::disk('local')->delete($filename);
-        }
-
+        // Row first, file after: a failed DB delete must never leave a row
+        // pointing at an already-deleted file. File cleanup is best-effort.
         DB::table($module['table'])->where('id', $id)->delete();
+
+        $filename = (string) ($rowArr['filename'] ?? '');
+        if ($filename !== '' && Storage::disk('local')->delete($filename) === false) {
+            Log::warning('Upload file could not be deleted from storage.', [
+                'table' => $module['table'],
+                'id' => $id,
+                'filename' => $filename,
+            ]);
+        }
 
         $this->audit->record(
             $user->id,
@@ -146,39 +186,55 @@ final class UploadModuleService
     }
 
     /**
+     * Apply a status change through the STATUS_TRANSITIONS graph inside a
+     * transaction: the target row is locked and re-read so concurrent
+     * reviewers cannot race, illegal jumps are rejected, and the audit write
+     * is atomic with the update.
+     *
      * @param  array{table: string, has_status: bool, status_values: list<string>|null, uploader_fk: string, singular: string, label: string}  $module
      */
     public function updateStatus(array $module, User $user, int $id, string $status, string $slug): void
     {
-        $row = DB::table($module['table'])->where('id', $id)->first();
-        if ($row === null) {
-            abort(404);
-        }
+        $ownerId = 0;
+        $type = NotificationType::Edit;
 
-        $previousStatus = $row->status ?? null;
-        $allowed = $module['status_values'] ?? [];
-        if ($previousStatus !== null && ! in_array($previousStatus, $allowed, true)) {
-            abort(422, 'Current status is not a valid transition source.');
-        }
+        DB::transaction(function () use ($module, $user, $id, $status, $slug, &$ownerId, &$type): void {
+            $locked = DB::table($module['table'])->where('id', $id)->lockForUpdate()->first();
+            if ($locked === null) {
+                abort(404);
+            }
 
-        DB::table($module['table'])->where('id', $id)->update([
-            'status' => $status,
-            'status_updated_at' => now(),
-        ]);
+            /** @var array<string, mixed> $rowArr */
+            $rowArr = (array) $locked;
+            $previousStatus = ($rowArr['status'] ?? null) === null ? null : (string) $rowArr['status'];
 
-        $this->audit->record(
-            $user->id,
-            "upload.{$slug}.status",
-            $module['table'],
-            (string) $id,
-            before: ['status' => $previousStatus],
-            after: ['status' => $status],
-        );
+            $allowedTargets = $previousStatus === null ? [] : (self::STATUS_TRANSITIONS[$previousStatus] ?? []);
+            if (! in_array($status, $allowedTargets, true)) {
+                throw ValidationException::withMessages([
+                    'status' => [$previousStatus === null
+                        ? 'This upload has no current status to transition from.'
+                        : "Changing status from {$previousStatus} to {$status} is not allowed."],
+                ]);
+            }
 
-        /** @var array<string, mixed> $rowArr */
-        $rowArr = (array) $row;
-        $ownerId = is_numeric($rowArr[$module['uploader_fk']] ?? null) ? (int) $rowArr[$module['uploader_fk']] : 0;
-        $type = $status === 'Approved' ? NotificationType::Approved : ($status === 'Returned' ? NotificationType::Returned : NotificationType::Edit);
+            DB::table($module['table'])->where('id', $id)->update([
+                'status' => $status,
+                'status_updated_at' => now(),
+            ]);
+
+            $this->audit->record(
+                $user->id,
+                "upload.{$slug}.status",
+                $module['table'],
+                (string) $id,
+                before: ['status' => $previousStatus],
+                after: ['status' => $status],
+            );
+
+            $ownerId = is_numeric($rowArr[$module['uploader_fk']] ?? null) ? (int) $rowArr[$module['uploader_fk']] : 0;
+            $type = $status === 'Approved' ? NotificationType::Approved : ($status === 'Returned' ? NotificationType::Returned : NotificationType::Edit);
+        });
+
         if ($ownerId > 0 && $ownerId !== $user->id) {
             $this->notifications->create($ownerId, $type, 'Upload status updated', "Your {$module['singular']} in {$module['label']} is now {$status}.", $id, $module['table']);
         }
@@ -288,17 +344,14 @@ final class UploadModuleService
 
     public function storeTemplate(User $user, string $slug, string $label, UploadedFile $file): void
     {
-        $existing = DB::table('upload_module_templates')->where('slug', $slug)->where('label', $label)->first();
-        if ($existing !== null) {
-            /** @var array<string, mixed> $existingArr */
-            $existingArr = (array) $existing;
-            Storage::disk('local')->delete((string) ($existingArr['filename'] ?? ''));
-        }
-
+        // Store the new file BEFORE touching the old one: a failed store
+        // must leave the existing template fully intact.
         $path = $file->store('templates/'.$slug, 'local');
         if ($path === false) {
             abort(500, 'Could not store the template.');
         }
+
+        $existing = DB::table('upload_module_templates')->where('slug', $slug)->where('label', $label)->first();
 
         DB::table('upload_module_templates')->updateOrInsert(
             ['slug' => $slug, 'label' => $label],
@@ -310,6 +363,13 @@ final class UploadModuleService
                 'created_at' => $existing !== null && isset($existing->created_at) ? $existing->created_at : now(),
             ],
         );
+
+        // Old file removed only after the row points at the new one.
+        if ($existing !== null) {
+            /** @var array<string, mixed> $existingArr */
+            $existingArr = (array) $existing;
+            Storage::disk('local')->delete((string) ($existingArr['filename'] ?? ''));
+        }
     }
 
     public function deleteTemplate(string $slug, int $templateId): void

@@ -7,16 +7,13 @@ import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
     {
-        // Legacy Breeze scaffolding, replaced in Phase 5 (auth/profile restyle).
-        // Excluded from strict analysis until then; our code is fully covered.
+        // GuestLayout is an actively-used production component.
         ignores: [
             'vendor/',
             'public/build/',
             'node_modules/',
             'storage/',
             'bootstrap/cache/',
-            'resources/js/Pages/Welcome.tsx',
-            'resources/js/Layouts/GuestLayout.tsx',
         ],
     },
     {

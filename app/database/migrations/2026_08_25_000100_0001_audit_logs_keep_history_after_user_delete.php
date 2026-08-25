@@ -29,8 +29,14 @@ return new class extends Migration
             $table->dropForeign(['user_id']);
         });
 
+        // Reverting "keep history after user delete" necessarily discards
+        // log entries whose account is already gone: the legacy schema had a
+        // NOT NULL user_id with cascade delete, so such rows could never
+        // exist before this migration. Deleting them here (instead of the
+        // broken user_id=0 update) keeps InnoDB's FK validation happy.
+        DB::table('audit_logs')->whereNull('user_id')->delete();
+
         Schema::table('audit_logs', function (Blueprint $table): void {
-            DB::statement('UPDATE `audit_logs` SET `user_id` = 0 WHERE `user_id` IS NULL');
             $table->integer('user_id')->nullable(false)->change();
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });

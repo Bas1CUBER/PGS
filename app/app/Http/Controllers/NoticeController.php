@@ -22,9 +22,13 @@ final class NoticeController extends Controller
         private readonly AuditLogService $audit,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $paginated = CacheInvalidationService::remember('notice', 'index', function (): array {
+        $page = (int) $request->query('page', '1');
+
+        // paginate() reads ?page= from the current request, so the page must
+        // be part of the cache key or one page's result is served to all.
+        $paginated = CacheInvalidationService::remember('notice', "index:p{$page}", function (): array {
             $notices = Notice::query()
                 ->orderByDesc('created_at')
                 ->paginate(20)
@@ -42,6 +46,7 @@ final class NoticeController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $this->assertCanManage($request);
         Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
@@ -57,7 +62,6 @@ final class NoticeController extends Controller
         ]);
 
         $this->storeMedia($request, $notice);
-
         $this->audit->record(
             $this->userId($request),
             'notice.created',
@@ -74,6 +78,7 @@ final class NoticeController extends Controller
 
     public function update(Request $request, Notice $notice): RedirectResponse
     {
+        $this->assertCanManage($request);
         Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
@@ -103,8 +108,17 @@ final class NoticeController extends Controller
 
     public function destroy(Request $request, Notice $notice): RedirectResponse
     {
-        $this->deleteMedia($notice);
+        $this->assertCanManage($request);
+        $mediaPaths = array_filter(
+            [$notice->image, $notice->video],
+            static fn ($path): bool => is_string($path) && $path !== '',
+        );
+
+        // Row first, files after (mirrors DeliverableController): a failed
+        // DB delete must never leave a row pointing at removed media.
         $notice->delete();
+
+        Storage::disk('public')->delete($mediaPaths);
 
         $this->audit->record(
             $this->userId($request),
@@ -150,6 +164,7 @@ final class NoticeController extends Controller
     {
         $disk = Storage::disk('public');
         $dirty = false;
+        $stalePaths = [];
 
         foreach (['image', 'video'] as $kind) {
             if (! $request->hasFile($kind)) {
@@ -159,29 +174,22 @@ final class NoticeController extends Controller
             $stored = $request->file($kind)?->store('notices', 'public');
 
             if (is_string($stored)) {
-                $oldPath = $notice->{$kind};
+                if (is_string($notice->{$kind})) {
+                    $stalePaths[] = $notice->{$kind};
+                }
                 $notice->{$kind} = $stored;
                 $dirty = true;
-
-                if (is_string($oldPath)) {
-                    $disk->delete($oldPath);
-                }
             }
         }
 
+        // The new paths are persisted BEFORE the replaced files are removed,
+        // so a failed save can never leave media-less rows.
         if ($dirty) {
             $notice->save();
         }
-    }
 
-    private function deleteMedia(Notice $notice): void
-    {
-        $disk = Storage::disk('public');
-
-        foreach ([$notice->image, $notice->video] as $path) {
-            if (is_string($path)) {
-                $disk->delete($path);
-            }
+        foreach ($stalePaths as $path) {
+            $disk->delete($path);
         }
     }
 
@@ -225,5 +233,15 @@ final class NoticeController extends Controller
         }
 
         return $user->id;
+    }
+
+    /**
+     * Defense-in-depth re-check mirroring the route-level role:admin,focal
+     * middleware.
+     */
+    private function assertCanManage(Request $request): void
+    {
+        $user = $request->user();
+        abort_unless($user !== null && ($user->isAdmin() || $user->isFocal()), 403);
     }
 }

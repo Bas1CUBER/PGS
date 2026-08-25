@@ -37,8 +37,11 @@ final class UserController extends Controller
 
         $search = $request->string('search')->toString();
         $role = $request->string('role')->toString();
+        $page = (int) $request->query('page', '1');
 
-        $users = CacheInvalidationService::remember('user', "index:{$search}:{$role}", function () use ($search, $role): array {
+        // paginate() reads ?page= from the current request, so the page must
+        // be part of the cache key or one page's result is served to all.
+        $users = CacheInvalidationService::remember('user', "index:{$search}:{$role}:p{$page}", function () use ($search, $role): array {
             return User::query()
                 ->with('pageAccess')
                 ->when($search !== '', fn ($q) => $q->where(
@@ -127,6 +130,17 @@ final class UserController extends Controller
         $this->authorize('update', $user);
 
         $validated = $request->validated();
+
+        // Defense-in-depth: even if the admin-only route middleware is ever
+        // relaxed, an account must never be able to elevate its own role,
+        // deactivate itself, or sidestep the profile page's
+        // current-password check by resetting its own password here.
+        $actor = $this->userOrFail($request);
+        $selfEdit = $actor->id === $user->id;
+        abort_if($selfEdit && $validated['role'] !== $user->role->value, 403, 'You cannot change your own role.');
+        abort_if($selfEdit && isset($validated['is_active']) && ! (bool) $validated['is_active'], 403, 'You cannot deactivate your own account.');
+        abort_if($selfEdit && filled($validated['password'] ?? null), 403, 'Use the profile page to change your own password.');
+
         $before = ['email' => $user->email, 'role' => $user->role->value, 'is_active' => $user->is_active];
 
         $user->fill([
@@ -144,7 +158,7 @@ final class UserController extends Controller
         $user->save();
 
         $this->audit->record(
-            $this->userOrFail($request)->id,
+            $actor->id,
             'user.updated',
             'user',
             (string) $user->id,
@@ -255,9 +269,23 @@ final class UserController extends Controller
         $emails = array_column($rows, 'email');
         $existingEmails = User::query()->whereIn('email', $emails)->pluck('email')->flip()->all();
 
+        // Emails duplicated WITHIN the file must be caught here too: both
+        // rows would otherwise pass validation and the second insert would
+        // crash on the unique index mid-import.
+        $seenInFile = [];
+
         foreach ($rows as $index => $row) {
             $line = $index + 2; // +1 for header, +1 for zero-based
             $error = $this->validateImportRow($row, $existingEmails);
+
+            if ($error === null) {
+                $emailKey = strtolower($row['email']);
+                if (isset($seenInFile[$emailKey])) {
+                    $error = 'Duplicate email within the file';
+                } else {
+                    $seenInFile[$emailKey] = true;
+                }
+            }
 
             if ($error !== null) {
                 $report['errors'][] = ['line' => $line, 'message' => $error];

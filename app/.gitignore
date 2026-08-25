@@ -28,3 +28,5 @@ Thumbs.db
 
 # LAN Apache standalone instance
 /lan-apache/logs/
+
+/phpunit.coverage.xml

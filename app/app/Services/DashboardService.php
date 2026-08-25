@@ -8,6 +8,7 @@ use App\Enums\Role;
 use App\Models\Notice;
 use App\Models\Notification;
 use App\Models\User;
+use App\Modules\UploadModuleRegistry;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -155,78 +156,88 @@ final class DashboardService
 
     private function pendingApprovalUnionQuery(): Builder
     {
-        $a = DB::table('operations_review_uploads as o')
-            ->join('users as u', 'o.employee_id', '=', 'u.id')
-            ->where('o.status', 'Pending')
-            ->select(DB::raw("'Operations Review' as page"), 'o.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
+        // Generated from the registry so new modules cannot be forgotten.
+        // Only reviewable (has_status) tables belong in this queue —
+        // cascading activities have no status and would inflate the count
+        // forever. The "awaiting review" status is Pending, or the first
+        // status value for vocabularies that start elsewhere (governance).
+        $union = null;
 
-        $b = DB::table('strategy_review_uploads as o')
-            ->join('users as u', 'o.employee_id', '=', 'u.id')
-            ->where('o.status', 'Pending')
-            ->select(DB::raw("'Strategy Review' as page"), 'o.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
+        foreach (UploadModuleRegistry::modules() as $module) {
+            if (! $module['has_status']) {
+                continue;
+            }
 
-        $c = DB::table('communication_plan_uploads as o')
-            ->join('users as u', 'o.employee_id', '=', 'u.id')
-            ->where('o.status', 'Pending')
-            ->select(DB::raw("'Communication Plan' as page"), 'o.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
+            $statusValues = $module['status_values'] ?? [];
+            $awaiting = in_array('Pending', $statusValues, true) ? 'Pending' : ($statusValues[0] ?? null);
+            if ($awaiting === null) {
+                continue;
+            }
 
-        $d = DB::table('cascading_activities as c')
-            ->join('users as u', 'c.uploaded_by', '=', 'u.id')
-            ->select(DB::raw("'Cascading Activities' as page"), 'c.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
+            $branch = DB::table($module['table'].' as t')
+                ->join('users as u', 't.'.$module['uploader_fk'], '=', 'u.id')
+                ->where('t.status', $awaiting)
+                ->select(
+                    DB::raw("'".str_replace("'", "''", $module['label'])."' as page"),
+                    DB::raw('t.uploaded_at as time'),
+                    DB::raw('u.email as uploader_email'),
+                    DB::raw('null as module'),
+                );
 
-        $e = DB::table('progress_pending_changes as p')
+            $union = $union === null ? $branch : $union->unionAll($branch);
+        }
+
+        // Roadmap pending changes remain a hand-written branch: they are not
+        // an upload module.
+        $pendingChanges = DB::table('progress_pending_changes as p')
             ->join('users as u', 'p.submitted_by', '=', 'u.id')
             ->where('p.decision', 'Pending')
-            ->select(DB::raw("'Roadmap Changes' as page"), 'p.submitted_at as time', 'u.email as uploader_email', 'p.module');
+            ->select(DB::raw("'Roadmap Changes' as page"), DB::raw('p.submitted_at as time'), DB::raw('u.email as uploader_email'), 'p.module');
 
-        $f = DB::table('governance_culture_uploads as g')
-            ->join('users as u', 'g.employee_id', '=', 'u.id')
-            ->where('g.status', 'In Progress')
-            ->select(DB::raw("'Governance: Culture' as page"), 'g.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
+        if ($union === null) {
+            return $pendingChanges;
+        }
 
-        $g = DB::table('governance_sharing_uploads as g')
-            ->join('users as u', 'g.employee_id', '=', 'u.id')
-            ->where('g.status', 'In Progress')
-            ->select(DB::raw("'Governance: Sharing' as page"), 'g.uploaded_at as time', 'u.email as uploader_email', DB::raw('null as module'));
-
-        return $a->unionAll($b)->unionAll($c)->unionAll($d)->unionAll($e)->unionAll($f)->unionAll($g);
+        return $union->unionAll($pendingChanges);
     }
 
     /**
-     * Latest uploads across module upload tables.
+     * Latest uploads across ALL module upload tables (registry-driven).
      *
      * @return list<array{page: string, file: string, time: string|null, user: string}>
      */
     private function recentUploads(int $limit = 8): array
     {
-        $a = DB::table('operations_review_uploads as t')
-            ->join('users as u', 't.employee_id', '=', 'u.id')
-            ->select(DB::raw("'Operations Review' as page"), 't.original_name as file', 't.uploaded_at as time', 'u.email as uploader_email');
+        $union = null;
 
-        $b = DB::table('strategy_review_uploads as t')
-            ->join('users as u', 't.employee_id', '=', 'u.id')
-            ->select(DB::raw("'Strategy Review' as page"), 't.original_name as file', 't.uploaded_at as time', 'u.email as uploader_email');
+        foreach (UploadModuleRegistry::modules() as $module) {
+            $branch = DB::table($module['table'].' as t')
+                ->join('users as u', 't.'.$module['uploader_fk'], '=', 'u.id')
+                ->select(
+                    DB::raw("'".str_replace("'", "''", $module['label'])."' as page"),
+                    DB::raw('t.original_name as file'),
+                    DB::raw('t.uploaded_at as time'),
+                    DB::raw('u.email as uploader_email'),
+                );
 
-        $c = DB::table('communication_plan_uploads as t')
-            ->join('users as u', 't.employee_id', '=', 'u.id')
-            ->select(DB::raw("'Communication Plan' as page"), 't.original_name as file', 't.uploaded_at as time', 'u.email as uploader_email');
+            $union = $union === null ? $branch : $union->unionAll($branch);
+        }
 
-        $d = DB::table('resources_uploads as t')
-            ->join('users as u', 't.uploaded_by', '=', 'u.id')
-            ->select(DB::raw("'Resources' as page"), 't.original_name as file', 't.uploaded_at as time', 'u.email as uploader_email');
-
-        $rows = $a->unionAll($b)->unionAll($c)->unionAll($d)
-            ->orderByDesc('time')
-            ->limit($limit)
-            ->get();
+        if ($union === null) {
+            return [];
+        }
 
         /** @var list<array{page: string, file: string, time: string|null, user: string}> */
-        return $rows->map(fn (object $row): array => [
-            'page' => $this->stringify($row->page) ?? '',
-            'file' => $this->stringify($row->file) ?? '',
-            'time' => $this->stringify($row->time),
-            'user' => $this->uploaderName($row->uploader_email),
-        ])->values()->all();
+        return $union
+            ->orderByDesc('time')
+            ->limit($limit)
+            ->get()
+            ->map(fn (object $row): array => [
+                'page' => $this->stringify($row->page) ?? '',
+                'file' => $this->stringify($row->file) ?? '',
+                'time' => $this->stringify($row->time),
+                'user' => $this->uploaderName($row->uploader_email),
+            ])->values()->all();
     }
 
     private function stringify(mixed $value): ?string

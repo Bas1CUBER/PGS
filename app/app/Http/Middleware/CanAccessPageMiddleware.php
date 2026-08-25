@@ -14,9 +14,10 @@ final class CanAccessPageMiddleware
 {
     /**
      * Enforce the per-user module access matrix (legacy `user_page_access`),
-     * cached for 60 seconds per user. Admins bypass the matrix; accounts
-     * without a matrix row keep legacy full access until an administrator
-     * configures their access record.
+     * cached for 60 seconds per user. Admins bypass the matrix; every other
+     * account MUST have a matrix row — deny by default. The 2026_08_14
+     * backfill migration provisions rows for all pre-existing users, and
+     * both user creation paths (form + CSV import) create them explicitly.
      */
     public function __construct(private readonly PageAccessService $access) {}
 
@@ -35,15 +36,10 @@ final class CanAccessPageMiddleware
             return $next($request);
         }
 
-        // The test-only access-check routes deliberately verify the deny-by-
-        // default behavior. Existing accounts without a matrix row remain
-        // usable until an administrator configures their access record.
+        // No matrix row = no granted modules (matches the navbar, which
+        // hides everything when PageAccessService::all() finds no row).
         if (! $this->access->hasMatrix($user)) {
-            if (str_starts_with((string) $request->route()?->getName(), 'access-check.')) {
-                abort(403);
-            }
-
-            return $next($request);
+            abort(403);
         }
 
         if (! $this->access->can($user, $module)) {

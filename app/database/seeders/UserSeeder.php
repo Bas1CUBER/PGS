@@ -15,6 +15,10 @@ final class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        // The seeded accounts ship with publicly-known default passwords and
+        // must never exist in a production database.
+        abort_if(app()->isProduction(), 403, 'UserSeeder must not run in production.');
+
         $users = [
             ['email' => 'admin@trcdoh.ph', 'role' => Role::Admin, 'name' => 'Admin User', 'office' => 'ICT Division'],
             ['email' => 'focal@trcdoh.ph', 'role' => Role::Focal, 'name' => 'Focal User', 'office' => 'Planning'],

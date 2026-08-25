@@ -7,7 +7,10 @@ REM ─────────────────────────�
 
 setlocal EnableDelayedExpansion
 
-set BACKUP_DIR=storage\app\backups
+REM Anchor to the Laravel app directory regardless of the caller's CWD
+REM (the legacy repo-root storage\ tree is NOT where spatie writes).
+set APP_DIR=%~dp0..
+set BACKUP_DIR=%APP_DIR%\app\storage\app\backups
 set ZIP_DIR=%BACKUP_DIR%\pgs
 set MAX_AGE_HOURS=25
 
@@ -15,9 +18,8 @@ echo [BACKUP] Verifying backup integrity...
 
 REM Check if backup directory exists
 if not exist "%ZIP_DIR%" (
-    echo [BACKUP] WARNING - Backup directory not found: %ZIP_DIR%
-    echo [BACKUP] Creating backup directory...
-    mkdir "%ZIP_DIR%" 2>NUL
+    echo [BACKUP] FAIL - Backup directory not found: %ZIP_DIR%
+    echo [BACKUP] (Do NOT auto-create it: a missing directory means backups are broken.)
     exit /b 1
 )
 
@@ -43,5 +45,12 @@ if !FILE_SIZE! LSS 1024 (
     exit /b 1
 )
 
-echo [BACKUP] OK - Backup verified (!FILE_SIZE! bytes^)
+REM Verify ZIP integrity, not just size (a truncated zip can still be big).
+tar -tf "!BACKUP_PATH!" >NUL 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo [BACKUP] FAIL - Archive is corrupt or unreadable.
+    exit /b 1
+)
+
+echo [BACKUP] OK - Backup verified (!FILE_SIZE! bytes, archive intact^)
 exit /b 0

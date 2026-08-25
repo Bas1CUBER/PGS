@@ -20,12 +20,11 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
 
     const albumForm = useForm({ name: '', description: '' });
     const albumEditForm = useForm({ name: '', description: '' });
-    const photoForm = useForm({ caption: '' });
+    const photoForm = useForm<{ caption: string; photos: File[] }>({ caption: '', photos: [] });
     const photoEditForm = useForm({ caption: '' });
 
     const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
     const [uploadTarget, setUploadTarget] = useState<Album | null>(null);
-    const [photoFiles, setPhotoFiles] = useState<File[]>([]);
     const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
     const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
     const [deleteAlbumTarget, setDeleteAlbumTarget] = useState<Album | null>(null);
@@ -47,25 +46,24 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
         });
     }
 
+    function handlePhotoFilesChange(files: File[]): void {
+        photoForm.setData('photos', files);
+    }
+
     function uploadPhoto(e: { preventDefault(): void }): void {
         e.preventDefault();
-        if (uploadTarget === null || photoFiles.length === 0) return;
-
-        const formData = new FormData();
-        photoFiles.forEach((photo) => {
-            formData.append('photos[]', photo);
-        });
-        photoForm.setData('caption', photoForm.data.caption);
+        if (uploadTarget === null || photoForm.data.photos.length === 0) return;
 
         start('upload-photo');
         photoForm.post(`/gallery/albums/${String(uploadTarget.id)}/photos`, {
             forceFormData: true,
             preserveScroll: true,
+            onSuccess: () => {
+                setUploadTarget(null);
+            },
             onFinish: () => {
                 finish('upload-photo');
-                setUploadTarget(null);
                 photoForm.reset();
-                setPhotoFiles([]);
             },
         });
     }
@@ -182,8 +180,8 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
                 open={uploadTarget !== null}
                 targetName={uploadTarget?.name ?? ''}
                 form={photoForm}
-                photoFiles={photoFiles}
-                onPhotoFilesChange={setPhotoFiles}
+                photoFiles={photoForm.data.photos}
+                onPhotoFilesChange={handlePhotoFilesChange}
                 onOpenChange={(open) => {
                     if (!open) {
                         setUploadTarget(null);

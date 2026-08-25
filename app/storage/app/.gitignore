@@ -1,4 +1,4 @@
 *
-!private/
-!public/
 !.gitignore
+# Everything under storage/app is runtime data: user uploads (private/,
+# public/), backups, and deploy artifacts must never be committed.

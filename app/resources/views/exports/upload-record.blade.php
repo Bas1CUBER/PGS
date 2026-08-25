@@ -80,6 +80,11 @@
         @if ($uploadedAt !== '')
             <tr><th>Uploaded</th><td>{{ $uploadedAt }}</td></tr>
         @endif
+        @foreach (($extraRows ?? []) as $row)
+            @if (($row[1] ?? '') !== '')
+                <tr><th>{{ $row[0] }}</th><td>{{ $row[1] }}</td></tr>
+            @endif
+        @endforeach
         <tr><th>Record ID</th><td>{{ $recordId }}</td></tr>
     </table>
 

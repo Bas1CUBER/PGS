@@ -7,7 +7,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 it('shows the communication plan rows', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
     DB::table('communication_plan_roadmap')->insert([
         'objective' => 'Inform staff on the new policy',
         'status' => 'Ongoing',
@@ -23,8 +23,8 @@ it('shows the communication plan rows', function (): void {
             ->where('rows.0.objective', 'Inform staff on the new policy'));
 });
 
-it('adds and updates a communication plan row', function (): void {
-    $user = User::factory()->employee()->create();
+it('adds and updates a communication plan row as a focal', function (): void {
+    $user = User::factory()->focal()->withPageAccess()->create();
 
     $this->actingAs($user)
         ->post('/communication-plan', [
@@ -50,6 +50,33 @@ it('adds and updates a communication plan row', function (): void {
     expect(DB::table('communication_plan_roadmap')->where('id', $row->id)->value('status'))->toBe('Ongoing');
 });
 
+it('forbids employees from authoring communication plan rows', function (): void {
+    // Published access matrix: employees are read-only on the plan.
+    $employee = User::factory()->employee()->withPageAccess()->create();
+    $creator = User::factory()->admin()->create();
+
+    $rowId = DB::table('communication_plan_roadmap')->insertGetId([
+        'objective' => 'Manager-owned row',
+        'status' => 'Ongoing',
+        'created_by' => $creator->id,
+    ]);
+
+    $this->actingAs($employee)
+        ->post('/communication-plan', ['objective' => 'Employee row'])
+        ->assertForbidden();
+
+    $this->actingAs($employee)
+        ->put("/communication-plan/{$rowId}", ['objective' => 'Hacked', 'status' => 'Completed'])
+        ->assertForbidden();
+
+    $this->actingAs($employee)
+        ->delete("/communication-plan/{$rowId}")
+        ->assertForbidden();
+
+    expect(DB::table('communication_plan_roadmap')->where('id', $rowId)->value('objective'))->toBe('Manager-owned row')
+        ->and(DB::table('communication_plan_roadmap')->where('id', $rowId)->value('status'))->toBe('Ongoing');
+});
+
 it('creates albums and uploads photos', function (): void {
     Storage::fake('local');
     $user = User::factory()->admin()->create();
@@ -72,7 +99,7 @@ it('creates albums and uploads photos', function (): void {
 });
 
 it('shows the gallery with albums', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
     DB::table('gallery_albums')->insert(['name' => 'Album A', 'created_at' => now(), 'updated_at' => now()]);
 
     $this->actingAs($user)
@@ -111,7 +138,7 @@ it('manages the impact scorecard', function (): void {
 });
 
 it('lists surveys and marks them done', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
     DB::table('surveys')->insert(['title' => 'Satisfaction Survey', 'url' => 'https://example.com/survey', 'status' => 'Active', 'created_by' => $user->id]);
 
     $this->actingAs($user)
@@ -177,7 +204,7 @@ it('301-redirects the pre-nesting sector detail URLs', function (): void {
 });
 
 it('renders static content pages', function (): void {
-    $user = User::factory()->employee()->create();
+    $user = User::factory()->employee()->withPageAccess()->create();
 
     foreach (['about-strategy-map', 'pgs-core-team', 'multi-sector-governance'] as $slug) {
         $this->actingAs($user)->get("/content/{$slug}")->assertOk();

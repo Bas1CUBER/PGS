@@ -30,6 +30,12 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // cloudflared quick tunnels terminate TLS and forward to the local
+        // vhost from 127.0.0.1; trusting only that address lets Laravel
+        // honor X-Forwarded-Proto/Host for https asset URLs without letting
+        // arbitrary LAN clients spoof proxy headers.
+        $middleware->trustProxies(at: '127.0.0.1');
+
         $middleware->web(append: [
             LegacyRedirectMiddleware::class,
             EnsureActiveUserMiddleware::class,

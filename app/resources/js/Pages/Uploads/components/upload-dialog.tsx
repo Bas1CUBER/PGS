@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 
 interface UploadDialogProps {
     open: boolean;
-    form: InertiaFormProps<{ title: string; description: string }>;
+    form: InertiaFormProps<{ title: string; description: string; file: File | null }>;
     file: File | null;
     singular: string;
     hasTitle: boolean;
@@ -91,6 +91,9 @@ export function UploadDialog({
                                     onFileChange(e.target.files?.[0] ?? null);
                                 }}
                             />
+                            {form.errors.file && (
+                                <p className="text-destructive text-sm">{form.errors.file}</p>
+                            )}
                         </div>
                     </DialogBody>
                     <DialogFooter className="pgs-modal-footer">

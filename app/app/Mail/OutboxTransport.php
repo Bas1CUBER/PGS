@@ -30,12 +30,27 @@ final class OutboxTransport implements TransportInterface
             DB::table('outbox_mails')->insert([
                 'to_email' => $to,
                 'subject' => (string) $message->getSubject(),
-                'body' => $message->getHtmlBody() ?? $message->getTextBody(),
+                'body' => self::redactSecrets(
+                    (string) ($message->getHtmlBody() ?? $message->getTextBody() ?? ''),
+                ),
                 'created_at' => now(),
             ]);
         }
 
         return new SentMessage($message, $envelope ?? Envelope::create($message));
+    }
+
+    /**
+     * The outbox is readable by every admin for 7 days, so live credentials
+     * (password-reset codes) must not be persisted verbatim.
+     */
+    private static function redactSecrets(string $body): string
+    {
+        return preg_replace_callback(
+            '/\b\d{6}\b/',
+            static fn (array $m): string => str_repeat('*', strlen($m[0])),
+            $body,
+        ) ?? $body;
     }
 
     public function __toString(): string

@@ -8,7 +8,9 @@ REM ─────────────────────────�
 setlocal EnableDelayedExpansion
 
 set PROJECT_DIR=%~dp0..
-set BACKUP_DIR=%PROJECT_DIR%\storage\app\deploy-backups
+REM Keep deploy backups OUTSIDE the web tree (htdocs): they contain .env
+REM secrets and SQL dumps, and are only guarded by .htaccess otherwise.
+set BACKUP_DIR=C:\xampp\backups\pgs\deploy
 set LOG_FILE=%PROJECT_DIR%\storage\logs\deploy.log
 
 echo ═══════════════════════════════════════════════════════════════
@@ -46,17 +48,40 @@ if exist "%~dp0db_credentials.bat" (
     exit /b 1
 )
 
-if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%"
-
-set BACKUP_FILE=%BACKUP_DIR%\pre-deploy_%date:~-4%%date:~4,2%%date:~7,2%_%time:~0,2%%time:~3,2%.sql
-set BACKUP_FILE=!BACKUP_FILE: =0!
-
-mysqldump -u %DB_BACKUP_USER% -p%DB_BACKUP_PASS% pgs_app > "!BACKUP_FILE!" 2>NUL
-if %ERRORLEVEL% NEQ 0 (
-    echo [WARN] mysqldump failed - continuing without DB backup
-) else (
-    echo   ✓ Database backed up to !BACKUP_FILE!
+if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%" 2>NUL
+if not exist "%BACKUP_DIR%" (
+    echo [FAIL] Could not create backup directory: %BACKUP_DIR%
+    exit /b 1
 )
+
+REM Locale-independent timestamp (the %date% slice indexes break on other
+REM regional formats).
+for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmm"') do set TS=%%I
+if "!TS!" == "" set TS=unknown
+
+set BACKUP_FILE=%BACKUP_DIR%\pre-deploy_!TS!.sql
+
+REM Pass credentials via a temp defaults-file so the password never appears
+REM in the process command line (visible in task listings during the dump).
+set "CNF_FILE=%TEMP%\pgs_mysqldump_%RANDOM%.cnf"
+> "!CNF_FILE!" (
+    echo [client]
+    echo user=!DB_BACKUP_USER!
+    echo password=!DB_BACKUP_PASS!
+)
+
+mysqldump --defaults-extra-file="!CNF_FILE!" pgs_app > "!BACKUP_FILE!" 2>NUL
+set DUMP_RC=%ERRORLEVEL%
+del "!CNF_FILE!" >NUL 2>&1
+
+if !DUMP_RC! NEQ 0 (
+    echo [FAIL] Database backup failed - ABORTING.
+    echo        Deploying without a rollback point is not allowed; fix the
+    echo        dump (credentials in scripts\db_credentials.bat^) and retry.
+    if exist "!BACKUP_FILE!" del "!BACKUP_FILE!"
+    exit /b 1
+)
+echo   ✓ Database backed up to !BACKUP_FILE!
 echo.
 
 REM ── Step 3: Backup .env ───────────────────────────────────────────────────

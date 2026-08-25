@@ -138,6 +138,11 @@ final class PasswordResetCodeService
             return false;
         }
 
+        // The password may have been reset precisely because a session was
+        // hijacked: purge every existing server-side session for the account
+        // (the database session driver makes this trivial).
+        DB::table('sessions')->where('user_id', $user->id)->delete();
+
         event(new PasswordReset($user));
 
         return true;

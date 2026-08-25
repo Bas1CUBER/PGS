@@ -21,7 +21,10 @@ final class SurveyController extends Controller
     {
         $user = $this->userOrFail($request);
 
-        $data = CacheInvalidationService::remember('survey', 'index', function () use ($user): array {
+        // The cached payload must stay role-agnostic: it is shared between
+        // every user, so the archived list (admin-only) is resolved per
+        // request below instead of inside the closure.
+        $data = CacheInvalidationService::remember('survey', 'index', function (): array {
             $surveys = Survey::query()->active()->orderByDesc('created_at')->get();
 
             $completionCounts = DB::table('surveys_done')
@@ -40,22 +43,28 @@ final class SurveyController extends Controller
                 ];
             })->values();
 
-            $archived = $this->isAdmin($user)
-                ? Survey::query()->whereNotNull('archived_at')->orderByDesc('archived_at')->get()->map(function (Survey $survey) use ($completionCounts): array {
-                    return [
-                        'id' => $survey->id,
-                        'title' => $survey->title,
-                        'url' => $survey->url,
-                        'status' => $survey->status,
-                        'created_at' => $survey->created_at,
-                        'archived_at' => $survey->archived_at,
-                        'completion_count' => (int) ($completionCounts[$survey->id] ?? 0),
-                    ];
-                })->values()->all()
-                : [];
-
-            return ['surveys' => $surveys->all(), 'archived' => $archived];
+            return ['surveys' => $surveys->all()];
         }, 60);
+
+        $archived = [];
+        if ($this->isAdmin($user)) {
+            $archivedCounts = DB::table('surveys_done')
+                ->select('survey_id', DB::raw('COUNT(*) as total'))
+                ->groupBy('survey_id')
+                ->pluck('total', 'survey_id');
+
+            $archived = Survey::query()->whereNotNull('archived_at')->orderByDesc('archived_at')->get()->map(function (Survey $survey) use ($archivedCounts): array {
+                return [
+                    'id' => $survey->id,
+                    'title' => $survey->title,
+                    'url' => $survey->url,
+                    'status' => $survey->status,
+                    'created_at' => $survey->created_at,
+                    'archived_at' => $survey->archived_at,
+                    'completion_count' => (int) ($archivedCounts[$survey->id] ?? 0),
+                ];
+            })->values()->all();
+        }
 
         $doneIds = DB::table('surveys_done')
             ->where('user_id', $user->id)
@@ -71,7 +80,7 @@ final class SurveyController extends Controller
 
         return Inertia::render('Surveys/Index', [
             'surveys' => $surveys,
-            'archived' => $data['archived'],
+            'archived' => $archived,
             'canManage' => $this->isAdmin($user),
         ]);
     }

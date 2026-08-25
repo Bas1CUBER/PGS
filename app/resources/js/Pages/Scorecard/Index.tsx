@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { CalendarPlus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { useToast } from '@/components/pgs-toast';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import { AddYearDialog } from './components/add-year-dialog';
 import { CreateMeasureDialog } from './components/create-measure-dialog';
@@ -13,9 +14,10 @@ import { ScorecardTable } from './components/scorecard-table';
 import type { Measure, ScorecardPageProps, Year } from './components/types';
 
 export default function ScorecardIndex({ measures, years, values }: ScorecardPageProps) {
-    const { auth } = usePage().props;
+    const { auth, errors } = usePage().props;
     const user = auth.user;
     const canManage = user !== null && (user.role === 'admin' || user.role === 'focal');
+    const { showToast } = useToast();
 
     const [impact, setImpact] = useState('');
     const [measure, setMeasure] = useState('');
@@ -108,6 +110,9 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                         return next;
                     });
                 },
+                onError: () => {
+                    showToast('error', 'Could not save the value. Please review it and try again.');
+                },
                 onFinish: () => {
                     finish(action);
                 },
@@ -188,6 +193,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                 impact={impact}
                 measure={measure}
                 bl={bl}
+                errors={errors}
                 onImpactChange={setImpact}
                 onMeasureChange={setMeasure}
                 onBaselineChange={setBl}
@@ -209,6 +215,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
             <AddYearDialog
                 open={yearDialogOpen}
                 year={newYear}
+                errors={errors}
                 onYearChange={setNewYear}
                 onOpenChange={(open) => {
                     setYearDialogOpen(open);
@@ -226,6 +233,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
                 impact={impact}
                 measure={measure}
                 bl={bl}
+                errors={errors}
                 onImpactChange={setImpact}
                 onMeasureChange={setMeasure}
                 onBaselineChange={setBl}

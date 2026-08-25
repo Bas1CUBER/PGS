@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -77,9 +81,30 @@ final class ProfileController extends Controller
             throw new AuthenticationException;
         }
 
+        // The last active administrator can never self-delete: user
+        // administration (and the CSV import path) would be bricked.
+        if ($user->role === Role::Admin) {
+            $otherActiveAdmins = User::query()
+                ->where('role', Role::Admin)
+                ->where('is_active', true)
+                ->whereKeyNot($user->id)
+                ->exists();
+
+            abort_unless($otherActiveAdmins, 403, 'The last active administrator account cannot delete itself.');
+        }
+
+        // Log out BEFORE deleting: calling logout afterwards would cycle the
+        // remember token and save() the already-deleted model, which Eloquent
+        // turns into a re-INSERT of the account.
         Auth::logout();
 
-        $user->delete();
+        $userId = $user->id;
+        DB::transaction(function () use ($request, $user, $userId): void {
+            // Recorded before the delete: the FK still requires the user
+            // row to exist when the log entry is inserted.
+            app(AuditLogService::class)->record($userId, 'profile.deleted', 'users', (string) $userId, request: $request);
+            $user->delete();
+        });
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

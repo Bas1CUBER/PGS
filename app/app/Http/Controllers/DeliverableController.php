@@ -42,7 +42,8 @@ final class DeliverableController extends Controller
         $search = $request->string('search')->toString();
         $status = $request->string('status')->toString();
         $isEmployee = $user?->isEmployee() === true;
-        $cacheKey = ($isEmployee ? "emp:{$user->id}:" : '').$search.':'.$status;
+        $page = (int) $request->query('page', '1');
+        $cacheKey = ($isEmployee ? "emp:{$user->id}:" : '').$search.':'.$status.':p'.$page;
 
         $query = CacheInvalidationService::remember('deliverable', "index:{$cacheKey}", function () use ($search, $status, $isEmployee, $user): array {
             return Deliverable::query()
@@ -100,8 +101,13 @@ final class DeliverableController extends Controller
         $this->fillFromRequest($deliverable, $request, includeStatus: true);
 
         if ($request->hasFile('mov_file')) {
+            // A failed disk write must not silently produce a deliverable
+            // without its MOV.
             $path = $request->file('mov_file')->store('deliverables', 'local');
-            $deliverable->mov_file = $path === false ? null : $path;
+            if ($path === false) {
+                throw new \RuntimeException('Could not store the MOV file.');
+            }
+            $deliverable->mov_file = $path;
         }
 
         $deliverable->uploaded_by = $this->userId($request);
@@ -151,20 +157,33 @@ final class DeliverableController extends Controller
             'focal_person' => ['nullable', 'string', 'max:255'],
             'division' => ['nullable', 'string', 'max:255'],
             'target_date' => ['nullable', 'date'],
-            'status' => ['required', 'in:'.implode(',', DeliverableStatus::values())],
+            // Status changes on update flow exclusively through the
+            // transition endpoint; accepting-but-ignoring it here would be a
+            // misleading contract.
+            'status' => ['sometimes', 'required', 'in:'.implode(',', DeliverableStatus::values())],
             'actual_date' => ['nullable', 'date'],
             'mov_file' => ['nullable', 'file', 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png', 'max:25600'],
         ])->validate();
 
         $before = ['title' => $deliverable->title, 'status' => $deliverable->status?->value];
+        $previousMov = $deliverable->mov_file;
         $this->fillFromRequest($deliverable, $request);
 
         if ($request->hasFile('mov_file')) {
             $path = $request->file('mov_file')->store('deliverables', 'local');
-            $deliverable->mov_file = $path === false ? null : $path;
+            if ($path === false) {
+                throw new \RuntimeException('Could not store the MOV file.');
+            }
+            $deliverable->mov_file = $path;
         }
 
         $deliverable->save();
+
+        // The replaced file is removed only after the row points at the new
+        // one, so a failure cannot leave a dangling path.
+        if ($previousMov !== null && $previousMov !== $deliverable->mov_file) {
+            Storage::disk('local')->delete($previousMov);
+        }
 
         $this->audit->record(
             $this->userId($request),

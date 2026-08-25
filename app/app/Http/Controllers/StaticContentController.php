@@ -10,6 +10,7 @@ use App\Services\AuditLogService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -109,18 +110,6 @@ final class StaticContentController extends Controller
             'image' => ['required', 'file', 'image', 'max:20480'],
         ])->validate();
 
-        $dir = base_path('../img');
-        $base = $page['img_base'];
-
-        if (! is_dir($dir)) {
-            @mkdir($dir, 0755, true);
-        }
-
-        $existing = glob($dir.'/'.$base.'.*');
-        foreach ($existing === false ? [] : $existing as $old) {
-            @unlink($old);
-        }
-
         $ext = match ($request->file('image')->getMimeType()) {
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
@@ -128,7 +117,49 @@ final class StaticContentController extends Controller
             default => abort(422, 'Only JPG, PNG, or WEBP images are allowed.'),
         };
 
-        $request->file('image')->move($dir, $base.'.'.$ext);
+        $dir = base_path('../img');
+        $base = $page['img_base'];
+        $target = $dir.'/'.$base.'.'.$ext;
+
+        if (! is_dir($dir) && ! mkdir($dir, 0755, true)) {
+            abort(500, 'Image directory is missing and could not be created.');
+        }
+
+        // Stage the upload under a temporary name first: the live image is
+        // only touched once the new file has fully landed on disk.
+        $staging = $dir.'/'.$base.'.uploading.'.$ext;
+
+        $moved = false;
+        try {
+            $request->file('image')->move($dir, basename($staging));
+            $moved = is_file($staging);
+        } catch (\Throwable) {
+            $moved = false;
+        }
+
+        if (! $moved) {
+            abort(500, 'Could not store the uploaded image.');
+        }
+
+        // Remove stale variants in OTHER extensions, then swap the staged
+        // file into place.
+        $existingVariants = glob($dir.'/'.$base.'.*');
+        foreach ($existingVariants === false ? [] : $existingVariants as $old) {
+            if ($old !== $target && $old !== $staging && ! str_starts_with($old, $staging)) {
+                if (@unlink($old) === false) {
+                    Log::warning('Stale content image variant could not be removed.', ['path' => $old]);
+                }
+            }
+        }
+
+        if (! @rename($staging, $target)) {
+            // Windows refuses to rename onto an existing file.
+            @unlink($target);
+            if (! @rename($staging, $target)) {
+                @unlink($staging);
+                abort(500, 'Could not replace the image.');
+            }
+        }
 
         $this->audit->record(
             $user->id,
@@ -218,7 +249,14 @@ final class StaticContentController extends Controller
             mkdir($dir, 0755, true);
         }
 
-        file_put_contents($this->structuredPath($type), json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $path = $this->structuredPath($type);
+
+        // LOCK_EX prevents two concurrent saves from interleaving writes and
+        // corrupting the JSON (readers silently fall back to defaults on a
+        // parse error).
+        if (file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX) === false) {
+            abort(500, 'Could not save the content file.');
+        }
     }
 
     private function structuredPath(string $type): string

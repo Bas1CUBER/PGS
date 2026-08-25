@@ -36,55 +36,63 @@ interface NoticesPageProps extends PageProps {
     };
 }
 
+interface NoticeFormData {
+    title: string;
+    description: string;
+    image: File | null;
+    video: File | null;
+}
+
 export default function NoticesIndex({ notices }: NoticesPageProps) {
     const { auth } = usePage().props;
     const user = auth.user;
     const canManage = user !== null && (user.role === 'admin' || user.role === 'focal');
 
-    const createForm = useForm({ title: '', description: '' });
-    const editForm = useForm({ title: '', description: '' });
+    const createForm = useForm<NoticeFormData>({
+        title: '',
+        description: '',
+        image: null,
+        video: null,
+    });
+    const editForm = useForm<NoticeFormData & { _method: 'put' }>({
+        title: '',
+        description: '',
+        image: null,
+        video: null,
+        _method: 'put',
+    });
     const deleteForm = useForm({});
-    const [image, setImage] = useState<File | null>(null);
-    const [video, setVideo] = useState<File | null>(null);
     const [editing, setEditing] = useState<NoticeRow | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<NoticeRow | null>(null);
     const { isPending, start, finish } = usePendingAction();
 
     function createNotice(e: { preventDefault(): void }): void {
         e.preventDefault();
-        const form = new FormData();
-        form.append('title', createForm.data.title);
-        form.append('description', createForm.data.description);
-        if (image !== null) form.append('image', image);
-        if (video !== null) form.append('video', video);
-
+        start('create');
         createForm.post('/notices', {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
-                createForm.reset('title', 'description');
-                setImage(null);
-                setVideo(null);
+                createForm.reset();
+            },
+            onFinish: () => {
+                finish('create');
             },
         });
     }
 
     function saveEdit(): void {
         if (editing === null) return;
-        const form = new FormData();
-        form.append('_method', 'PUT');
-        form.append('title', editForm.data.title);
-        form.append('description', editForm.data.description);
-        if (image !== null) form.append('image', image);
-        if (video !== null) form.append('video', video);
-
+        start(`edit:${String(editing.notice_id)}`);
         editForm.post(`/notices/${String(editing.notice_id)}`, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
                 setEditing(null);
-                setImage(null);
-                setVideo(null);
+                editForm.reset();
+            },
+            onFinish: () => {
+                finish(`edit:${String(editing.notice_id)}`);
             },
         });
     }
@@ -155,9 +163,17 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                             type="file"
                                             accept="image/*"
                                             onChange={(e) => {
-                                                setImage(e.target.files?.[0] ?? null);
+                                                createForm.setData(
+                                                    'image',
+                                                    e.target.files?.[0] ?? null,
+                                                );
                                             }}
                                         />
+                                        {createForm.errors.image && (
+                                            <p className="text-destructive text-sm">
+                                                {createForm.errors.image}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="notice-video">MP4 video</Label>
@@ -166,9 +182,17 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                             type="file"
                                             accept="video/mp4,video/webm,video/quicktime"
                                             onChange={(e) => {
-                                                setVideo(e.target.files?.[0] ?? null);
+                                                createForm.setData(
+                                                    'video',
+                                                    e.target.files?.[0] ?? null,
+                                                );
                                             }}
                                         />
+                                        {createForm.errors.video && (
+                                            <p className="text-destructive text-sm">
+                                                {createForm.errors.video}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex justify-end">
@@ -240,9 +264,10 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                                 editForm.setData({
                                                     title: notice.title ?? '',
                                                     description: notice.description ?? '',
+                                                    image: null,
+                                                    video: null,
+                                                    _method: 'put',
                                                 });
-                                                setImage(null);
-                                                setVideo(null);
                                             }}
                                         >
                                             <Pencil className="size-4" />
@@ -339,9 +364,14 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                     type="file"
                                     accept="image/*"
                                     onChange={(e) => {
-                                        setImage(e.target.files?.[0] ?? null);
+                                        editForm.setData('image', e.target.files?.[0] ?? null);
                                     }}
                                 />
+                                {editForm.errors.image && (
+                                    <p className="text-destructive text-sm">
+                                        {editForm.errors.image}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="edit-notice-video">Replace video</Label>
@@ -350,9 +380,14 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                     type="file"
                                     accept="video/mp4,video/webm,video/quicktime"
                                     onChange={(e) => {
-                                        setVideo(e.target.files?.[0] ?? null);
+                                        editForm.setData('video', e.target.files?.[0] ?? null);
                                     }}
                                 />
+                                {editForm.errors.video && (
+                                    <p className="text-destructive text-sm">
+                                        {editForm.errors.video}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </DialogBody>
@@ -367,7 +402,10 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                         </Button>
                         <Button
                             onClick={saveEdit}
-                            loading={editForm.processing}
+                            loading={
+                                editing !== null &&
+                                isPending(`edit:${String(editing.notice_id)}`)
+                            }
                             loadingText="Saving"
                         >
                             Save

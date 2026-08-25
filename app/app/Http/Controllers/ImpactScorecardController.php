@@ -195,11 +195,37 @@ final class ImpactScorecardController extends Controller
             'value' => ['nullable', 'string', 'max:255'],
         ])->validate();
 
+        // Both parents must exist, otherwise updateOrInsert would happily
+        // fabricate orphan value rows pointing at nothing.
+        $measureExists = ImpactScorecardMeasure::query()->whereKey($measure)->exists();
+        $yearExists = ImpactScorecardYear::query()->whereKey($year)->exists();
+        abort_unless($measureExists && $yearExists, 404);
+
+        $existing = ImpactScorecardValue::query()
+            ->where('measure_id', $measure)
+            ->where('year_id', $year)
+            ->first();
         $value = $request->filled('value') ? $request->string('value')->toString() : null;
 
-        ImpactScorecardValue::query()->updateOrInsert(
-            ['measure_id' => $measure, 'year_id' => $year],
-            ['value' => $value, 'updated_at' => now()],
+        if ($existing === null) {
+            ImpactScorecardValue::query()->create([
+                'measure_id' => $measure,
+                'year_id' => $year,
+                'value' => $value,
+            ]);
+        } else {
+            $existing->update(['value' => $value]);
+        }
+
+        // Audit parity with every other scorecard mutation.
+        $this->audit->record(
+            $this->userId($request),
+            'scorecard.value_updated',
+            'impact_scorecard_values',
+            $measure.':'.$year,
+            before: ['value' => $existing?->value],
+            after: ['value' => $value],
+            request: $request,
         );
 
         CacheInvalidationService::onScorecardChange();

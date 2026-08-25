@@ -49,11 +49,13 @@ final class UploadModuleController extends Controller
         $user = $this->userOrFail($request);
         $this->assertModuleAccess($user, $slug);
 
-        $statusFilter = $request->string('status')->toString();
-
         // The status filter changes the row set, so it must be part of the
-        // cache key or filtered results leak across requests.
-        $data = CacheInvalidationService::remember('upload', "show:{$slug}:{$statusFilter}", function () use ($module, $slug, $statusFilter) {
+        // cache key or filtered results leak across requests. paginate()
+        // likewise reads ?page= from the request, so that must be keyed too.
+        $statusFilter = $request->string('status')->toString();
+        $page = (int) $request->query('page', '1');
+
+        $data = CacheInvalidationService::remember('upload', "show:{$slug}:{$statusFilter}:p{$page}", function () use ($module, $slug, $statusFilter) {
             return [
                 'rows' => $this->uploads->listRows($module, $slug, $statusFilter !== '' ? $statusFilter : null),
                 'stats' => $this->uploads->governanceStats($module, $slug),

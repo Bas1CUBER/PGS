@@ -9,7 +9,11 @@ Route::middleware(['auth', 'verified', 'role:admin', 'throttle:submissions'])->p
     Route::get('/', [UserController::class, 'index'])->name('users.index');
     Route::get('/create', [UserController::class, 'create'])->name('users.create');
     Route::post('/', [UserController::class, 'store'])->name('users.store');
-    Route::post('/import', [UserController::class, 'import'])->name('users.import');
+    // Bulk import is destructive at scale: require a fresh password
+    // confirmation rather than trusting a possibly week-old session.
+    Route::post('/import', [UserController::class, 'import'])
+        ->name('users.import')
+        ->middleware('password.confirm');
     Route::get('/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/{user}', [UserController::class, 'update'])->name('users.update');
     Route::put('/{user}/access', [UserController::class, 'updateAccess'])->name('users.update-access');

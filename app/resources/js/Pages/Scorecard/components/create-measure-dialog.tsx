@@ -16,6 +16,7 @@ interface CreateMeasureDialogProps {
     impact: string;
     measure: string;
     bl: string;
+    errors?: Partial<Record<string, string>>;
     onImpactChange: (value: string) => void;
     onMeasureChange: (value: string) => void;
     onBaselineChange: (value: string) => void;
@@ -30,6 +31,7 @@ export function CreateMeasureDialog({
     impact,
     measure,
     bl,
+    errors = {},
     onImpactChange,
     onMeasureChange,
     onBaselineChange,
@@ -58,6 +60,9 @@ export function CreateMeasureDialog({
                                     }}
                                     required
                                 />
+                                {errors.impact && (
+                                    <p className="text-destructive text-sm">{errors.impact}</p>
+                                )}
                             </div>
                             <div className="pgs-modal-field">
                                 <label htmlFor="measure">Measure</label>
@@ -69,6 +74,9 @@ export function CreateMeasureDialog({
                                     }}
                                     required
                                 />
+                                {errors.measure && (
+                                    <p className="text-destructive text-sm">{errors.measure}</p>
+                                )}
                             </div>
                         </div>
                         <div className="pgs-modal-field">
@@ -80,6 +88,7 @@ export function CreateMeasureDialog({
                                     onBaselineChange(e.target.value);
                                 }}
                             />
+                            {errors.bl && <p className="text-destructive text-sm">{errors.bl}</p>}
                         </div>
                     </DialogBody>
                     <DialogFooter className="pgs-modal-footer">

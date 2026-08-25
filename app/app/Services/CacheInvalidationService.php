@@ -129,7 +129,10 @@ class CacheInvalidationService
 
     public static function onUploadChange(string $module): void
     {
-        self::invalidateMany(['dashboard', "upload:{$module}"]);
+        // Readers cache under the bare 'upload' domain (per-slug distinction
+        // lives in the key), so bumping only "upload:{$module}" would leave
+        // module pages stale for the TTL.
+        self::invalidateMany(['dashboard', 'upload', "upload:{$module}"]);
     }
 
     public static function onNoticeChange(): void
@@ -162,10 +165,12 @@ class CacheInvalidationService
         self::invalidateMany(['dashboard', 'survey']);
     }
 
-    public static function onNotificationChange(int $userId): void
+    public static function onNotificationChange(): void
     {
-        self::invalidate("notification:{$userId}");
-        self::invalidate('dashboard');
+        // Per-user isolation comes from the cache key ("index:{id}",
+        // "unread:{id}", "feed:{id}"), so a single domain bump invalidates
+        // every affected user entry.
+        self::invalidateMany(['dashboard', 'notification']);
     }
 
     public static function onUserChange(): void

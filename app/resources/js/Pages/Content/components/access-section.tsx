@@ -14,6 +14,19 @@ interface AccessSectionProps {
     canManage: boolean;
 }
 
+function tryParseJson(value: string): { ok: true } | { ok: false; message: string } {
+    try {
+        const parsed: unknown = JSON.parse(value);
+        if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            return { ok: false, message: 'The matrix must be a JSON object with "columns" and "rows".' };
+        }
+
+        return { ok: true };
+    } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : 'Invalid JSON.' };
+    }
+}
+
 export function AccessSection({
     structuredContent,
     matrix,
@@ -22,6 +35,8 @@ export function AccessSection({
     isPending,
     canManage,
 }: AccessSectionProps) {
+    const parseState = tryParseJson(matrix);
+
     return (
         <Card>
             <CardHeader>
@@ -49,10 +64,18 @@ export function AccessSection({
                                 setMatrix(e.target.value);
                             }}
                             rows={18}
-                            className="border-input bg-background flex w-full min-w-[680px] rounded-md border px-3 py-2 font-mono text-xs"
+                            className={`bg-background border-input flex w-full min-w-[680px] rounded-md border px-3 py-2 font-mono text-xs ${
+                                parseState.ok ? 'border-input' : 'border-destructive'
+                            }`}
                         />
+                        {!parseState.ok && (
+                            <p className="text-destructive text-sm">
+                                Invalid JSON — the server will reject this: {parseState.message}
+                            </p>
+                        )}
                         <Button
                             onClick={onSave}
+                            disabled={!parseState.ok}
                             loading={isPending('structured')}
                             loadingText="Saving"
                         >

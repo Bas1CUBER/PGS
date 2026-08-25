@@ -49,7 +49,10 @@ final class SectorModuleController extends Controller
         // The cached payload must stay role-agnostic: it is shared between
         // every user, so pending changes (an admin-only review queue) are
         // resolved per request below instead of inside the closure.
-        $data = CacheInvalidationService::remember('sector', "sector:{$slug}", function () use ($module): array {
+        // paginate() reads ?page= from the current request, so the page must
+        // be part of the cache key or one page's result is served to all.
+        $page = (int) $request->query('page', '1');
+        $data = CacheInvalidationService::remember('sector', "sector:{$slug}:p{$page}", function () use ($module): array {
             $rows = DB::table($module['table'])
                 ->orderByDesc('year')
                 ->orderBy('id')
