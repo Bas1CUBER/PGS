@@ -129,11 +129,7 @@ export function CommandPalette({
                         <span>PGS command</span>
                     </span>
                     <span>
-                        <kbd>Up</kbd>
-                        <kbd>Down</kbd>
-                        <span>Navigate</span>
-                        <kbd>Enter</kbd>
-                        <span>Select</span>
+                        <span>Type to filter, Tab to navigate</span>
                     </span>
                 </footer>
             </DialogContent>

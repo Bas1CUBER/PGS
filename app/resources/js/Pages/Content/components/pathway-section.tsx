@@ -42,6 +42,8 @@ export function PathwaySection({
                                 <img
                                     src={`/legacy-img/${encodeURIComponent(panel.image)}`}
                                     alt={panel.title}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="max-h-72 w-full rounded-lg object-contain"
                                 />
                             )}

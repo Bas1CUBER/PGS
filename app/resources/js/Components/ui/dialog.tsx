@@ -5,8 +5,7 @@ import { createPortal } from 'react-dom';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { Cancel01Icon } from '@hugeicons/core-free-icons';
+import { X } from 'lucide-react';
 
 type DialogRootProps = React.PropsWithChildren<{
     open?: boolean;
@@ -226,7 +225,7 @@ function DialogSurface({
                             setOpen(false);
                         }}
                     >
-                        <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+                        <X size={16} strokeWidth={2} />
                         <span className="sr-only">Close</span>
                     </Button>
                 )}

@@ -350,6 +350,8 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                                                     <img
                                                         src={notice.image_url}
                                                         alt={notice.title ?? 'Notice image'}
+                                                        loading="lazy"
+                                                        decoding="async"
                                                         className="size-12 rounded object-cover"
                                                     />
                                                 )}

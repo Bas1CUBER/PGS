@@ -33,8 +33,10 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     steps:
+      # Pinned to mutable tag; consider SHA pinning + Dependabot
       - uses: actions/checkout@v4
 
+      # Pinned to mutable tag; consider SHA pinning + Dependabot
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
@@ -45,6 +47,7 @@ jobs:
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
+      # Pinned to mutable tag; consider SHA pinning + Dependabot
       - uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
@@ -93,8 +96,10 @@ jobs:
       run:
         working-directory: app
     steps:
+      # Pinned to mutable tag; consider SHA pinning + Dependabot
       - uses: actions/checkout@v4
 
+      # Pinned to mutable tag; consider SHA pinning + Dependabot
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -123,9 +128,11 @@ jobs:
     name: Security (secrets scan)
     runs-on: ubuntu-latest
     steps:
+      # Pinned to mutable tag; consider SHA pinning + Dependabot
       - uses: actions/checkout@v4
 
       - name: Gitleaks secrets scan
+        # Pinned to mutable tag; consider SHA pinning + Dependabot
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

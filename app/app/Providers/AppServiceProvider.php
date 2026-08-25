@@ -41,6 +41,12 @@ class AppServiceProvider extends ServiceProvider
             throw new \RuntimeException('BACKUP_ARCHIVE_PASSWORD must be configured in production.');
         }
 
+        // #101: backup notifications fall back to hello@example.com — require explicit
+        // BACKUP_NOTIFY_EMAIL in production so failures are not silently misdirected.
+        if ($this->app->isProduction() && (blank(config('backup.notifications.mail.to')) || config('backup.notifications.mail.to') === 'hello@example.com')) {
+            throw new \RuntimeException('BACKUP_NOTIFY_EMAIL must be configured in production.');
+        }
+
         $this->configureDefaults();
         $this->configureRateLimiting();
         $this->configureWorkflow();

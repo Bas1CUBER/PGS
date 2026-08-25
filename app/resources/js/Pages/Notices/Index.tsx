@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import type { PageProps } from '@/types';
-import { relativeInternalUrl } from '@/lib/relative-url';
+import { Pager } from '@/components/pager';
 import { usePendingAction } from '@/hooks/use-pending-action';
 
 interface NoticeRow {
@@ -240,6 +240,8 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                                                 <img
                                                     src={notice.image_url}
                                                     alt={notice.title ?? 'Notice image'}
+                                                    loading="lazy"
+                                                    decoding="async"
                                                     className="max-h-56 w-full rounded-lg object-cover"
                                                 />
                                             )}
@@ -290,29 +292,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
                     ))
                 )}
 
-                {notices.links.length > 3 && (
-                    <div className="flex justify-center gap-2">
-                        {notices.links.map((link, index) => (
-                            <span key={index}>
-                                {link.url ? (
-                                    <Button
-                                        asChild
-                                        variant={link.active ? 'default' : 'ghost'}
-                                        size="sm"
-                                    >
-                                        <a href={relativeInternalUrl(link.url) ?? '#'}>
-                                            {link.label.replace(/&laquo;|&raquo;/g, '')}
-                                        </a>
-                                    </Button>
-                                ) : (
-                                    <Button variant="ghost" size="sm" disabled>
-                                        {link.label.replace(/&laquo;|&raquo;/g, '')}
-                                    </Button>
-                                )}
-                            </span>
-                        ))}
-                    </div>
-                )}
+                <Pager links={notices.links} />
             </div>
 
             <Dialog

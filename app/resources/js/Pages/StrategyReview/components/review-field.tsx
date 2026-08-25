@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -18,11 +19,14 @@ export function ReviewField({
     type = 'text',
     error,
 }: ReviewFieldProps) {
+    const fieldId = useId();
+
     return (
         <div className="space-y-2">
-            <Label>{label}</Label>
+            <Label htmlFor={fieldId}>{label}</Label>
             {area ? (
                 <textarea
+                    id={fieldId}
                     value={value}
                     onChange={(e) => {
                         onChange(e.target.value);
@@ -32,6 +36,7 @@ export function ReviewField({
                 />
             ) : (
                 <Input
+                    id={fieldId}
                     type={type}
                     value={value}
                     onChange={(e) => {

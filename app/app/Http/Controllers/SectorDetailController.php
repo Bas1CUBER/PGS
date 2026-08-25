@@ -268,13 +268,24 @@ final class SectorDetailController extends Controller
         return $data;
     }
 
+    /** @var array<string, string|null> */
+    private static array $lockColumnCache = [];
+
     private function lockColumn(string $table): ?string
     {
+        if (array_key_exists($table, self::$lockColumnCache)) {
+            return self::$lockColumnCache[$table];
+        }
+
         foreach (['row_locked', 'locked', 'is_locked'] as $column) {
             if (Schema::hasColumn($table, $column)) {
+                self::$lockColumnCache[$table] = $column;
+
                 return $column;
             }
         }
+
+        self::$lockColumnCache[$table] = null;
 
         return null;
     }

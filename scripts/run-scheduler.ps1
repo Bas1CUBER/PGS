@@ -10,6 +10,7 @@ if (-not (Test-Path $php)) { $php = 'php' }
 # Keep the log from growing without bound (Laravel rotation does not cover it).
 $log = Join-Path $app 'storage\logs\scheduler.log'
 if ((Test-Path $log) -and ((Get-Item $log).Length -gt 10MB)) {
+    Move-Item -Force -LiteralPath $log -Destination "$log.1" -ErrorAction SilentlyContinue
     Set-Content -LiteralPath $log -Value '' -ErrorAction SilentlyContinue
 }
 

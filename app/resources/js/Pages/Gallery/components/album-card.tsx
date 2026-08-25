@@ -80,12 +80,14 @@ export function AlbumCard({
                                 <img
                                     src={`/gallery/photos/${String(photo.id)}/file`}
                                     alt={photo.caption ?? 'Photo'}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="aspect-square w-full rounded-md object-cover"
                                 />
                                 {canManage && (
                                     <button
                                         type="button"
-                                        className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-1 text-xs text-white opacity-0 transition group-hover:opacity-100"
+                                        className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-1 text-xs text-white opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                                         onClick={() => {
                                             onEditPhoto(photo);
                                         }}
@@ -102,7 +104,7 @@ export function AlbumCard({
                                         onClick={() => {
                                             onDeletePhoto(photo);
                                         }}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 absolute top-1 right-1 rounded p-1 opacity-0 transition group-hover:opacity-100"
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 absolute top-1 right-1 rounded p-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                                     >
                                         {photoDeletePending ? (
                                             <LoaderCircle className="loading-button-spinner size-3" />

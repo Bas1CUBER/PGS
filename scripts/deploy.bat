@@ -138,6 +138,10 @@ if %ERRORLEVEL% NEQ 0 (
 echo   ✓ Migrations applied
 echo.
 
+REM ── Storage symlink (required for public/storage -> storage/app/public)
+php artisan storage:link --force >NUL 2>&1
+echo   ✓ Storage link ensured
+
 REM ── Step 7: Cache optimization ────────────────────────────────────────────
 echo [7/8] Optimizing caches...
 

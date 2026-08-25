@@ -85,11 +85,13 @@ final class ImpactScorecardController extends Controller
             'bl' => ['nullable', 'string', 'max:255'],
         ])->validate();
 
-        ImpactScorecardMeasure::query()->whereKey($measure)->update([
+        $affected = ImpactScorecardMeasure::query()->whereKey($measure)->update([
             'impact' => $request->string('impact')->toString(),
             'measure' => $request->string('measure')->toString(),
             'bl' => $request->filled('bl') ? $request->string('bl')->toString() : null,
         ]);
+
+        abort_unless($affected > 0, 404);
 
         $this->audit->record(
             $this->userId($request),
@@ -108,10 +110,14 @@ final class ImpactScorecardController extends Controller
     {
         $this->assertAdminOrFocal($request);
 
-        DB::transaction(function () use ($measure): void {
+        $affected = 0;
+
+        DB::transaction(function () use ($measure, &$affected): void {
             ImpactScorecardValue::query()->where('measure_id', $measure)->delete();
-            ImpactScorecardMeasure::query()->whereKey($measure)->delete();
+            $affected = ImpactScorecardMeasure::query()->whereKey($measure)->delete();
         });
+
+        abort_unless($affected > 0, 404);
 
         $this->audit->record(
             $this->userId($request),
@@ -169,10 +175,14 @@ final class ImpactScorecardController extends Controller
     {
         $this->assertAdminOrFocal($request);
 
-        DB::transaction(function () use ($year): void {
+        $affected = 0;
+
+        DB::transaction(function () use ($year, &$affected): void {
             ImpactScorecardValue::query()->where('year_id', $year)->delete();
-            ImpactScorecardYear::query()->whereKey($year)->delete();
+            $affected = ImpactScorecardYear::query()->whereKey($year)->delete();
         });
+
+        abort_unless($affected > 0, 404);
 
         $this->audit->record(
             $this->userId($request),

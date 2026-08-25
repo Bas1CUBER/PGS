@@ -23,7 +23,8 @@ Security baseline for the PGS application. This is an internal government health
 
 - Laravel Breeze auth; password policy: min 12 chars, breached-password validation, `password:history` on change.
 - Login throttling + lockout (5 fails → 15 min); rate limit on reset (1/min).
-- Sessions: database store, HttpOnly + SameSite=Lax + Secure (prod), idle timeout 8h, `regenerate()` on privilege change.
+- Sessions: database store, HttpOnly + SameSite=Lax + Secure (prod, plain HTTP on LAN — see §9), idle timeout 8h, `regenerate()` on privilege change.
+- Ingress: XAMPP vhost `pgs.app:8082` is the blessed LAN entry. An optional cloudflared quick-tunnel may forward `https://…trycloudflare.com` → `127.0.0.1:8082`; `bootstrap/app.php:trustProxies(at:'127.0.0.1')` is intentionally narrow so only loopback can set `X-Forwarded-*`. If public exposure is ever made permanent, flip `SESSION_SECURE_COOKIE=true` behind the tunnel and add WAF/allowlist (audit #14).
 - Admin: TOTP 2FA enforced (Phase 8); recovery codes stored hashed.
 - Passwords: Argon2id (`bcrypt` acceptable for existing hashes at import); never log/echo credentials; `Hash::check` only.
 

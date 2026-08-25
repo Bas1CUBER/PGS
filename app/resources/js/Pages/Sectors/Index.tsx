@@ -40,7 +40,7 @@ export default function SectorsIndex({ modules }: SectorModulesPageProps) {
                         <Card key={slug} className="pgs-sector-card">
                             <CardHeader className="flex flex-col items-center gap-4 p-5 text-center">
                                 <div className="pgs-sector-card-logo" aria-hidden="true">
-                                    <img src={legacyImageUrl(module.logo)} alt="" />
+                                    <img src={legacyImageUrl(module.logo)} alt="" loading="lazy" decoding="async" />
                                 </div>
                                 <div className="min-w-0">
                                     <CardTitle className="pgs-sector-card-title">

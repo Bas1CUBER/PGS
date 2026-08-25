@@ -1,11 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { Download, Pencil, Plus, Save, Trash2, Target } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/pgs-toast';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import type { PageProps } from '@/types';
 import { TableRowActions } from '@/components/table-row-actions';
@@ -42,6 +43,8 @@ const blank: FormData = {
 };
 
 export default function Opcr({ rows, exportUrl }: OpcrProps) {
+    const { errors } = usePage().props as unknown as { errors: Partial<Record<string, string>> };
+    const { showToast } = useToast();
     const [data, setData] = useState<FormData>(blank);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<OpcrRow | null>(null);
@@ -55,6 +58,9 @@ export default function Opcr({ rows, exportUrl }: OpcrProps) {
             onSuccess: () => {
                 setData(blank);
                 setEditingId(null);
+            },
+            onError: () => {
+                showToast('error', 'Could not save the OPCR entry. Please review the form and try again.');
             },
             onFinish: () => {
                 finish(action);
@@ -84,10 +90,12 @@ export default function Opcr({ rows, exportUrl }: OpcrProps) {
     }
 
     function field(name: keyof FormData, label: string): ReactElement {
+        const required = name === 'success_indicator' || name === 'division_accountable';
         return (
             <div className="space-y-2">
                 <label className="text-xs font-semibold" htmlFor={`opcr-${name}`}>
                     {label}
+                    {required && <span className="text-destructive ml-1">*</span>}
                 </label>
                 <Input
                     id={`opcr-${name}`}
@@ -95,7 +103,10 @@ export default function Opcr({ rows, exportUrl }: OpcrProps) {
                     onChange={(event) => {
                         setData({ ...data, [name]: event.target.value });
                     }}
+                    required={required}
+                    aria-invalid={Boolean(errors[name])}
                 />
+                {errors[name] && <p className="text-destructive text-xs">{errors[name]}</p>}
             </div>
         );
     }

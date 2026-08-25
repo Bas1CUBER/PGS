@@ -11,7 +11,7 @@ export function SectorBanner({ module }: SectorBannerProps) {
         <Card className="pgs-sector-banner">
             <CardContent className="flex items-center gap-4 p-5 sm:p-6">
                 <div className="pgs-sector-logo" aria-hidden="true">
-                    <img src={legacyImageUrl(module.logo)} alt="" />
+                    <img src={legacyImageUrl(module.logo)} alt="" loading="lazy" decoding="async" />
                 </div>
                 <div>
                     <p className="pgs-section-kicker">Detailed roadmap</p>

@@ -171,6 +171,18 @@ final class SectorModuleController extends Controller
             'description' => ['required', 'string', 'max:5000'],
         ])->validate();
 
+        $existing = DB::table($module['table'])->where('id', $id)->first();
+        abort_if($existing === null, 404);
+
+        /** @var array<string, mixed> $existingArr */
+        $existingArr = (array) $existing;
+        $before = [];
+        foreach (['category', 'year', 'description'] as $column) {
+            if (array_key_exists($column, $existingArr)) {
+                $before[$column] = $existingArr[$column];
+            }
+        }
+
         $data = [
             'category' => $request->string('category')->toString(),
             'year' => $request->integer('year'),
@@ -190,6 +202,8 @@ final class SectorModuleController extends Controller
             "sector.{$slug}.row_updated",
             $module['table'],
             (string) $id,
+            before: $before,
+            after: $data,
             request: $request,
         );
 

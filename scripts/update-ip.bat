@@ -24,9 +24,18 @@ for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /i "IPv4"') do (
     )
 )
 
+REM Validate IP format; fall back to loopback on mismatch (e.g. VPN adapter quirks).
+if not "!LAN_IP!"=="" (
+    echo !LAN_IP! | findstr /R "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >NUL
+    if !ERRORLEVEL! NEQ 0 (
+        echo [WARN] Detected LAN_IP "!LAN_IP!" is not a valid IPv4; falling back to 127.0.0.1
+        set LAN_IP=127.0.0.1
+    )
+)
+
 if "!LAN_IP!"=="" (
-    echo [FAIL] Could not detect LAN IP
-    exit /b 1
+    echo [WARN] Could not detect LAN IP; falling back to 127.0.0.1
+    set LAN_IP=127.0.0.1
 )
 
 echo   Found: !LAN_IP!
@@ -41,8 +50,8 @@ if not exist "%ENV_FILE%" (
     exit /b 1
 )
 
-REM Replace APP_URL line
-powershell -Command "(Get-Content '%ENV_FILE%') -replace 'APP_URL=.*', 'APP_URL=http://!LAN_IP!:8082' | Set-Content '%ENV_FILE%'"
+REM Replace APP_URL line - preserve UTF8 encoding
+powershell -Command "(Get-Content '%ENV_FILE%') -replace 'APP_URL=.*', 'APP_URL=http://!LAN_IP!:8082' | Set-Content -Encoding UTF8 '%ENV_FILE%'"
 echo   Updated APP_URL to http://!LAN_IP!:8082
 echo.
 

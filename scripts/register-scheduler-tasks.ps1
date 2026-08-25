@@ -14,19 +14,21 @@ $schedulerScript = 'C:\xampp\htdocs\pgs\scripts\run-scheduler.ps1'
 $workerScript    = 'C:\xampp\htdocs\pgs\scripts\run-worker.ps1'
 
 # Auto-detect the interactive user if not supplied.
+# Preferred: WindowsIdentity is locale-independent; qwinsta parsing is fallback only.
 if (-not $UserName) {
-    $qwinsta = "$env:SystemRoot\System32\qwinsta.exe"
-    if (Test-Path $qwinsta) {
-        $sessionUser = (& $qwinsta 2>$null |
-            Where-Object { $_ -match '\bActive\b' } |
-            ForEach-Object { ($_ -split '\s+') | Where-Object { $_ -ne '' } | Select-Object -Index 1 } |
-            Select-Object -First 1)
-    }
+    $UserName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    if (-not $UserName) {
+        $qwinsta = "$env:SystemRoot\System32\qwinsta.exe"
+        if (Test-Path $qwinsta) {
+            $sessionUser = (& $qwinsta 2>$null |
+                Where-Object { $_ -match '\bActive\b' } |
+                ForEach-Object { ($_ -split '\s+') | Where-Object { $_ -ne '' } | Select-Object -Index 1 } |
+                Select-Object -First 1)
+        }
 
-    if ($sessionUser) {
-        $UserName = "$env:USERDOMAIN\$sessionUser"
-    } else {
-        $UserName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+        if ($sessionUser) {
+            $UserName = "$env:USERDOMAIN\$sessionUser"
+        }
     }
 }
 

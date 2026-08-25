@@ -51,12 +51,14 @@ final class RoadmapController extends Controller
             'title' => ['required', 'string', 'max:255'],
         ])->validate();
 
-        $max = (int) RoadmapTitle::query()->max('sort_order');
+        $title = DB::transaction(function () use ($request): RoadmapTitle {
+            $max = (int) RoadmapTitle::query()->max('sort_order');
 
-        $title = RoadmapTitle::query()->create([
-            'title' => $request->string('title')->toString(),
-            'sort_order' => $max + 1,
-        ]);
+            return RoadmapTitle::query()->create([
+                'title' => $request->string('title')->toString(),
+                'sort_order' => $max + 1,
+            ]);
+        });
 
         $this->audit->record(
             $this->userId($request),
@@ -128,17 +130,21 @@ final class RoadmapController extends Controller
             'sub_label' => ['required', 'string', 'max:500'],
         ])->validate();
 
-        $max = (int) RoadmapItem::query()->where('title_id', $title->id)->max('sort_order');
-        $letter = chr(65 + $max); // A, B, C, ...
+        $item = DB::transaction(function () use ($title, $request): RoadmapItem {
+            RoadmapTitle::query()->whereKey($title->id)->lockForUpdate()->first();
 
-        $item = RoadmapItem::query()->create([
-            'title_id' => $title->id,
-            'sub_letter' => $letter,
-            'sub_label' => $request->string('sub_label')->toString(),
-            'page_slug' => Str::slug($request->string('sub_label')->toString()),
-            'has_builder_page' => false,
-            'sort_order' => $max + 1,
-        ]);
+            $max = (int) RoadmapItem::query()->where('title_id', $title->id)->max('sort_order');
+            $letter = $this->nextLetter($max);
+
+            return RoadmapItem::query()->create([
+                'title_id' => $title->id,
+                'sub_letter' => $letter,
+                'sub_label' => $request->string('sub_label')->toString(),
+                'page_slug' => Str::slug($request->string('sub_label')->toString()),
+                'has_builder_page' => false,
+                'sort_order' => $max + 1,
+            ]);
+        });
 
         $this->audit->record(
             $this->userId($request),
@@ -185,11 +191,7 @@ final class RoadmapController extends Controller
         $user = $this->userOrFail($request);
         abort_unless($user->isAdmin() || $user->isFocal(), 403);
 
-        // roadmap_page_blocks.item_id cascades the block deletion at the DB
-        // level; wrapping in a transaction keeps it atomic with the item.
-        DB::transaction(function () use ($item): void {
-            $item->delete();
-        });
+        $item->delete();
 
         $this->audit->record(
             $this->userId($request),
@@ -213,6 +215,26 @@ final class RoadmapController extends Controller
             'block_type' => ['required', 'in:'.implode(',', RoadmapBlockType::values())],
             'content' => ['nullable', 'array'],
         ])->validate();
+
+        $blockType = $request->string('block_type')->toString();
+
+        if ($blockType === RoadmapBlockType::Heading->value || $blockType === RoadmapBlockType::Paragraph->value) {
+            Validator::make($request->all(), [
+                'content.text' => ['required', 'string', 'max:5000'],
+            ])->validate();
+        } elseif ($blockType === RoadmapBlockType::Table->value) {
+            Validator::make($request->all(), [
+                'content.columns' => ['required', 'array', 'max:20'],
+                'content.columns.*' => ['required', 'string', 'max:255'],
+                'content.rows' => ['required', 'array', 'max:50'],
+                'content.rows.*' => ['array', 'max:20'],
+            ])->validate();
+        } elseif ($blockType === RoadmapBlockType::DashboardStat->value) {
+            Validator::make($request->all(), [
+                'content.label' => ['required', 'string', 'max:255'],
+                'content.value' => ['required', 'string', 'max:255'],
+            ])->validate();
+        }
 
         $max = (int) RoadmapBlock::query()->where('item_id', $item->id)->max('sort_order');
 
@@ -244,6 +266,26 @@ final class RoadmapController extends Controller
         Validator::make($request->all(), [
             'content' => ['nullable', 'array'],
         ])->validate();
+
+        $type = $block->block_type->value;
+
+        if ($type === RoadmapBlockType::Heading->value || $type === RoadmapBlockType::Paragraph->value) {
+            Validator::make($request->all(), [
+                'content.text' => ['required', 'string', 'max:5000'],
+            ])->validate();
+        } elseif ($type === RoadmapBlockType::Table->value) {
+            Validator::make($request->all(), [
+                'content.columns' => ['required', 'array', 'max:20'],
+                'content.columns.*' => ['required', 'string', 'max:255'],
+                'content.rows' => ['required', 'array', 'max:50'],
+                'content.rows.*' => ['array', 'max:20'],
+            ])->validate();
+        } elseif ($type === RoadmapBlockType::DashboardStat->value) {
+            Validator::make($request->all(), [
+                'content.label' => ['required', 'string', 'max:255'],
+                'content.value' => ['required', 'string', 'max:255'],
+            ])->validate();
+        }
 
         $block->update(['content' => $request->input('content') ?? []]);
 
@@ -343,5 +385,19 @@ final class RoadmapController extends Controller
     private function userId(Request $request): int
     {
         return $this->userOrFail($request)->id;
+    }
+
+    private function nextLetter(int $max): string
+    {
+        $n = $max;
+        $letter = '';
+
+        do {
+            $remainder = $n % 26;
+            $letter = chr(65 + $remainder).$letter;
+            $n = intdiv($n, 26) - 1;
+        } while ($n >= 0);
+
+        return $letter;
     }
 }
