@@ -208,6 +208,21 @@ final class DashboardService
      */
     private function recentUploads(int $limit = 8): array
     {
+        /** @var list<array{page: string, file: string, time: string|null, user: string}> */
+        return $this->recentUploadsUnion()
+            ->orderByDesc('time')
+            ->limit($limit)
+            ->get()
+            ->map(fn (object $row): array => [
+                'page' => $this->stringify($row->page) ?? '',
+                'file' => $this->stringify($row->file) ?? '',
+                'time' => $this->stringify($row->time),
+                'user' => $this->uploaderName($row->uploader_email),
+            ])->values()->all();
+    }
+
+    private function recentUploadsUnion(): Builder
+    {
         $union = null;
 
         foreach (UploadModuleRegistry::modules() as $module) {
@@ -224,20 +239,10 @@ final class DashboardService
         }
 
         if ($union === null) {
-            return [];
+            throw new \LogicException('Upload module registry returned no modules.');
         }
 
-        /** @var list<array{page: string, file: string, time: string|null, user: string}> */
-        return $union
-            ->orderByDesc('time')
-            ->limit($limit)
-            ->get()
-            ->map(fn (object $row): array => [
-                'page' => $this->stringify($row->page) ?? '',
-                'file' => $this->stringify($row->file) ?? '',
-                'time' => $this->stringify($row->time),
-                'user' => $this->uploaderName($row->uploader_email),
-            ])->values()->all();
+        return $union;
     }
 
     private function stringify(mixed $value): ?string

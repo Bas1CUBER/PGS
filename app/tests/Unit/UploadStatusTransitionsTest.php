@@ -20,7 +20,9 @@ function service(): UploadModuleService
 
 function transitions(): array
 {
-    return UploadModuleService::STATUS_TRANSITIONS;
+    // Pint's Laravel preset forces private constants — read via reflection.
+    return (new ReflectionClass(UploadModuleService::class))
+        ->getConstant('STATUS_TRANSITIONS');
 }
 
 function graphAllows(?string $from, string $to): bool

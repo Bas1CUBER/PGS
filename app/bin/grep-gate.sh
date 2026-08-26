@@ -31,4 +31,22 @@ check "debug output" '\b(dd|dump|var_dump|print_r|console\.log)\(' app routes
 # 5. No CDN asset references
 check "CDN assets" 'https?://[^"'"'"' ]*cdn|unpkg\.com|jsdelivr\.net|cdnjs\.cloudflare\.com' resources
 
-exit $FAIL
+# 6. Frontend: hardcoded route literals are banned in page/component code —
+#    paths must come from lib/urls.ts. Route-definition tables that ARE
+#    single sources themselves (nav-config, breadcrumbs, page-width,
+#    quick-links) are whitelisted alongside lib/urls.ts.
+FRONTEND_FAIL=0
+if grep -rInE --include='*.tsx' --include='*.ts' \
+     "['\"\`]/(users|sectors|impact-scorecard|gallery|surveys|roadmaps|deliverables|backups|notices|notifications|content|communication-plan|opcr|strategy-review|operations-review|annex)" \
+     resources/js/Pages resources/js/Layouts resources/js/components 2>/dev/null \
+   | grep -v -e 'lib/urls.ts' -e 'nav-config.ts' -e 'breadcrumbs.ts' -e 'page-width.ts' -e 'quick-links.ts' > /dev/null 2>&1; then
+  echo "FAIL [hardcoded frontend route]:"
+  grep -rInE --include='*.tsx' --include='*.ts' \
+       "['\"\`]/(users|sectors|impact-scorecard|gallery|surveys|roadmaps|deliverables|backups|notices|notifications|content|communication-plan|opcr|strategy-review|operations-review|annex)" \
+       resources/js/Pages resources/js/Layouts resources/js/components 2>/dev/null \
+    | grep -v -e 'lib/urls.ts' -e 'nav-config.ts' -e 'breadcrumbs.ts' -e 'page-width.ts' -e 'quick-links.ts' || true
+  echo "       -> import { urls } from '@/lib/urls' instead"
+  FRONTEND_FAIL=1
+fi
+
+exit $((FAIL + FRONTEND_FAIL))

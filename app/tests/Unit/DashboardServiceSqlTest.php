@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Modules\UploadModuleRegistry;
 use App\Services\DashboardService;
+use Tests\TestCase;
 
 // Needs the Laravel container for the DB facade (toSql only — no queries run).
-uses(Tests\TestCase::class);
+uses(TestCase::class);
 
 /**
  * DashboardService builds its pending-approval and recent-upload feeds from
@@ -26,7 +28,7 @@ function allUploadTables(): array
 {
     return array_map(
         static fn (array $m): string => $m['table'],
-        App\Modules\UploadModuleRegistry::modules(),
+        UploadModuleRegistry::modules(),
     );
 }
 

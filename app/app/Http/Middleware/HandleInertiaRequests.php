@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Models\DeadlineControl;
 use App\Models\User;
+use App\Services\CacheInvalidationService;
 use App\Services\NotificationService;
 use App\Services\PageAccessService;
 use Illuminate\Http\Request;
@@ -39,8 +40,15 @@ class HandleInertiaRequests extends Middleware
                 'warning' => $request->session()->get('warning'),
                 'info' => $request->session()->get('info'),
             ],
+            // Same 30s cached lookup NotificationController uses — avoids a
+            // COUNT(*) on every Inertia render.
             'unreadCount' => $user instanceof User
-                ? app(NotificationService::class)->unreadCount($user->id)
+                ? CacheInvalidationService::remember(
+                    'notification',
+                    "unread:{$user->id}",
+                    fn (): int => app(NotificationService::class)->unreadCount($user->id),
+                    30,
+                )
                 : 0,
             'deadline' => $user instanceof User && ! $user->isAdmin()
                 ? $this->deadlineForRole($user->role->value)
