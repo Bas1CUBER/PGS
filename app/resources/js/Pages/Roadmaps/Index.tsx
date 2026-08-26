@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/pgs-toast';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { urls } from '@/lib/urls';
 import { AddItemDialog } from './components/add-item-dialog';
 import { AddSectionDialog } from './components/add-section-dialog';
 import { BuilderDialog } from './components/builder-dialog';
@@ -46,7 +47,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
     function addTitle(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (titleForm.data.title.trim() === '') return;
-        titleForm.post('/roadmaps/titles', {
+        titleForm.post(urls.roadmaps.titles, {
             preserveScroll: true,
             onSuccess: () => {
                 titleForm.reset();
@@ -61,7 +62,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
         const action = `add-item:${String(titleId)}`;
         start(action);
         itemForm.setData('sub_label', content);
-        itemForm.post(`/roadmaps/titles/${String(titleId)}/items`, {
+        itemForm.post(urls.roadmaps.items(String(titleId)), {
             preserveScroll: true,
             onSuccess: () => {
                 setItemDrafts((prev) => ({ ...prev, [titleId]: '' }));
@@ -91,7 +92,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                 block_type: blockForm.data.block_type,
                 content: JSON.stringify(parsed),
             });
-            blockForm.post(`/roadmaps/items/${String(builderItem.id)}/blocks`, {
+            blockForm.post(urls.roadmaps.blocks(String(builderItem.id)), {
                 preserveScroll: true,
                 onSuccess: () => {
                     blockForm.reset('content');
@@ -113,7 +114,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
                 return;
             }
             blockUpdateForm.setData({ content: JSON.stringify(parsed) });
-            blockUpdateForm.put(`/roadmaps/blocks/${String(block.id)}`, {
+            blockUpdateForm.put(urls.roadmaps.block(String(block.id)), {
                 preserveScroll: true,
             });
         } catch {
@@ -125,7 +126,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
         const action = `reorder:${String(id)}:${direction}`;
         start(action);
         reorderForm.setData({ direction });
-        reorderForm.post(`/roadmaps/items/${String(id)}/reorder`, {
+        reorderForm.post(urls.roadmaps.reorder(String(id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish(action);
@@ -136,7 +137,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
     function confirmDeleteItem(): void {
         if (deleteItemTarget === null) return;
         start('delete-item');
-        router.delete(`/roadmaps/items/${String(deleteItemTarget.id)}`, {
+        router.delete(urls.roadmaps.item(String(deleteItemTarget.id)), {
             onFinish: () => {
                 finish('delete-item');
                 setDeleteItemTarget(null);
@@ -147,7 +148,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
     function deleteTitle(): void {
         if (deleteTarget === null) return;
         start('delete-title');
-        router.delete(`/roadmaps/titles/${String(deleteTarget.id)}`, {
+        router.delete(urls.roadmaps.title(String(deleteTarget.id)), {
             onFinish: () => {
                 finish('delete-title');
                 setDeleteTarget(null);
@@ -158,7 +159,7 @@ export default function RoadmapsIndex({ titles }: RoadmapsPageProps) {
     function confirmDeleteBlock(): void {
         if (deleteBlockTarget === null) return;
         start('delete-block');
-        router.delete(`/roadmaps/blocks/${String(deleteBlockTarget.id)}`, {
+        router.delete(urls.roadmaps.block(String(deleteBlockTarget.id)), {
             onFinish: () => {
                 finish('delete-block');
                 setDeleteBlockTarget(null);

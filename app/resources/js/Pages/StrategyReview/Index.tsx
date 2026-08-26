@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
+import { urls } from '@/lib/urls';
 import { blankForm } from './components/lib';
 import { ReviewFormDialog } from './components/review-form-dialog';
 import { ReviewRegister } from './components/review-register';
@@ -40,8 +41,8 @@ export default function StrategyReviewIndex({
             },
         };
         form.setData('status', status);
-        if (editingId === null) form.post('/strategy-review', options);
-        else form.put(`/strategy-review/${String(editingId)}`, options);
+        if (editingId === null) form.post(urls.strategyReview.index, options);
+        else form.put(urls.strategyReview.update(String(editingId)), options);
     }
 
     function openForm(reviewForm: ReviewForm): void {
@@ -55,7 +56,7 @@ export default function StrategyReviewIndex({
         const action = `review:${String(reviewTarget.form.id)}`;
         start(action);
         router.post(
-            `/strategy-review/${String(reviewTarget.form.id)}/review`,
+            urls.strategyReview.review(String(reviewTarget.form.id)),
             { status: reviewTarget.status },
             {
                 preserveScroll: true,

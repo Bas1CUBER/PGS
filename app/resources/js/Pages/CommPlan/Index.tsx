@@ -17,6 +17,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { PageProps } from '@/types';
+import { statusClass } from '@/lib/status';
+import { urls } from '@/lib/urls';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
@@ -41,9 +43,9 @@ interface CommPlanPageProps extends PageProps {
 }
 
 const statusStyles: Record<string, string> = {
-    Completed: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
-    Ongoing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
-    'Not Accomplished/Started': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+    Completed: statusClass('Completed'),
+    Ongoing: statusClass('Ongoing'),
+    'Not Accomplished/Started': statusClass('Not Accomplished/Started'),
 };
 
 export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: CommPlanPageProps) {
@@ -65,7 +67,7 @@ export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: Co
 
     function create(e: { preventDefault(): void }): void {
         e.preventDefault();
-        form.post('/communication-plan', {
+        form.post(urls.communicationPlan.index, {
             preserveScroll: true,
             onSuccess: () => {
                 setFormOpen(false);
@@ -91,7 +93,7 @@ export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: Co
     function saveEdit(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (editing === null) return;
-        form.put(`/communication-plan/${String(editing.id)}`, {
+        form.put(urls.communicationPlan.update(String(editing.id)), {
             preserveScroll: true,
             onSuccess: () => {
                 setEditing(null);
@@ -106,7 +108,7 @@ export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: Co
         const action = `status:${String(id)}`;
         start(action);
         router.put(
-            `/communication-plan/${String(id)}`,
+            urls.communicationPlan.update(String(id)),
             {
                 objective: row.objective,
                 target_audience: row.target_audience,
@@ -129,7 +131,7 @@ export default function CommPlanIndex({ rows, userId, canManage, uploadUrl }: Co
     function confirmDelete(): void {
         if (deleteTarget === null) return;
         start('delete');
-        router.delete(`/communication-plan/${String(deleteTarget.id)}`, {
+        router.delete(urls.communicationPlan.destroy(String(deleteTarget.id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish('delete');

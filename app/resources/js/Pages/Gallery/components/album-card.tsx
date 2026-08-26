@@ -2,6 +2,7 @@ import { ImagePlus, LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { urls } from '@/lib/urls';
 import type { Album, Photo } from './types';
 
 interface AlbumCardProps {
@@ -78,7 +79,7 @@ export function AlbumCard({
                         {photos.map((photo) => (
                             <div key={photo.id} className="group relative">
                                 <img
-                                    src={`/gallery/photos/${String(photo.id)}/file`}
+                                    src={urls.gallery.file(String(photo.id))}
                                     alt={photo.caption ?? 'Photo'}
                                     loading="lazy"
                                     decoding="async"

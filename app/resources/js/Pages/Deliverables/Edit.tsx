@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { urls } from '@/lib/urls';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
 
@@ -44,7 +45,7 @@ export default function DeliverableEdit({ deliverable }: DeliverableEditPageProp
 
     function submit(e: { preventDefault(): void }): void {
         e.preventDefault();
-        put(`/deliverables/${String(deliverable.id)}`);
+        put(urls.deliverables.update(String(deliverable.id)));
     }
 
     function move(direction: 'up' | 'down'): void {
@@ -58,7 +59,7 @@ export default function DeliverableEdit({ deliverable }: DeliverableEditPageProp
         const action = `move:${direction}`;
         start(action);
         router.post(
-            `/deliverables/${String(deliverable.id)}/status`,
+            urls.deliverables.status(String(deliverable.id)),
             { to: statusOrder[target] },
             {
                 preserveScroll: true,
@@ -77,7 +78,7 @@ export default function DeliverableEdit({ deliverable }: DeliverableEditPageProp
 
             <div className="mx-auto max-w-2xl space-y-6">
                 <Button asChild variant="ghost" size="sm">
-                    <Link href="/deliverables">
+                    <Link href={urls.deliverables.index}>
                         <ArrowLeft className="size-4" />
                         Back to deliverables
                     </Link>

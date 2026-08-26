@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import type { PageProps } from '@/types';
+import { urls } from '@/lib/urls';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
 interface Review {
@@ -88,9 +89,9 @@ export default function OperationsReviewIndex({
         };
 
         if (editingId === null) {
-            form.post('/operations-review', options);
+            form.post(urls.operationsReview.index, options);
         } else {
-            form.put(`/operations-review/${String(editingId)}`, options);
+            form.put(urls.operationsReview.update(String(editingId)), options);
         }
     }
 
@@ -103,7 +104,7 @@ export default function OperationsReviewIndex({
     function confirmDelete(): void {
         if (deleteTarget === null) return;
         start('delete');
-        router.delete(`/operations-review/${String(deleteTarget.id)}`, {
+        router.delete(urls.operationsReview.destroy(String(deleteTarget.id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish('delete');
@@ -210,7 +211,7 @@ export default function OperationsReviewIndex({
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     <Button asChild variant="outline" size="sm">
-                                        <a href={`/operations-review/${String(review.id)}/pdf`}>
+                                        <a href={urls.operationsReview.pdf(String(review.id))}>
                                             <Download className="size-4" /> PDF
                                         </a>
                                     </Button>

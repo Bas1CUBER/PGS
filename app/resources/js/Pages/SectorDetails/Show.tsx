@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { urls } from '@/lib/urls';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import { CreateRowDialog } from './components/create-row-dialog';
 import { DetailRowsTableCard } from './components/detail-rows-table-card';
@@ -38,7 +39,7 @@ export default function SectorDetailShow({
 
     function create(): void {
         start('create');
-        createForm.post(`/sectors/${module.pillar}/${module.slug}`, {
+        createForm.post(urls.sectorDetails(module.pillar, module.slug), {
             preserveScroll: true,
             onSuccess: () => {
                 createForm.reset();
@@ -57,7 +58,7 @@ export default function SectorDetailShow({
         start(action);
 
         editForm.setData(rowDraft);
-        editForm.put(`/sectors/${module.pillar}/${module.slug}/${String(id)}`, {
+        editForm.put(urls.sectors.detailRow(module.pillar, module.slug, String(id)), {
             preserveScroll: true,
             onSuccess: () => {
                 setDrafts((prev) => {
@@ -81,20 +82,23 @@ export default function SectorDetailShow({
     function confirmDelete(): void {
         if (deleteTarget === null) return;
         start('delete');
-        router.delete(`/sectors/${module.pillar}/${module.slug}/${String(deleteTarget)}`, {
-            preserveScroll: true,
-            onFinish: () => {
-                finish('delete');
-                setDeleteTarget(null);
+        router.delete(
+            urls.sectors.detailRow(module.pillar, module.slug, String(deleteTarget)),
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    finish('delete');
+                    setDeleteTarget(null);
+                },
             },
-        });
+        );
     }
 
     function toggleLock(id: number): void {
         const action = `lock:${String(id)}`;
         start(action);
         router.post(
-            `/sectors/${module.pillar}/${module.slug}/${String(id)}/lock`,
+            urls.sectors.detailRowLock(module.pillar, module.slug, String(id)),
             {},
             {
                 preserveScroll: true,
@@ -128,7 +132,7 @@ export default function SectorDetailShow({
 
             <div className="space-y-6">
                 <Button asChild variant="ghost" size="sm">
-                    <Link href={`/sectors/${module.pillar}`}>
+                    <Link href={urls.sectors.show(module.pillar)}>
                         <ArrowLeft className="size-4" />
                         {module.pillar_label}
                     </Link>
@@ -142,7 +146,7 @@ export default function SectorDetailShow({
                     onCreateClick={() => {
                         setCreateDialogOpen(true);
                     }}
-                    exportHref={`/sectors/${module.pillar}/${module.slug}/export`}
+                    exportHref={urls.sectors.detailExport(module.pillar, module.slug)}
                 />
 
                 <DetailRowsTableCard

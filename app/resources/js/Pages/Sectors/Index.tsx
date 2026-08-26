@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import type { PageProps } from '@/types';
 import { legacyImageUrl } from '@/lib/legacy-asset';
+import { urls } from '@/lib/urls';
 
 interface SectorModulesPageProps extends PageProps {
     modules: Record<
@@ -53,7 +54,7 @@ export default function SectorsIndex({ modules }: SectorModulesPageProps) {
                             </CardHeader>
                             <CardContent className="mt-auto w-full p-5 pt-0 text-center">
                                 <Button asChild size="sm" className="w-full">
-                                    <Link href={`/sectors/${slug}`}>Open</Link>
+                                    <Link href={urls.sectors.show(slug)}>Open</Link>
                                 </Button>
                             </CardContent>
                         </Card>

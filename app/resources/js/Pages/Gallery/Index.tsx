@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { urls } from '@/lib/urls';
 import { AlbumsGrid } from './components/albums-grid';
 import { CreateAlbumDialog } from './components/create-album-dialog';
 import { DeleteAlbumDialog } from './components/delete-album-dialog';
@@ -34,7 +35,7 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
     function createAlbum(e: { preventDefault(): void }): void {
         e.preventDefault();
         start('create-album');
-        albumForm.post('/gallery/albums', {
+        albumForm.post(urls.gallery.albums, {
             preserveScroll: true,
             onSuccess: () => {
                 setAlbumDialogOpen(false);
@@ -55,7 +56,7 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
         if (uploadTarget === null || photoForm.data.photos.length === 0) return;
 
         start('upload-photo');
-        photoForm.post(`/gallery/albums/${String(uploadTarget.id)}/photos`, {
+        photoForm.post(urls.gallery.photos(String(uploadTarget.id)), {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -77,7 +78,7 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
         e.preventDefault();
         if (editingAlbum === null) return;
         start(`edit-album:${String(editingAlbum.id)}`);
-        albumEditForm.put(`/gallery/albums/${String(editingAlbum.id)}`, {
+        albumEditForm.put(urls.gallery.album(String(editingAlbum.id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish(`edit-album:${String(editingAlbum.id)}`);
@@ -95,7 +96,7 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
         e.preventDefault();
         if (editingPhoto === null) return;
         start(`edit-photo:${String(editingPhoto.id)}`);
-        photoEditForm.put(`/gallery/photos/${String(editingPhoto.id)}`, {
+        photoEditForm.put(urls.gallery.photo(String(editingPhoto.id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish(`edit-photo:${String(editingPhoto.id)}`);
@@ -107,7 +108,7 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
     function confirmDeletePhoto(): void {
         if (deletePhotoTarget === null) return;
         start('delete-photo');
-        router.delete(`/gallery/photos/${String(deletePhotoTarget.id)}`, {
+        router.delete(urls.gallery.photo(String(deletePhotoTarget.id)), {
             onFinish: () => {
                 finish('delete-photo');
                 setDeletePhotoTarget(null);
@@ -118,7 +119,7 @@ export default function GalleryIndex({ albums, photos }: GalleryPageProps) {
     function confirmDeleteAlbum(): void {
         if (deleteAlbumTarget === null) return;
         start('delete-album');
-        router.delete(`/gallery/albums/${String(deleteAlbumTarget.id)}`, {
+        router.delete(urls.gallery.album(String(deleteAlbumTarget.id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish('delete-album');

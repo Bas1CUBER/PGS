@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import type { PageProps } from '@/types';
+import { urls } from '@/lib/urls';
 import { Pager } from '@/components/pager';
 import { usePendingAction } from '@/hooks/use-pending-action';
 
@@ -69,7 +70,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
     function createNotice(e: { preventDefault(): void }): void {
         e.preventDefault();
         start('create');
-        createForm.post('/notices', {
+        createForm.post(urls.notices.store, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -84,7 +85,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
     function saveEdit(): void {
         if (editing === null) return;
         start(`edit:${String(editing.notice_id)}`);
-        editForm.post(`/notices/${String(editing.notice_id)}`, {
+        editForm.post(urls.notices.update(String(editing.notice_id)), {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -100,7 +101,7 @@ export default function NoticesIndex({ notices }: NoticesPageProps) {
     function deleteNotice(): void {
         if (deleteTarget === null) return;
         start('delete');
-        deleteForm.delete(`/notices/${String(deleteTarget.notice_id)}`, {
+        deleteForm.delete(urls.notices.destroy(String(deleteTarget.notice_id)), {
             onFinish: () => {
                 finish('delete');
                 setDeleteTarget(null);

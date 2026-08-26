@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { urls } from '@/lib/urls';
 import type { PageProps, User } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
@@ -46,13 +47,13 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
 
     function submit(e: { preventDefault(): void }): void {
         e.preventDefault();
-        put(`/users/${String(user.id)}`);
+        put(urls.users.update(String(user.id)));
     }
 
     function saveAccess(): void {
         start('access');
         router.put(
-            `/users/${String(user.id)}/access`,
+            urls.users.updateAccess(String(user.id)),
             { ...accessState },
             {
                 preserveScroll: true,
@@ -66,7 +67,7 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
     function toggleAccount(): void {
         start('toggle');
         router.post(
-            `/users/${String(user.id)}/toggle`,
+            urls.users.toggle(String(user.id)),
             {},
             {
                 onFinish: () => {
@@ -79,7 +80,7 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
 
     function confirmDelete(): void {
         start('delete');
-        router.delete(`/users/${String(user.id)}`, {
+        router.delete(urls.users.destroy(String(user.id)), {
             onFinish: () => {
                 finish('delete');
                 setConfirmingDeletion(false);
@@ -95,7 +96,7 @@ export default function EditUser({ user, roles, accessModules }: EditUserPagePro
 
             <div className="mx-auto max-w-2xl space-y-6">
                 <Button asChild variant="ghost" size="sm">
-                    <Link href="/users">
+                    <Link href={urls.users.index}>
                         <ArrowLeft className="size-4" />
                         Back to users
                     </Link>

@@ -1,23 +1,15 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-    BarChart3,
     Bell,
-    BookOpen,
-    Building2,
-    ClipboardCheck,
     ClipboardList,
     FileText,
     FolderTree,
-    GitBranch,
     History,
-    Landmark,
     LayoutDashboard,
     Mail,
-    Network,
-    SlidersHorizontal,
     UserCircle,
 } from 'lucide-react';
-import type { NavGroup, NavItem } from '@/components/nav-config';
+import { NAV_ICONS, type NavGroup, type NavItem } from '@/components/nav-config';
 
 export interface SearchPaletteItem extends NavItem {
     group: string;
@@ -25,17 +17,6 @@ export interface SearchPaletteItem extends NavItem {
     section: 'quick' | 'navigate';
     icon: LucideIcon;
 }
-
-const paletteGroupIcons: Record<string, LucideIcon> = {
-    Roadmaps: Network,
-    Scorecard: BarChart3,
-    'Performance Assessment': ClipboardCheck,
-    Cascading: GitBranch,
-    Governance: Landmark,
-    Organization: Building2,
-    About: BookOpen,
-    Others: SlidersHorizontal,
-};
 
 const paletteUtilityIcons: Record<string, LucideIcon> = {
     Profile: UserCircle,
@@ -94,7 +75,7 @@ export function buildSearchItems(
                 ...item,
                 description: `Go to ${item.group.toLowerCase()}`,
                 section: 'navigate' as const,
-                icon: paletteGroupIcons[item.group] ?? FolderTree,
+                icon: NAV_ICONS[item.group] ?? FolderTree,
             })),
     ];
 }

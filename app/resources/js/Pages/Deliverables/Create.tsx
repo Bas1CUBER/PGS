@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { PageProps } from '@/types';
+import { urls } from '@/lib/urls';
 
 interface DeliverableFormPageProps extends PageProps {
     statuses: string[];
@@ -26,7 +27,7 @@ export default function DeliverableCreate({ statuses }: DeliverableFormPageProps
 
     function submit(e: { preventDefault(): void }): void {
         e.preventDefault();
-        post('/deliverables');
+        post(urls.deliverables.store);
     }
 
     return (
@@ -37,7 +38,7 @@ export default function DeliverableCreate({ statuses }: DeliverableFormPageProps
 
             <div className="mx-auto max-w-2xl space-y-6">
                 <Button asChild variant="ghost" size="sm">
-                    <Link href="/deliverables">
+                    <Link href={urls.deliverables.index}>
                         <ArrowLeft className="size-4" />
                         Back to deliverables
                     </Link>

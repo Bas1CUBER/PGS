@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { urls } from '@/lib/urls';
 import type { PageProps } from '@/types';
 import { relativeInternalUrl } from '@/lib/relative-url';
 import { usePendingAction } from '@/hooks/use-pending-action';
@@ -39,7 +40,7 @@ export default function NotificationsIndex({ notifications, unreadCount }: Notif
     function markAllRead(): void {
         start('all');
         router.post(
-            '/notifications/read-all',
+            urls.notifications.readAll,
             {},
             {
                 onFinish: () => {
@@ -53,7 +54,7 @@ export default function NotificationsIndex({ notifications, unreadCount }: Notif
         const action = `read:${String(id)}`;
         start(action);
         router.post(
-            `/notifications/${String(id)}/read`,
+            urls.notifications.read(String(id)),
             {},
             {
                 onFinish: () => {

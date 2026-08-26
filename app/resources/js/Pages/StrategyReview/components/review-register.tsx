@@ -2,6 +2,7 @@ import { Download, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { urls } from '@/lib/urls';
 import type { ReviewDecisionTarget, ReviewForm } from './types';
 
 interface ReviewRegisterProps {
@@ -53,7 +54,7 @@ export function ReviewRegister({
                     </CardHeader>
                     <CardContent className="flex flex-wrap justify-end gap-2">
                         <Button asChild variant="outline" size="sm">
-                            <a href={`/strategy-review/${String(reviewForm.id)}/pdf`}>
+                            <a href={urls.strategyReview.pdf(String(reviewForm.id))}>
                                 <Download className="size-4" /> PDF
                             </a>
                         </Button>

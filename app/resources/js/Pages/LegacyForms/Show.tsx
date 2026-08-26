@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import type { PageProps } from '@/types';
+import { urls } from '@/lib/urls';
 import { TableRowActions } from '@/components/table-row-actions';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
@@ -61,8 +62,8 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
                 setEditingId(null);
             },
         };
-        if (editingId === null) post(`/annex/${form.slug}`, options);
-        else put(`/annex/${form.slug}/${String(editingId)}`, options);
+        if (editingId === null) post(urls.annex.store(form.slug), options);
+        else put(urls.annex.update(form.slug, String(editingId)), options);
     }
 
     function editRow(row: AnnexRow): void {
@@ -73,7 +74,7 @@ export default function LegacyFormShow({ form, rows, downloadUrl, canManage }: L
     function confirmDelete(): void {
         if (deleteTarget === null) return;
         start('delete');
-        router.delete(`/annex/${form.slug}/${String(deleteTarget.id)}`, {
+        router.delete(urls.annex.destroy(form.slug, String(deleteTarget.id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish('delete');

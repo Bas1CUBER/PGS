@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { urls } from '@/lib/urls';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import { AddIndicatorDialog } from './components/add-indicator-dialog';
 import { DetailRoadmapsCard } from './components/detail-roadmaps-card';
@@ -48,7 +49,7 @@ export default function SectorShow({
 
     function addRow(e: { preventDefault(): void }): void {
         e.preventDefault();
-        addForm.post(`/sectors/${module.slug}/rows`, {
+        addForm.post(urls.sectors.rows(module.slug), {
             preserveScroll: true,
             onSuccess: () => {
                 addForm.reset();
@@ -61,7 +62,7 @@ export default function SectorShow({
         if (deleteTarget === null) return;
 
         start('delete');
-        router.delete(`/sectors/${module.slug}/rows/${String(deleteTarget.id)}`, {
+        router.delete(urls.sectors.row(module.slug, String(deleteTarget.id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish('delete');
@@ -75,7 +76,7 @@ export default function SectorShow({
         const action = `decision:${String(decisionTarget.id)}`;
         start(action);
         router.post(
-            `/sectors/${module.slug}/pending/${String(decisionTarget.id)}/decision`,
+            urls.sectors.decision(module.slug, String(decisionTarget.id)),
             { decision: decisionTarget.decision },
             {
                 preserveScroll: true,
@@ -99,7 +100,7 @@ export default function SectorShow({
     function saveEdit(e: { preventDefault(): void }): void {
         e.preventDefault();
         if (editTarget === null) return;
-        editForm.put(`/sectors/${module.slug}/rows/${String(editTarget.id)}`, {
+        editForm.put(urls.sectors.row(module.slug, String(editTarget.id)), {
             preserveScroll: true,
             onSuccess: () => {
                 setEditTarget(null);

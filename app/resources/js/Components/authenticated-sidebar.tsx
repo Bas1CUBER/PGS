@@ -2,36 +2,28 @@ import { Link } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
     ArchiveRestore,
-    BookOpen,
-    Building2,
     CalendarClock,
-    ChartNoAxesCombined,
     CheckSquare,
     ChevronRight,
     CircleHelp,
     CircleUserRound,
-    ClipboardCheck,
     FileCheck2,
     GalleryHorizontalEnd,
     Gauge,
     KeyRound,
-    Landmark,
     LayoutDashboard,
     LogOut,
     Megaphone,
     Menu,
-    Network,
     RefreshCcw,
-    Settings2,
     ShieldCheck,
     SquareKanban,
     Users,
-    Workflow,
 } from 'lucide-react';
 import { useState, type MouseEvent } from 'react';
 import { cn } from '@/lib/utils';
 import type { User } from '@/types';
-import { isRouteActive, type NavGroup, type NavItem } from './nav-config';
+import { isRouteActive, NAV_ICONS, type NavGroup, type NavItem } from './nav-config';
 
 interface AuthenticatedSidebarProps {
     groups: NavGroup[];
@@ -43,17 +35,6 @@ interface AuthenticatedSidebarProps {
     mobileOpen: boolean;
     onCloseMobile: () => void;
 }
-
-const groupIcons: Partial<Record<string, LucideIcon>> = {
-    Roadmaps: Network,
-    Scorecard: ChartNoAxesCombined,
-    'Performance Assessment': ClipboardCheck,
-    Cascading: Workflow,
-    Governance: Landmark,
-    Organization: Building2,
-    About: BookOpen,
-    Others: Settings2,
-};
 
 const itemIcons: { match: RegExp; icon: LucideIcon }[] = [
     { match: /dashboard/i, icon: LayoutDashboard },
@@ -213,7 +194,7 @@ export default function AuthenticatedSidebar({
                 })}
 
                 {groups.map((group) => {
-                    const GroupIcon = groupIcons[group.title] ?? CircleHelp;
+                    const GroupIcon = NAV_ICONS[group.title] ?? CircleHelp;
                     const groupActive = group.items.some((item) =>
                         isRouteActive(item.href, currentUrl),
                     );

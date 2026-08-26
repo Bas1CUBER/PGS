@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import type { User } from '@/types';
 import { TableRowActions } from '@/components/table-row-actions';
-import { formatBytes } from './format-bytes';
+import { formatBytes } from '@/lib/format-bytes';
 import { StatusBadge } from './status-badge';
 import type { UploadRow, UploadStatusTarget, UploadsShowPageProps } from './types';
 

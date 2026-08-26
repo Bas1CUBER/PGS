@@ -16,6 +16,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { statusClass } from '@/lib/status';
+import { urls } from '@/lib/urls';
 import type { PageProps } from '@/types';
 import { relativeInternalUrl } from '@/lib/relative-url';
 import { TableRowActions } from '@/components/table-row-actions';
@@ -41,9 +43,9 @@ interface DeliverablesPageProps extends PageProps {
 }
 
 const statusStyles: Record<string, string> = {
-    Accomplished: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
-    Ongoing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
-    'Not Yet Started': 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+    Accomplished: statusClass('Accomplished'),
+    Ongoing: statusClass('Ongoing'),
+    'Not Yet Started': statusClass('Not Yet Started'),
 };
 
 export default function DeliverablesIndex({
@@ -56,7 +58,7 @@ export default function DeliverablesIndex({
 
     function submit(e: { preventDefault(): void }): void {
         e.preventDefault();
-        router.get('/deliverables', { search, status }, { preserveState: true, replace: true });
+        router.get(urls.deliverables.index, { search, status }, { preserveState: true, replace: true });
     }
 
     return (
@@ -85,7 +87,7 @@ export default function DeliverablesIndex({
                             onChange={(e) => {
                                 setStatus(e.target.value);
                                 router.get(
-                                    '/deliverables',
+                                    urls.deliverables.index,
                                     { search, status: e.target.value },
                                     { preserveState: true, replace: true },
                                 );
@@ -106,7 +108,7 @@ export default function DeliverablesIndex({
                     </form>
 
                     <Button asChild size="sm">
-                        <Link href="/deliverables/create">
+                        <Link href={urls.deliverables.create}>
                             <Plus className="size-4" />
                             Add deliverable
                         </Link>
@@ -169,7 +171,9 @@ export default function DeliverablesIndex({
                                                     <>
                                                         <DropdownMenuItem asChild>
                                                             <a
-                                                                href={`/deliverables/${String(deliverable.id)}/download`}
+                                                                href={urls.deliverables.download(
+                                                                    String(deliverable.id),
+                                                                )}
                                                             >
                                                                 <Download className="size-4" />{' '}
                                                                 Download
@@ -180,7 +184,9 @@ export default function DeliverablesIndex({
                                                 )}
                                                 <DropdownMenuItem asChild>
                                                     <Link
-                                                        href={`/deliverables/${String(deliverable.id)}/edit`}
+                                                        href={urls.deliverables.edit(
+                                                            String(deliverable.id),
+                                                        )}
                                                     >
                                                         <Pencil className="size-4" /> Edit
                                                     </Link>

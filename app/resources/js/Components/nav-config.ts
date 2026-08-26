@@ -1,4 +1,26 @@
+import type { LucideIcon } from 'lucide-react';
+import {
+    BookOpen,
+    Building2,
+    ChartNoAxesCombined,
+    ClipboardCheck,
+    Landmark,
+    Network,
+    Settings2,
+    Workflow,
+} from 'lucide-react';
 import type { User } from '@/types';
+
+export const NAV_ICONS: Record<string, LucideIcon> = {
+    Roadmaps: Network,
+    Scorecard: ChartNoAxesCombined,
+    'Performance Assessment': ClipboardCheck,
+    Cascading: Workflow,
+    Governance: Landmark,
+    Organization: Building2,
+    About: BookOpen,
+    Others: Settings2,
+};
 
 export interface NavItem {
     title: string;

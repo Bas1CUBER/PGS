@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { urls } from '@/lib/urls';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
@@ -53,7 +54,7 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
 
     function submit(e: { preventDefault(): void }): void {
         e.preventDefault();
-        post('/users');
+        post(urls.users.store);
     }
 
     async function runImport(dryRun: boolean): Promise<void> {
@@ -65,7 +66,7 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
 
         start('import');
         try {
-            const response = await fetch('/users/import', {
+            const response = await fetch(urls.users.import, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
@@ -104,7 +105,7 @@ export default function CreateUser({ roles, accessModules }: CreateUserPageProps
 
             <div className="mx-auto max-w-2xl space-y-6">
                 <Button asChild variant="ghost" size="sm">
-                    <Link href="/users">
+                    <Link href={urls.users.index}>
                         <ArrowLeft className="size-4" />
                         Back to users
                     </Link>

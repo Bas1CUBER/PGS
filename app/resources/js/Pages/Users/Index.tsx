@@ -15,10 +15,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Pager } from '@/components/pager';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import { cn } from '@/lib/utils';
+import { urls } from '@/lib/urls';
 import type { PageProps, User } from '@/types';
-import { relativeInternalUrl } from '@/lib/relative-url';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { TableRowActions } from '@/components/table-row-actions';
 
@@ -44,13 +45,13 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
 
     function submitSearch(e: { preventDefault(): void }): void {
         e.preventDefault();
-        router.get('/users', { search }, { preserveState: true, replace: true });
+        router.get(urls.users.index, { search }, { preserveState: true, replace: true });
     }
 
     function confirmDelete(): void {
         if (deleteTarget === null) return;
         start('delete');
-        router.delete(`/users/${String(deleteTarget.id)}`, {
+        router.delete(urls.users.destroy(String(deleteTarget.id)), {
             onFinish: () => {
                 finish('delete');
                 setDeleteTarget(null);
@@ -65,7 +66,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
         const action = `toggle:${String(toggleTarget.id)}`;
         start(action);
         router.post(
-            `/users/${String(toggleTarget.id)}/toggle`,
+            urls.users.toggle(String(toggleTarget.id)),
             {},
             {
                 onFinish: () => {
@@ -107,10 +108,10 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
 
                     <div className="flex gap-2">
                         <Button asChild variant="outline" size="sm">
-                            <Link href="/users/create">Import CSV</Link>
+                            <Link href={urls.users.create}>Import CSV</Link>
                         </Button>
                         <Button asChild size="sm">
-                            <Link href="/users/create">
+                            <Link href={urls.users.create}>
                                 <UserPlus className="size-4" />
                                 Add user
                             </Link>
@@ -158,7 +159,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                                         <TableCell className="text-right">
                                             <TableRowActions label={user.name ?? user.email}>
                                                 <DropdownMenuItem asChild>
-                                                    <Link href={`/users/${String(user.id)}/edit`}>
+                                                    <Link href={urls.users.edit(String(user.id))}>
                                                         <Pencil className="size-4" /> Edit
                                                     </Link>
                                                 </DropdownMenuItem>
@@ -202,29 +203,7 @@ export default function UsersIndex({ users, filters }: UsersPageProps) {
                     </CardContent>
                 </Card>
 
-                {users.links.length > 3 && (
-                    <div className="flex justify-center gap-2">
-                        {users.links.map((link, index) => (
-                            <span key={index}>
-                                {link.url ? (
-                                    <Button
-                                        asChild
-                                        variant={link.active ? 'default' : 'ghost'}
-                                        size="sm"
-                                    >
-                                        <Link href={relativeInternalUrl(link.url) ?? '#'}>
-                                            {link.label.replace(/&laquo;|&raquo;/g, '')}
-                                        </Link>
-                                    </Button>
-                                ) : (
-                                    <Button variant="ghost" size="sm" disabled>
-                                        {link.label.replace(/&laquo;|&raquo;/g, '')}
-                                    </Button>
-                                )}
-                            </span>
-                        ))}
-                    </div>
-                )}
+                <Pager links={users.links} />
             </div>
 
             <PgsConfirmationDialog

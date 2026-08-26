@@ -11,6 +11,7 @@ import type {
     PathwayPanel,
 } from '@/Pages/Content/components/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
+import { urls } from '@/lib/urls';
 
 export default function ContentShow({
     page,
@@ -38,7 +39,7 @@ export default function ContentShow({
         const form = new FormData();
         form.append('image', file);
         start('replace');
-        router.post(`/content/${page.slug}/image`, form, {
+        router.post(urls.content.image(page.slug), form, {
             forceFormData: true,
             preserveScroll: true,
             onFinish: () => {
@@ -60,7 +61,7 @@ export default function ContentShow({
                 : page.content_type === 'pathway'
                   ? { panels: JSON.stringify(panels) }
                   : { matrix };
-        router.post(`/content/${page.slug}/structured`, payload, {
+        router.post(urls.content.structured(page.slug), payload, {
             preserveScroll: true,
             onFinish: () => {
                 finish('structured');

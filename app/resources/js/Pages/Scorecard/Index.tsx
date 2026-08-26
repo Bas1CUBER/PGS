@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { useToast } from '@/components/pgs-toast';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
+import { urls } from '@/lib/urls';
 import { AddYearDialog } from './components/add-year-dialog';
 import { CreateMeasureDialog } from './components/create-measure-dialog';
 import { EditMeasureDialog } from './components/edit-measure-dialog';
@@ -34,7 +35,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
         e.preventDefault();
         start('create-measure');
         router.post(
-            '/impact-scorecard/measures',
+            urls.scorecard.measures,
             { impact, measure, bl },
             {
                 preserveScroll: true,
@@ -55,7 +56,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
         e.preventDefault();
         start('add-year');
         router.post(
-            '/impact-scorecard/years',
+            urls.scorecard.years,
             { year: newYear },
             {
                 preserveScroll: true,
@@ -74,7 +75,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
         if (editing === null) return;
         start('save-measure');
         router.put(
-            `/impact-scorecard/measures/${String(editing.id)}`,
+            urls.scorecard.measure(String(editing.id)),
             { impact, measure, bl },
             {
                 preserveScroll: true,
@@ -97,7 +98,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
         const action = `value:${key}`;
         start(action);
         router.put(
-            `/impact-scorecard/values/${String(measureId)}/${String(yearId)}`,
+            urls.scorecard.value(String(measureId), String(yearId)),
             { value: draft },
             {
                 preserveScroll: true,
@@ -123,7 +124,7 @@ export default function ScorecardIndex({ measures, years, values }: ScorecardPag
     function confirmDelete(): void {
         if (deleteTarget === null) return;
         start('delete-year');
-        router.delete(`/impact-scorecard/years/${String(deleteTarget.id)}`, {
+        router.delete(urls.scorecard.year(String(deleteTarget.id)), {
             onFinish: () => {
                 finish('delete-year');
                 setDeleteTarget(null);

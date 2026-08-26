@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dialog';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 import { cn } from '@/lib/utils';
+import { urls } from '@/lib/urls';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
 
@@ -57,7 +58,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
         const action = `done:${String(id)}`;
         start(action);
         router.post(
-            `/surveys/${String(id)}/done`,
+            urls.surveys.done(String(id)),
             {},
             {
                 onFinish: () => {
@@ -69,7 +70,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
 
     function createSurvey(e: { preventDefault(): void }): void {
         e.preventDefault();
-        form.post('/surveys', {
+        form.post(urls.surveys.index, {
             preserveScroll: true,
             onSuccess: () => {
                 form.reset();
@@ -80,7 +81,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
 
     function saveEdit(): void {
         if (editing === null) return;
-        form.put(`/surveys/${String(editing.id)}`, {
+        form.put(urls.surveys.update(String(editing.id)), {
             preserveScroll: true,
             onSuccess: () => {
                 setEditing(null);
@@ -97,7 +98,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
         const action = `archive:${String(archiveTarget.id)}`;
         start(action);
         router.post(
-            `/surveys/${String(archiveTarget.id)}/archive`,
+            urls.surveys.archive(String(archiveTarget.id)),
             {},
             {
                 preserveScroll: true,
@@ -112,7 +113,7 @@ export default function SurveysIndex({ surveys, archived, canManage }: SurveysPa
     function deleteSurvey(): void {
         if (deleteTarget === null) return;
         start('delete');
-        router.delete(`/surveys/${String(deleteTarget.id)}`, {
+        router.delete(urls.surveys.destroy(String(deleteTarget.id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish('delete');

@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { Bell, CheckCircle2, FileEdit, LoaderCircle, Users } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { urls } from '@/lib/urls';
 import type { PageProps } from '@/types';
 import { usePendingAction } from '@/hooks/use-pending-action';
 
@@ -29,7 +30,7 @@ export default function NotificationBell() {
 
     async function fetchNotifications(): Promise<void> {
         try {
-            const response = await fetch('/notifications/feed', {
+            const response = await fetch(urls.notifications.feed, {
                 headers: { Accept: 'application/json' },
             });
             if (!response.ok) return;
@@ -50,7 +51,7 @@ export default function NotificationBell() {
     function markAllRead(): void {
         start('all');
         router.post(
-            '/notifications/read-all',
+            urls.notifications.readAll,
             {},
             {
                 preserveScroll: true,
@@ -67,7 +68,7 @@ export default function NotificationBell() {
             const action = `read:${String(notification.id)}`;
             start(action);
             router.post(
-                `/notifications/${String(notification.id)}/read`,
+                urls.notifications.read(String(notification.id)),
                 {},
                 {
                     preserveScroll: true,
@@ -204,7 +205,7 @@ export default function NotificationBell() {
                     </div>
                     <footer>
                         <Link
-                            href="/notifications"
+                            href={urls.notifications.index}
                             onClick={() => {
                                 setOpen(false);
                             }}

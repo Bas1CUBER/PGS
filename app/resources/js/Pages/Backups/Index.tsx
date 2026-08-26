@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/table';
 import { useState } from 'react';
 import type { PageProps } from '@/types';
+import { formatBytes } from '@/lib/format-bytes';
+import { urls } from '@/lib/urls';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import { TableRowActions } from '@/components/table-row-actions';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
@@ -29,15 +31,6 @@ interface BackupsPageProps extends PageProps {
     backups: BackupRow[];
 }
 
-function formatBytes(bytes: number): string {
-    if (bytes < 1024) return String(bytes) + ' B';
-    const kb = bytes / 1024;
-    if (kb < 1024) return kb.toFixed(1) + ' kB';
-    const mb = kb / 1024;
-    if (mb < 1024) return mb.toFixed(1) + ' MB';
-    return (mb / 1024).toFixed(2) + ' GB';
-}
-
 export default function BackupsIndex({ backups }: BackupsPageProps) {
     const [creating, setCreating] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<BackupRow | null>(null);
@@ -45,7 +38,7 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
 
     function createBackup(): void {
         setCreating(true);
-        router.post('/backups', undefined, {
+        router.post(urls.backups.create, undefined, {
             onFinish: () => {
                 setCreating(false);
             },
@@ -55,7 +48,7 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
     function confirmDelete(): void {
         if (deleteTarget === null) return;
         start('delete');
-        router.delete(`/backups/${deleteTarget.disk}/${deleteTarget.path}`, {
+        router.delete(urls.backups.destroy(deleteTarget.disk, deleteTarget.path), {
             onFinish: () => {
                 finish('delete');
                 setDeleteTarget(null);
@@ -119,7 +112,10 @@ export default function BackupsIndex({ backups }: BackupsPageProps) {
                                             >
                                                 <DropdownMenuItem asChild>
                                                     <a
-                                                        href={`/backups/${backup.disk}/${backup.path}`}
+                                                        href={urls.backups.download(
+                                                            backup.disk,
+                                                            backup.path,
+                                                        )}
                                                     >
                                                         <Download className="size-4" /> Download
                                                     </a>

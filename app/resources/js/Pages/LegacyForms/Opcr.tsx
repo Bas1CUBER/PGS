@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/pgs-toast';
 import { usePendingAction } from '@/hooks/use-pending-action';
 import type { PageProps } from '@/types';
+import { urls } from '@/lib/urls';
 import { TableRowActions } from '@/components/table-row-actions';
 import { PgsConfirmationDialog } from '@/components/pgs-confirmation-dialog';
 
@@ -66,8 +67,8 @@ export default function Opcr({ rows, exportUrl }: OpcrProps) {
                 finish(action);
             },
         };
-        if (editingId === null) router.post('/opcr', data, options);
-        else router.put(`/opcr/${String(editingId)}`, data, options);
+        if (editingId === null) router.post(urls.opcr.index, data, options);
+        else router.put(urls.opcr.update(String(editingId)), data, options);
     }
 
     function edit(row: OpcrRow): void {
@@ -80,7 +81,7 @@ export default function Opcr({ rows, exportUrl }: OpcrProps) {
     function confirmDelete(): void {
         if (deleteTarget === null) return;
         start('delete');
-        router.delete(`/opcr/${String(deleteTarget.id)}`, {
+        router.delete(urls.opcr.destroy(String(deleteTarget.id)), {
             preserveScroll: true,
             onFinish: () => {
                 finish('delete');

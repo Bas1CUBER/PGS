@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { Table2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { urls } from '@/lib/urls';
 import type { SectorDetailLink } from './types';
 
 interface DetailRoadmapsCardProps {
@@ -27,7 +28,7 @@ export function DetailRoadmapsCard({ moduleSlug, details }: DetailRoadmapsCardPr
                     <div className="flex flex-wrap gap-2">
                         {details.map((detail) => (
                             <Button key={detail.slug} asChild variant="outline" size="sm">
-                                <Link href={`/sectors/${moduleSlug}/${detail.slug}`}>
+                                <Link href={urls.sectorDetails(moduleSlug, detail.slug)}>
                                     {detail.label}
                                 </Link>
                             </Button>

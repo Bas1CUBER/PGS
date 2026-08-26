@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { urls } from '@/lib/urls';
 import type { PageProps } from '@/types';
 
 interface DashboardData {
@@ -328,7 +329,7 @@ export default function Dashboard({ dashboard }: DashboardPageProps) {
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Latest notices</CardTitle>
                             <Button asChild variant="ghost" size="sm">
-                                <Link href="/notices">View all</Link>
+                                <Link href={urls.notices.index}>View all</Link>
                             </Button>
                         </CardHeader>
                         <CardContent className="pt-0">
